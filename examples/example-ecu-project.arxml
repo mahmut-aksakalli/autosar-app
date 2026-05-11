@@ -1,0 +1,1813 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR xmlns="http://autosar.org/schema/r4.0">
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>ExampleEcuProject</SHORT-NAME>
+      <AR-PACKAGES>
+        <AR-PACKAGE>
+          <SHORT-NAME>Interfaces</SHORT-NAME>
+          <ELEMENTS>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>SpeedSignal_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>VehicleSpeed</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>PedalPosition_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>PedalPosition</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>TemperatureSignal_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>TemperatureValue</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>TorqueRequest_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>RequestedTorque</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>PressureSignal_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>BoostPressure</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>DiagnosticStatus_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>FaultState</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>ActuatorCommand_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>ThrottleDuty</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>PositionFeedback_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>ActuatorPosition</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>HealthStatus_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>HealthState</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>EventSignal_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>EventCode</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>FaultCounter_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>FaultCounter</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>CalibrationService_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>ReadCalibration</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>SensorSyncService_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>SynchronizeSensor</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>FaultMemoryService_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>StoreFault</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>DiagnosticsControl_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>RunSelfTest</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>HealthMonitorService_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>QueryHealth</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+            <CLIENT-SERVER-INTERFACE>
+              <SHORT-NAME>ActuationControlService_I</SHORT-NAME>
+              <OPERATIONS>
+                <CLIENT-SERVER-OPERATION>
+                  <SHORT-NAME>EnableActuation</SHORT-NAME>
+                </CLIENT-SERVER-OPERATION>
+              </OPERATIONS>
+            </CLIENT-SERVER-INTERFACE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>DataTypes</SHORT-NAME>
+          <ELEMENTS>
+            <APPLICATION-PRIMITIVE-DATA-TYPE>
+              <SHORT-NAME>uint8</SHORT-NAME>
+            </APPLICATION-PRIMITIVE-DATA-TYPE>
+            <APPLICATION-PRIMITIVE-DATA-TYPE>
+              <SHORT-NAME>uint16</SHORT-NAME>
+            </APPLICATION-PRIMITIVE-DATA-TYPE>
+            <APPLICATION-PRIMITIVE-DATA-TYPE>
+              <SHORT-NAME>uint32</SHORT-NAME>
+            </APPLICATION-PRIMITIVE-DATA-TYPE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>ImplementationDataTypes</SHORT-NAME>
+          <ELEMENTS>
+            <IMPLEMENTATION-DATA-TYPE>
+              <SHORT-NAME>DiagAdminRequestContext</SHORT-NAME>
+            </IMPLEMENTATION-DATA-TYPE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>Modes</SHORT-NAME>
+          <ELEMENTS>
+            <MODE-DECLARATION-GROUP>
+              <SHORT-NAME>PowerModeGroup</SHORT-NAME>
+              <INITIAL-MODE-REF DEST="MODE-DECLARATION">/ExampleEcuProject/Modes/PowerModeGroup/POWER_ON</INITIAL-MODE-REF>
+              <MODE-DECLARATIONS>
+                <MODE-DECLARATION>
+                  <SHORT-NAME>POWER_ON</SHORT-NAME>
+                </MODE-DECLARATION>
+                <MODE-DECLARATION>
+                  <SHORT-NAME>LOW_POWER</SHORT-NAME>
+                </MODE-DECLARATION>
+                <MODE-DECLARATION>
+                  <SHORT-NAME>SLEEP</SHORT-NAME>
+                </MODE-DECLARATION>
+              </MODE-DECLARATIONS>
+            </MODE-DECLARATION-GROUP>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>Components</SHORT-NAME>
+          <ELEMENTS>
+            <APPLICATION-SW-COMPONENT-TYPE>
+              <SHORT-NAME>SpeedSensorSwc</SHORT-NAME>
+              <PORTS>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>SpeedOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/SpeedSignal_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>PedalPositionOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PedalPosition_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>TemperatureOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/TemperatureSignal_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>CalibrationSrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/CalibrationService_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>SensorSyncSrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/SensorSyncService_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>EventIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/EventSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultCounterIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultCounter_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultMemoryClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultMemoryService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>HealthMonitorClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/HealthMonitorService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>ActuationControlClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/ActuationControlService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+              </PORTS>
+              <INTERNAL-BEHAVIORS>
+                <SWC-INTERNAL-BEHAVIOR>
+                  <SHORT-NAME>SpeedSensorBehavior</SHORT-NAME>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>AcquireSignals</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishSignals</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>HandleSensorEvents</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <EVENTS>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>AcquireSignalsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/SpeedSensorSwc/SpeedSensorBehavior/AcquireSignals</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>PublishSignalsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/SpeedSensorSwc/SpeedSensorBehavior/PublishSignals</START-ON-EVENT-REF>
+                      <PERIOD>0.02</PERIOD>
+                    </TIMING-EVENT>
+                    <DATA-RECEIVED-EVENT>
+                      <SHORT-NAME>HandleSensorEventTrigger</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/SpeedSensorSwc/SpeedSensorBehavior/HandleSensorEvents</START-ON-EVENT-REF>
+                    </DATA-RECEIVED-EVENT>
+                  </EVENTS>
+                  <PARAMETER-DATA-PROTOTYPES>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>SpeedScale_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>1000</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>TemperatureOffset_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>25</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </PARAMETER-DATA-PROTOTYPES>
+                  <INTER-RUNNABLE-VARIABLES>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>RawSpeed_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>FilteredTemperature_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </INTER-RUNNABLE-VARIABLES>
+                </SWC-INTERNAL-BEHAVIOR>
+              </INTERNAL-BEHAVIORS>
+            </APPLICATION-SW-COMPONENT-TYPE>
+            <APPLICATION-SW-COMPONENT-TYPE>
+              <SHORT-NAME>TorqueControllerSwc</SHORT-NAME>
+              <PORTS>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>SpeedIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/SpeedSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>PedalPositionIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PedalPosition_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>TemperatureIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/TemperatureSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>CalibrationClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/CalibrationService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>SensorSyncClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/SensorSyncService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>DiagnosticsControlClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticsControl_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultMemoryClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultMemoryService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>TorqueOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/TorqueRequest_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>PressureOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PressureSignal_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>DiagOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticStatus_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>EventIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/EventSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultCounterIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultCounter_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+              </PORTS>
+              <INTERNAL-BEHAVIORS>
+                <SWC-INTERNAL-BEHAVIOR>
+                  <SHORT-NAME>TorqueControllerBehavior</SHORT-NAME>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ReadInputs</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ComputeTorque</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishControlOutputs</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <EVENTS>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ReadInputsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/TorqueControllerSwc/TorqueControllerBehavior/ReadInputs</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ComputeTorqueEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/TorqueControllerSwc/TorqueControllerBehavior/ComputeTorque</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <DATA-RECEIVED-EVENT>
+                      <SHORT-NAME>PublishControlOutputsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/TorqueControllerSwc/TorqueControllerBehavior/PublishControlOutputs</START-ON-EVENT-REF>
+                    </DATA-RECEIVED-EVENT>
+                  </EVENTS>
+                  <PARAMETER-DATA-PROTOTYPES>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>TorqueGain_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>320</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>PressureLimit_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>1800</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </PARAMETER-DATA-PROTOTYPES>
+                  <INTER-RUNNABLE-VARIABLES>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>RequestedTorque_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>DiagnosticState_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </INTER-RUNNABLE-VARIABLES>
+                </SWC-INTERNAL-BEHAVIOR>
+              </INTERNAL-BEHAVIORS>
+            </APPLICATION-SW-COMPONENT-TYPE>
+            <APPLICATION-SW-COMPONENT-TYPE>
+              <SHORT-NAME>ThrottleActuatorSwc</SHORT-NAME>
+              <PORTS>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>TorqueIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/TorqueRequest_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>PressureIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PressureSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>DiagStatusIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticStatus_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>HealthMonitorClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/HealthMonitorService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>ActuationControlClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/ActuationControlService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>CalibrationClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/CalibrationService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>DiagnosticsControlClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticsControl_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>ActuatorOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/ActuatorCommand_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>PositionFeedbackOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PositionFeedback_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>HealthStatusOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/HealthStatus_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultMemorySrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultMemoryService_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+              </PORTS>
+              <INTERNAL-BEHAVIORS>
+                <SWC-INTERNAL-BEHAVIOR>
+                  <SHORT-NAME>ThrottleActuatorBehavior</SHORT-NAME>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ReceiveCommands</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>DriveActuator</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ReportStatus</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <EVENTS>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ReceiveCommandsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReceiveCommands</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>DriveActuatorEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/DriveActuator</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ReportStatusEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReportStatus</START-ON-EVENT-REF>
+                      <PERIOD>0.02</PERIOD>
+                    </TIMING-EVENT>
+                  </EVENTS>
+                  <PARAMETER-DATA-PROTOTYPES>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>ActuatorSlewRate_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>75</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>HomePosition_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                      <INIT-VALUE>10</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </PARAMETER-DATA-PROTOTYPES>
+                  <INTER-RUNNABLE-VARIABLES>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>DesiredDuty_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>MeasuredPosition_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </INTER-RUNNABLE-VARIABLES>
+                </SWC-INTERNAL-BEHAVIOR>
+              </INTERNAL-BEHAVIORS>
+            </APPLICATION-SW-COMPONENT-TYPE>
+            <APPLICATION-SW-COMPONENT-TYPE>
+              <SHORT-NAME>DiagnosticsSwc</SHORT-NAME>
+              <PORTS>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>StatusIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticStatus_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>ActuatorFeedbackIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/ActuatorCommand_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>PositionFeedbackIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PositionFeedback_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>HealthStatusIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/HealthStatus_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>SpeedMonitorIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/SpeedSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>TemperatureMonitorIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/TemperatureSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>PressureMonitorIn</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/PressureSignal_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>EventOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/EventSignal_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>FaultCounterOut</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/Interfaces/FaultCounter_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>DiagnosticsControlSrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/DiagnosticsControl_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>HealthMonitorSrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/HealthMonitorService_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <P-PORT-PROTOTYPE>
+                  <SHORT-NAME>ActuationControlSrv</SHORT-NAME>
+                  <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/ActuationControlService_I</PROVIDED-INTERFACE-TREF>
+                </P-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>CalibrationClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/CalibrationService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+                <R-PORT-PROTOTYPE>
+                  <SHORT-NAME>SensorSyncClient</SHORT-NAME>
+                  <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/Interfaces/SensorSyncService_I</REQUIRED-INTERFACE-TREF>
+                </R-PORT-PROTOTYPE>
+              </PORTS>
+              <INTERNAL-BEHAVIORS>
+                <SWC-INTERNAL-BEHAVIOR>
+                  <SHORT-NAME>DiagnosticsBehavior</SHORT-NAME>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>CollectDiagnostics</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>EvaluateFaults</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishEvents</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <EVENTS>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>CollectDiagnosticsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/DiagnosticsSwc/DiagnosticsBehavior/CollectDiagnostics</START-ON-EVENT-REF>
+                      <PERIOD>0.02</PERIOD>
+                    </TIMING-EVENT>
+                    <DATA-RECEIVED-EVENT>
+                      <SHORT-NAME>EvaluateFaultsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/DiagnosticsSwc/DiagnosticsBehavior/EvaluateFaults</START-ON-EVENT-REF>
+                    </DATA-RECEIVED-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>PublishEventsTrigger</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/DiagnosticsSwc/DiagnosticsBehavior/PublishEvents</START-ON-EVENT-REF>
+                      <PERIOD>0.05</PERIOD>
+                    </TIMING-EVENT>
+                  </EVENTS>
+                  <PARAMETER-DATA-PROTOTYPES>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>FaultDebounce_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                      <INIT-VALUE>5</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>EventThreshold_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                      <INIT-VALUE>3</INIT-VALUE>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </PARAMETER-DATA-PROTOTYPES>
+                  <INTER-RUNNABLE-VARIABLES>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>FaultCounter_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>LatestEventCode_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </INTER-RUNNABLE-VARIABLES>
+                </SWC-INTERNAL-BEHAVIOR>
+              </INTERNAL-BEHAVIORS>
+            </APPLICATION-SW-COMPONENT-TYPE>
+            <COMPOSITION-SW-COMPONENT-TYPE>
+              <SHORT-NAME>PowertrainComposition</SHORT-NAME>
+              <COMPONENTS>
+                <SW-COMPONENT-PROTOTYPE>
+                  <SHORT-NAME>SpeedSensorInst</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/SpeedSensorSwc</TYPE-TREF>
+                </SW-COMPONENT-PROTOTYPE>
+                <SW-COMPONENT-PROTOTYPE>
+                  <SHORT-NAME>TorqueControllerInst</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/TorqueControllerSwc</TYPE-TREF>
+                </SW-COMPONENT-PROTOTYPE>
+                <SW-COMPONENT-PROTOTYPE>
+                  <SHORT-NAME>ThrottleActuatorInst</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc</TYPE-TREF>
+                </SW-COMPONENT-PROTOTYPE>
+                <SW-COMPONENT-PROTOTYPE>
+                  <SHORT-NAME>DiagnosticsInst</SHORT-NAME>
+                  <TYPE-TREF DEST="APPLICATION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/DiagnosticsSwc</TYPE-TREF>
+                </SW-COMPONENT-PROTOTYPE>
+              </COMPONENTS>
+              <CONNECTORS>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>SpeedToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/SpeedOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/SpeedIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>SpeedToDiagnosticsMonitor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/SpeedOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/SpeedMonitorIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>PedalToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/PedalPositionOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/PedalPositionIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>TemperatureToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/TemperatureOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/TemperatureIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>TemperatureToDiagnosticsMonitor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/TemperatureOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/TemperatureMonitorIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ControllerToActuator</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/TorqueOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/TorqueIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>PressureToActuator</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/PressureOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/PressureIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>PressureToDiagnosticsMonitor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/PressureOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/PressureMonitorIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ControllerToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/DiagOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/StatusIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ControllerToActuatorDiagStatus</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/DiagOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/DiagStatusIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ActuatorCommandToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/ActuatorOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/ActuatorFeedbackIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>PositionFeedbackToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/PositionFeedbackOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/PositionFeedbackIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>HealthStatusToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/HealthStatusOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/HealthStatusIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>CalibrationServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/CalibrationSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/CalibrationClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>CalibrationServiceToActuator</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/CalibrationSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/CalibrationClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>CalibrationServiceToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/CalibrationSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/CalibrationClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>SensorSyncServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/SensorSyncSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/SensorSyncClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>SensorSyncServiceToDiagnostics</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/SensorSyncSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/SensorSyncClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>FaultMemoryServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/FaultMemorySrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/FaultMemoryClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>FaultMemoryServiceToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/FaultMemorySrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/FaultMemoryClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>DiagnosticsControlServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/DiagnosticsControlSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/DiagnosticsControlClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>DiagnosticsControlServiceToActuator</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/DiagnosticsControlSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/DiagnosticsControlClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>HealthMonitorServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/HealthMonitorSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/HealthMonitorClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>HealthMonitorServiceToSpeedSensor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/HealthMonitorSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/HealthMonitorClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ActuationControlServiceLink</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/ActuationControlSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/ThrottleActuatorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/ThrottleActuatorSwc/ActuationControlClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>ActuationControlServiceToSpeedSensor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/ActuationControlSrv</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/ActuationControlClient</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>EventToSpeedSensor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/EventOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/EventIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>EventToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/EventOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/EventIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>FaultCounterToSpeedSensor</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/FaultCounterOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/SpeedSensorInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/FaultCounterIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+                <ASSEMBLY-SW-CONNECTOR>
+                  <SHORT-NAME>FaultCounterToController</SHORT-NAME>
+                  <PROVIDER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/DiagnosticsInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/Components/DiagnosticsSwc/FaultCounterOut</TARGET-P-PORT-REF>
+                  </PROVIDER-IREF>
+                  <REQUESTER-IREF>
+                    <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/Components/PowertrainComposition/TorqueControllerInst</CONTEXT-COMPONENT-REF>
+                    <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/FaultCounterIn</TARGET-R-PORT-REF>
+                  </REQUESTER-IREF>
+                </ASSEMBLY-SW-CONNECTOR>
+              </CONNECTORS>
+            </COMPOSITION-SW-COMPONENT-TYPE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>StandardsCoverage</SHORT-NAME>
+          <AR-PACKAGES>
+            <AR-PACKAGE>
+              <SHORT-NAME>Interfaces</SHORT-NAME>
+              <ELEMENTS>
+                <SENDER-RECEIVER-INTERFACE>
+                  <SHORT-NAME>RawCurrent_I</SHORT-NAME>
+                  <DATA-ELEMENTS>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>CurrentMilliAmp</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </DATA-ELEMENTS>
+                </SENDER-RECEIVER-INTERFACE>
+                <SENDER-RECEIVER-INTERFACE>
+                  <SHORT-NAME>PhysicalSpeed_I</SHORT-NAME>
+                  <DATA-ELEMENTS>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>VehicleSpeedKph</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </DATA-ELEMENTS>
+                </SENDER-RECEIVER-INTERFACE>
+                <SENDER-RECEIVER-INTERFACE>
+                  <SHORT-NAME>ActuatorEnable_I</SHORT-NAME>
+                  <DATA-ELEMENTS>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>EnableState</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </DATA-ELEMENTS>
+                </SENDER-RECEIVER-INTERFACE>
+                <SENDER-RECEIVER-INTERFACE>
+                  <SHORT-NAME>WakeupStatus_I</SHORT-NAME>
+                  <DATA-ELEMENTS>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>WakeupReason</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </DATA-ELEMENTS>
+                </SENDER-RECEIVER-INTERFACE>
+                <CLIENT-SERVER-INTERFACE>
+                  <SHORT-NAME>DiagAdmin_I</SHORT-NAME>
+                  <OPERATIONS>
+                    <CLIENT-SERVER-OPERATION>
+                      <SHORT-NAME>RequestSession</SHORT-NAME>
+                      <ARGUMENTS>
+                        <ARGUMENT-DATA-PROTOTYPE>
+                          <SHORT-NAME>RequestedSession</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                        </ARGUMENT-DATA-PROTOTYPE>
+                      </ARGUMENTS>
+                      <POSSIBLE-ERROR-REFS>
+                        <POSSIBLE-ERROR-REF DEST="APPLICATION-ERROR">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagDenied_E</POSSIBLE-ERROR-REF>
+                      </POSSIBLE-ERROR-REFS>
+                    </CLIENT-SERVER-OPERATION>
+                  </OPERATIONS>
+                  <POSSIBLE-ERRORS>
+                    <APPLICATION-ERROR>
+                      <SHORT-NAME>DiagDenied_E</SHORT-NAME>
+                      <ERROR-CODE>7</ERROR-CODE>
+                    </APPLICATION-ERROR>
+                  </POSSIBLE-ERRORS>
+                </CLIENT-SERVER-INTERFACE>
+                <PARAMETER-INTERFACE>
+                  <SHORT-NAME>SharedCalibration_I</SHORT-NAME>
+                  <PARAMETERS>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>SpeedGain</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>WakeupThreshold</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </PARAMETERS>
+                </PARAMETER-INTERFACE>
+                <NV-DATA-INTERFACE>
+                  <SHORT-NAME>SharedNvData_I</SHORT-NAME>
+                  <NV-DATAS>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>StoredWakeupCounter</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </NV-DATAS>
+                </NV-DATA-INTERFACE>
+                <MODE-SWITCH-INTERFACE>
+                  <SHORT-NAME>PowerMode_I</SHORT-NAME>
+                  <MODE-GROUPS>
+                    <MODE-DECLARATION-GROUP-PROTOTYPE>
+                      <SHORT-NAME>PowerMode</SHORT-NAME>
+                      <TYPE-TREF DEST="MODE-DECLARATION-GROUP">/ExampleEcuProject/Modes/PowerModeGroup</TYPE-TREF>
+                    </MODE-DECLARATION-GROUP-PROTOTYPE>
+                  </MODE-GROUPS>
+                </MODE-SWITCH-INTERFACE>
+                <TRIGGER-INTERFACE>
+                  <SHORT-NAME>WakeupTrigger_I</SHORT-NAME>
+                  <TRIGGERS>
+                    <TRIGGER>
+                      <SHORT-NAME>FastWakeup</SHORT-NAME>
+                    </TRIGGER>
+                    <TRIGGER>
+                      <SHORT-NAME>SleepTransition</SHORT-NAME>
+                    </TRIGGER>
+                  </TRIGGERS>
+                </TRIGGER-INTERFACE>
+              </ELEMENTS>
+            </AR-PACKAGE>
+            <AR-PACKAGE>
+              <SHORT-NAME>Hardware</SHORT-NAME>
+              <ELEMENTS>
+                <HW-TYPE>
+                  <SHORT-NAME>WheelSpeedSensorHw</SHORT-NAME>
+                </HW-TYPE>
+                <HW-TYPE>
+                  <SHORT-NAME>MainIoExpanderHw</SHORT-NAME>
+                </HW-TYPE>
+                <HW-TYPE>
+                  <SHORT-NAME>WakeupControllerHw</SHORT-NAME>
+                </HW-TYPE>
+              </ELEMENTS>
+            </AR-PACKAGE>
+            <AR-PACKAGE>
+              <SHORT-NAME>Components</SHORT-NAME>
+              <ELEMENTS>
+                <PARAMETER-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>SharedCalibrationSwc</SHORT-NAME>
+                  <PORTS>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>CalibrationOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="PARAMETER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedCalibration_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                  </PORTS>
+                </PARAMETER-SW-COMPONENT-TYPE>
+                <SERVICE-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>DiagnosticServiceSwc</SHORT-NAME>
+                  <PORTS>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>DiagAdminSrv</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>PowerModeOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="MODE-SWITCH-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PowerMode_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                  </PORTS>
+                  <INTERNAL-BEHAVIORS>
+                    <SWC-INTERNAL-BEHAVIOR>
+                      <SHORT-NAME>DiagnosticServiceBehavior</SHORT-NAME>
+                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>HandleDiagAdminRequest</SHORT-NAME>
+                          <SYMBOL>DiagAdminSrv_HandleRequest</SYMBOL>
+                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>AnnouncePowerMode</SHORT-NAME>
+                          <SYMBOL>DiagAdminSrv_AnnouncePowerMode</SYMBOL>
+                          <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
+                      <EVENTS>
+                        <OPERATION-INVOKED-EVENT>
+                          <SHORT-NAME>HandleDiagAdminRequestEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagnosticServiceBehavior/HandleDiagAdminRequest</START-ON-EVENT-REF>
+                          <OPERATION-IREF>
+                            <CONTEXT-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</CONTEXT-P-PORT-REF>
+                            <TARGET-PROVIDED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I/RequestSession</TARGET-PROVIDED-OPERATION-REF>
+                          </OPERATION-IREF>
+                        </OPERATION-INVOKED-EVENT>
+                        <BACKGROUND-EVENT>
+                          <SHORT-NAME>AnnouncePowerModeEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagnosticServiceBehavior/AnnouncePowerMode</START-ON-EVENT-REF>
+                        </BACKGROUND-EVENT>
+                      </EVENTS>
+                      <PORT-API-OPTIONS>
+                        <PORT-API-OPTION>
+                          <PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</PORT-REF>
+                          <ENABLE-TAKE-ADDRESS>true</ENABLE-TAKE-ADDRESS>
+                          <INDIRECT-API>true</INDIRECT-API>
+                          <ERROR-HANDLING>transformerErrorHandling</ERROR-HANDLING>
+                          <TRANSFORMER-STATUS-FORWARDING>transformerStatusForwarding</TRANSFORMER-STATUS-FORWARDING>
+                          <SUPPORTED-FEATURES>
+                            <COMMUNICATION-BUFFER-LOCKING>
+                              <SUPPORT-BUFFER-LOCKING>supportsBufferLocking</SUPPORT-BUFFER-LOCKING>
+                            </COMMUNICATION-BUFFER-LOCKING>
+                          </SUPPORTED-FEATURES>
+                          <PORT-ARG-VALUES>
+                            <PORT-DEFINED-ARGUMENT-VALUE>
+                              <VALUE-TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/ExampleEcuProject/ImplementationDataTypes/DiagAdminRequestContext</VALUE-TYPE-TREF>
+                              <VALUE>
+                                <TEXT-VALUE-SPECIFICATION>
+                                  <VALUE>DiagAdmin</VALUE>
+                                </TEXT-VALUE-SPECIFICATION>
+                              </VALUE>
+                            </PORT-DEFINED-ARGUMENT-VALUE>
+                          </PORT-ARG-VALUES>
+                        </PORT-API-OPTION>
+                        <PORT-API-OPTION>
+                          <PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/PowerModeOut</PORT-REF>
+                          <INDIRECT-API>false</INDIRECT-API>
+                        </PORT-API-OPTION>
+                      </PORT-API-OPTIONS>
+                    </SWC-INTERNAL-BEHAVIOR>
+                  </INTERNAL-BEHAVIORS>
+                </SERVICE-SW-COMPONENT-TYPE>
+                <SERVICE-PROXY-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>DiagnosticProxySwc</SHORT-NAME>
+                  <PORTS>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>DiagAdminClient</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                  </PORTS>
+                </SERVICE-PROXY-SW-COMPONENT-TYPE>
+                <NV-BLOCK-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>WakeupNvBlockSwc</SHORT-NAME>
+                  <PORTS>
+                    <PR-PORT-PROTOTYPE>
+                      <SHORT-NAME>NvMirrorPr</SHORT-NAME>
+                      <PROVIDED-REQUIRED-INTERFACE-TREF DEST="NV-DATA-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedNvData_I</PROVIDED-REQUIRED-INTERFACE-TREF>
+                    </PR-PORT-PROTOTYPE>
+                  </PORTS>
+                </NV-BLOCK-SW-COMPONENT-TYPE>
+                <SENSOR-ACTUATOR-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>WheelSpeedSensorSwc</SHORT-NAME>
+                  <SENSOR-ACTUATOR-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WheelSpeedSensorHw</SENSOR-ACTUATOR-REF>
+                  <PORTS>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>CurrentIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/RawCurrent_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>SpeedOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PhysicalSpeed_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                  </PORTS>
+                  <INTERNAL-BEHAVIORS>
+                    <SWC-INTERNAL-BEHAVIOR>
+                      <SHORT-NAME>WheelSpeedSensorBehavior</SHORT-NAME>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>ConvertCurrentToSpeed</SHORT-NAME>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
+                    </SWC-INTERNAL-BEHAVIOR>
+                  </INTERNAL-BEHAVIORS>
+                </SENSOR-ACTUATOR-SW-COMPONENT-TYPE>
+                <ECU-ABSTRACTION-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>IoAbstractionSwc</SHORT-NAME>
+                  <HARDWARE-ELEMENT-REFS>
+                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/MainIoExpanderHw</HARDWARE-ELEMENT-REF>
+                  </HARDWARE-ELEMENT-REFS>
+                  <SWC-BSW-MAPPINGS>
+                    <SWC-BSW-MAPPING>
+                      <SHORT-NAME>IoAbstractionToBsw</SHORT-NAME>
+                    </SWC-BSW-MAPPING>
+                  </SWC-BSW-MAPPINGS>
+                  <PORTS>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>RawCurrentOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/RawCurrent_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>ActuatorEnableIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/ActuatorEnable_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                  </PORTS>
+                </ECU-ABSTRACTION-SW-COMPONENT-TYPE>
+                <COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>WakeupComplexDriverSwc</SHORT-NAME>
+                  <HARDWARE-ELEMENT-REFS>
+                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WakeupControllerHw</HARDWARE-ELEMENT-REF>
+                  </HARDWARE-ELEMENT-REFS>
+                  <SWC-BSW-MAPPINGS>
+                    <SWC-BSW-MAPPING>
+                      <SHORT-NAME>WakeupDriverToBsw</SHORT-NAME>
+                    </SWC-BSW-MAPPING>
+                  </SWC-BSW-MAPPINGS>
+                  <PORTS>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupStatusOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/WakeupStatus_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupTriggerOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="TRIGGER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/WakeupTrigger_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <PR-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupMirrorPr</SHORT-NAME>
+                      <PROVIDED-REQUIRED-INTERFACE-TREF DEST="NV-DATA-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedNvData_I</PROVIDED-REQUIRED-INTERFACE-TREF>
+                    </PR-PORT-PROTOTYPE>
+                  </PORTS>
+                  <INTERNAL-BEHAVIORS>
+                    <SWC-INTERNAL-BEHAVIOR>
+                      <SHORT-NAME>WakeupDriverBehavior</SHORT-NAME>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>CaptureWakeup</SHORT-NAME>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
+                    </SWC-INTERNAL-BEHAVIOR>
+                  </INTERNAL-BEHAVIORS>
+                </COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE>
+                <APPLICATION-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>CoverageApplicationSwc</SHORT-NAME>
+                  <PORTS>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>SpeedIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PhysicalSpeed_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>CalibrationIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="PARAMETER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedCalibration_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>DiagAdminClient</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupTriggerIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="TRIGGER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/WakeupTrigger_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <R-PORT-PROTOTYPE>
+                      <SHORT-NAME>PowerModeIn</SHORT-NAME>
+                      <REQUIRED-INTERFACE-TREF DEST="MODE-SWITCH-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PowerMode_I</REQUIRED-INTERFACE-TREF>
+                    </R-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>ActuatorEnableOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/ActuatorEnable_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <PR-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupDataPr</SHORT-NAME>
+                      <PROVIDED-REQUIRED-INTERFACE-TREF DEST="NV-DATA-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedNvData_I</PROVIDED-REQUIRED-INTERFACE-TREF>
+                    </PR-PORT-PROTOTYPE>
+                  </PORTS>
+                  <INTERNAL-BEHAVIORS>
+                    <SWC-INTERNAL-BEHAVIOR>
+                      <SHORT-NAME>CoverageApplicationBehavior</SHORT-NAME>
+                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>InitCoverage</SHORT-NAME>
+                          <SYMBOL>Coverage_InitCoverage</SYMBOL>
+                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <PARAMETER-ACCESSS>
+                            <PARAMETER-ACCESS>
+                              <SHORT-NAME>ReadStartupCalibration</SHORT-NAME>
+                            </PARAMETER-ACCESS>
+                          </PARAMETER-ACCESSS>
+                          <DATA-READ-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadWakeupMirrorOnInit</SHORT-NAME>
+                              <SCOPE>communicationIntraPartition</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-READ-ACCESSS>
+                          <SERVER-CALL-POINTS>
+                            <SYNCHRONOUS-SERVER-CALL-POINT>
+                              <SHORT-NAME>RequestDefaultSession</SHORT-NAME>
+                              <OPERATION-IREF>
+                                <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</CONTEXT-R-PORT-REF>
+                                <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I/RequestSession</TARGET-REQUIRED-OPERATION-REF>
+                              </OPERATION-IREF>
+                            </SYNCHRONOUS-SERVER-CALL-POINT>
+                          </SERVER-CALL-POINTS>
+                          <INTERNAL-TRIGGERING-POINTS>
+                            <INTERNAL-TRIGGERING-POINT>
+                              <SHORT-NAME>InitToEvaluateTrigger</SHORT-NAME>
+                              <SW-IMPL-POLICY>QUEUED</SW-IMPL-POLICY>
+                            </INTERNAL-TRIGGERING-POINT>
+                          </INTERNAL-TRIGGERING-POINTS>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>EvaluateCoveragePaths</SHORT-NAME>
+                          <SYMBOL>Coverage_EvaluateCoveragePaths</SYMBOL>
+                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                          <ARGUMENTS>
+                            <RUNNABLE-ENTITY-ARGUMENT>
+                              <SHORT-NAME>ActivationReason</SHORT-NAME>
+                              <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                            </RUNNABLE-ENTITY-ARGUMENT>
+                          </ARGUMENTS>
+                          <DATA-READ-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadSpeedImplicit</SHORT-NAME>
+                              <SCOPE>communicationIntraPartition</SCOPE>
+                            </VARIABLE-ACCESS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadWakeupMirrorImplicit</SHORT-NAME>
+                              <SCOPE>interPartitionIntraEcu</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-READ-ACCESSS>
+                          <DATA-RECEIVE-POINT-BY-VALUES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReceiveSpeedByValue</SHORT-NAME>
+                              <SCOPE>communicationIntraPartition</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-RECEIVE-POINT-BY-VALUES>
+                          <DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReceiveWakeupCounterByArgument</SHORT-NAME>
+                              <SCOPE>interPartitionIntraEcu</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                          <DATA-WRITE-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>WriteActuatorEnableImplicit</SHORT-NAME>
+                              <SCOPE>communicationInterEcu</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-WRITE-ACCESSS>
+                          <DATA-SEND-POINTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>SendActuatorEnableExplicit</SHORT-NAME>
+                              <SCOPE>communicationInterEcu</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-SEND-POINTS>
+                          <PARAMETER-ACCESSS>
+                            <PARAMETER-ACCESS>
+                              <SHORT-NAME>ReadCoverageCalibration</SHORT-NAME>
+                            </PARAMETER-ACCESS>
+                          </PARAMETER-ACCESSS>
+                          <SERVER-CALL-POINTS>
+                            <ASYNCHRONOUS-SERVER-CALL-POINT>
+                              <SHORT-NAME>RequestExtendedSession</SHORT-NAME>
+                              <TIMEOUT>0.05</TIMEOUT>
+                            </ASYNCHRONOUS-SERVER-CALL-POINT>
+                          </SERVER-CALL-POINTS>
+                          <ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
+                            <ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
+                              <SHORT-NAME>AwaitExtendedSessionResult</SHORT-NAME>
+                            </ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
+                          </ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
+                          <WAIT-POINTS>
+                            <WAIT-POINT>
+                              <SHORT-NAME>WaitForDiagResult</SHORT-NAME>
+                              <TIMEOUT>0.05</TIMEOUT>
+                              <TRIGGER-REF DEST="DATA-RECEIVED-EVENT">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/SpeedInEvent</TRIGGER-REF>
+                            </WAIT-POINT>
+                          </WAIT-POINTS>
+                          <EXTERNAL-TRIGGERING-POINTS>
+                            <EXTERNAL-TRIGGERING-POINT>
+                              <SHORT-NAME>ForwardWakeupTrigger</SHORT-NAME>
+                            </EXTERNAL-TRIGGERING-POINT>
+                          </EXTERNAL-TRIGGERING-POINTS>
+                          <INTERNAL-TRIGGERING-POINTS>
+                            <INTERNAL-TRIGGERING-POINT>
+                              <SHORT-NAME>EvaluateToPublishTrigger</SHORT-NAME>
+                              <SW-IMPL-POLICY>STANDARD</SW-IMPL-POLICY>
+                            </INTERNAL-TRIGGERING-POINT>
+                          </INTERNAL-TRIGGERING-POINTS>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>PublishCoverageState</SHORT-NAME>
+                          <SYMBOL>Coverage_PublishCoverageState</SYMBOL>
+                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <READ-LOCAL-VARIABLES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadCoverageStateIrv</SHORT-NAME>
+                            </VARIABLE-ACCESS>
+                          </READ-LOCAL-VARIABLES>
+                          <WRITTEN-LOCAL-VARIABLES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>WriteCoverageDebounceIrv</SHORT-NAME>
+                            </VARIABLE-ACCESS>
+                          </WRITTEN-LOCAL-VARIABLES>
+                          <DATA-SEND-POINTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>SendActuatorEnableState</SHORT-NAME>
+                              <SCOPE>communicationInterEcu</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-SEND-POINTS>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
+                      <EVENTS>
+                        <INIT-EVENT>
+                          <SHORT-NAME>InitCoverageEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/InitCoverage</START-ON-EVENT-REF>
+                        </INIT-EVENT>
+                        <TIMING-EVENT>
+                          <SHORT-NAME>EvaluateCoveragePathsEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/EvaluateCoveragePaths</START-ON-EVENT-REF>
+                          <PERIOD>0.02</PERIOD>
+                        </TIMING-EVENT>
+                        <DATA-RECEIVED-EVENT>
+                          <SHORT-NAME>SpeedInEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/EvaluateCoveragePaths</START-ON-EVENT-REF>
+                          <DATA-IREF>
+                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/SpeedIn</CONTEXT-R-PORT-REF>
+                            <TARGET-DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Interfaces/PhysicalSpeed_I/VehicleSpeedKph</TARGET-DATA-ELEMENT-REF>
+                          </DATA-IREF>
+                        </DATA-RECEIVED-EVENT>
+                        <DATA-RECEIVE-ERROR-EVENT>
+                          <SHORT-NAME>WakeupMirrorErrorEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/PublishCoverageState</START-ON-EVENT-REF>
+                          <DATA-IREF>
+                            <CONTEXT-PR-PORT-REF DEST="PR-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/WakeupDataPr</CONTEXT-PR-PORT-REF>
+                            <TARGET-DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedNvData_I/StoredWakeupCounter</TARGET-DATA-ELEMENT-REF>
+                          </DATA-IREF>
+                        </DATA-RECEIVE-ERROR-EVENT>
+                        <EXTERNAL-TRIGGER-OCCURRED-EVENT>
+                          <SHORT-NAME>WakeupTriggerEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/EvaluateCoveragePaths</START-ON-EVENT-REF>
+                        </EXTERNAL-TRIGGER-OCCURRED-EVENT>
+                        <INTERNAL-TRIGGER-OCCURRED-EVENT>
+                          <SHORT-NAME>PublishCoverageStateEvent</SHORT-NAME>
+                          <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/PublishCoverageState</START-ON-EVENT-REF>
+                          <EVENT-SOURCE-REF DEST="INTERNAL-TRIGGERING-POINT">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/EvaluateCoveragePaths/EvaluateToPublishTrigger</EVENT-SOURCE-REF>
+                        </INTERNAL-TRIGGER-OCCURRED-EVENT>
+                      </EVENTS>
+                      <EXCLUSIVE-AREAS>
+                        <EXCLUSIVE-AREA>
+                          <SHORT-NAME>CoverageStateLock</SHORT-NAME>
+                        </EXCLUSIVE-AREA>
+                        <EXCLUSIVE-AREA>
+                          <SHORT-NAME>DiagnosticSessionLock</SHORT-NAME>
+                        </EXCLUSIVE-AREA>
+                      </EXCLUSIVE-AREAS>
+                      <EXCLUSIVE-AREA-NESTING-ORDERS>
+                        <EXCLUSIVE-AREA-NESTING-ORDER>
+                          <SHORT-NAME>CoverageLockOrder</SHORT-NAME>
+                        </EXCLUSIVE-AREA-NESTING-ORDER>
+                      </EXCLUSIVE-AREA-NESTING-ORDERS>
+                      <EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                        <VARIABLE-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageStateIrv</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                        </VARIABLE-DATA-PROTOTYPE>
+                      </EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                      <IMPLICIT-INTER-RUNNABLE-VARIABLES>
+                        <VARIABLE-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageDebounceIrv</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </VARIABLE-DATA-PROTOTYPE>
+                      </IMPLICIT-INTER-RUNNABLE-VARIABLES>
+                      <PER-INSTANCE-MEMORYS>
+                        <PER-INSTANCE-MEMORY>
+                          <SHORT-NAME>CoverageScratchpad</SHORT-NAME>
+                          <TYPE>uint8</TYPE>
+                          <TYPE-DEFINITION>typedef uint8 CoverageScratchpadType;</TYPE-DEFINITION>
+                          <INIT-VALUE>0</INIT-VALUE>
+                        </PER-INSTANCE-MEMORY>
+                      </PER-INSTANCE-MEMORYS>
+                      <AR-TYPED-PER-INSTANCE-MEMORYS>
+                        <VARIABLE-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageHistoryPim</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </VARIABLE-DATA-PROTOTYPE>
+                      </AR-TYPED-PER-INSTANCE-MEMORYS>
+                      <PER-INSTANCE-PARAMETERS>
+                        <PARAMETER-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageThresholdPerInstance</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </PARAMETER-DATA-PROTOTYPE>
+                      </PER-INSTANCE-PARAMETERS>
+                      <PARAMETERS>
+                        <PARAMETER-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageGain</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </PARAMETER-DATA-PROTOTYPE>
+                      </PARAMETERS>
+                      <STATIC-MEMORYS>
+                        <VARIABLE-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageDebugCounter</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint32</TYPE-TREF>
+                        </VARIABLE-DATA-PROTOTYPE>
+                      </STATIC-MEMORYS>
+                      <CONSTANT-MEMORYS>
+                        <PARAMETER-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageConstTable</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </PARAMETER-DATA-PROTOTYPE>
+                      </CONSTANT-MEMORYS>
+                      <PORT-API-OPTIONS>
+                        <PORT-API-OPTION>
+                          <PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/SpeedIn</PORT-REF>
+                          <INDIRECT-API>true</INDIRECT-API>
+                        </PORT-API-OPTION>
+                        <PORT-API-OPTION>
+                          <PORT-REF DEST="PR-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/WakeupDataPr</PORT-REF>
+                          <ERROR-HANDLING>transformerErrorHandling</ERROR-HANDLING>
+                          <TRANSFORMER-STATUS-FORWARDING>transformerStatusForwarding</TRANSFORMER-STATUS-FORWARDING>
+                          <SUPPORTED-FEATURES>
+                            <COMMUNICATION-BUFFER-LOCKING>
+                              <SUPPORT-BUFFER-LOCKING>supportsBufferLocking</SUPPORT-BUFFER-LOCKING>
+                            </COMMUNICATION-BUFFER-LOCKING>
+                          </SUPPORTED-FEATURES>
+                        </PORT-API-OPTION>
+                      </PORT-API-OPTIONS>
+                      <INCLUDED-DATA-TYPE-SETS>
+                        <INCLUDED-DATA-TYPE-SET>
+                          <LITERAL-PREFIX>COVERAGE_DT</LITERAL-PREFIX>
+                          <DATA-TYPE-REFS>
+                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</DATA-TYPE-REF>
+                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</DATA-TYPE-REF>
+                          </DATA-TYPE-REFS>
+                        </INCLUDED-DATA-TYPE-SET>
+                      </INCLUDED-DATA-TYPE-SETS>
+                      <INCLUDED-MODE-DECLARATION-GROUP-SETS>
+                        <INCLUDED-MODE-DECLARATION-GROUP-SET>
+                          <PREFIX>COVERAGE_MODE</PREFIX>
+                          <MODE-DECLARATION-GROUP-REFS>
+                            <MODE-DECLARATION-GROUP-REF DEST="MODE-DECLARATION-GROUP">/ExampleEcuProject/Modes/PowerModeGroup</MODE-DECLARATION-GROUP-REF>
+                          </MODE-DECLARATION-GROUP-REFS>
+                        </INCLUDED-MODE-DECLARATION-GROUP-SET>
+                      </INCLUDED-MODE-DECLARATION-GROUP-SETS>
+                      <SERVICE-DEPENDENCYS>
+                        <SWC-SERVICE-DEPENDENCY>
+                          <SHORT-NAME>CoverageDiagDependency</SHORT-NAME>
+                          <DIAGNOSTIC-RELEVANCE>isRelevant</DIAGNOSTIC-RELEVANCE>
+                          <ASSIGNED-PORTS>
+                            <ROLE-BASED-PORT-ASSIGNMENT>
+                              <PORT-PROTOTYPE-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</PORT-PROTOTYPE-REF>
+                              <ROLE>DiagAdminClientRole</ROLE>
+                            </ROLE-BASED-PORT-ASSIGNMENT>
+                          </ASSIGNED-PORTS>
+                          <SERVICE-NEEDS>
+                            <VENDOR-SPECIFIC-SERVICE-NEEDS>
+                              <SHORT-NAME>CoverageDiagVendorNeeds</SHORT-NAME>
+                              <CATEGORY>COVERAGE_DIAGNOSTICS</CATEGORY>
+                            </VENDOR-SPECIFIC-SERVICE-NEEDS>
+                          </SERVICE-NEEDS>
+                        </SWC-SERVICE-DEPENDENCY>
+                      </SERVICE-DEPENDENCYS>
+                    </SWC-INTERNAL-BEHAVIOR>
+                  </INTERNAL-BEHAVIORS>
+                </APPLICATION-SW-COMPONENT-TYPE>
+                <COMPOSITION-SW-COMPONENT-TYPE>
+                  <SHORT-NAME>StandardsCoverageComposition</SHORT-NAME>
+                  <PORTS>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>VehicleSpeedOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PhysicalSpeed_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>DiagAdminSrv</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="CLIENT-SERVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>PowerModeOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="MODE-SWITCH-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/PowerMode_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                    <P-PORT-PROTOTYPE>
+                      <SHORT-NAME>WakeupStatusOut</SHORT-NAME>
+                      <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/WakeupStatus_I</PROVIDED-INTERFACE-TREF>
+                    </P-PORT-PROTOTYPE>
+                  </PORTS>
+                  <COMPONENTS>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>CalibrationInst</SHORT-NAME>
+                      <TYPE-TREF DEST="PARAMETER-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/SharedCalibrationSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>ServiceInst</SHORT-NAME>
+                      <TYPE-TREF DEST="SERVICE-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>ProxyInst</SHORT-NAME>
+                      <TYPE-TREF DEST="SERVICE-PROXY-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticProxySwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>NvBlockInst</SHORT-NAME>
+                      <TYPE-TREF DEST="NV-BLOCK-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/WakeupNvBlockSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>SensorInst</SHORT-NAME>
+                      <TYPE-TREF DEST="SENSOR-ACTUATOR-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/WheelSpeedSensorSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>EcuAbsInst</SHORT-NAME>
+                      <TYPE-TREF DEST="ECU-ABSTRACTION-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/IoAbstractionSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>ComplexDriverInst</SHORT-NAME>
+                      <TYPE-TREF DEST="COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/WakeupComplexDriverSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                    <SW-COMPONENT-PROTOTYPE>
+                      <SHORT-NAME>ApplicationInst</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-SW-COMPONENT-TYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc</TYPE-TREF>
+                    </SW-COMPONENT-PROTOTYPE>
+                  </COMPONENTS>
+                  <CONNECTORS>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>RawCurrentToSensor</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/EcuAbsInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/IoAbstractionSwc/RawCurrentOut</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/SensorInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/WheelSpeedSensorSwc/CurrentIn</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>SensorToApplication</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/SensorInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/WheelSpeedSensorSwc/SpeedOut</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ApplicationInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/SpeedIn</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>CalibrationToApplication</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/CalibrationInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/SharedCalibrationSwc/CalibrationOut</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ApplicationInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CalibrationIn</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>ServiceToApp</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ServiceInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ApplicationInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>ServiceToProxy</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ServiceInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ProxyInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticProxySwc/DiagAdminClient</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <ASSEMBLY-SW-CONNECTOR>
+                      <SHORT-NAME>AppToEcuAbs</SHORT-NAME>
+                      <PROVIDER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ApplicationInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/ActuatorEnableOut</TARGET-P-PORT-REF>
+                      </PROVIDER-IREF>
+                      <REQUESTER-IREF>
+                        <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/EcuAbsInst</CONTEXT-COMPONENT-REF>
+                        <TARGET-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/IoAbstractionSwc/ActuatorEnableIn</TARGET-R-PORT-REF>
+                      </REQUESTER-IREF>
+                    </ASSEMBLY-SW-CONNECTOR>
+                    <DELEGATION-SW-CONNECTOR>
+                      <SHORT-NAME>DelegateVehicleSpeedOut</SHORT-NAME>
+                      <INNER-PORT-IREF>
+                        <P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                          <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/SensorInst</CONTEXT-COMPONENT-REF>
+                          <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/WheelSpeedSensorSwc/SpeedOut</TARGET-P-PORT-REF>
+                        </P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                      </INNER-PORT-IREF>
+                      <OUTER-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/VehicleSpeedOut</OUTER-PORT-REF>
+                    </DELEGATION-SW-CONNECTOR>
+                    <DELEGATION-SW-CONNECTOR>
+                      <SHORT-NAME>DelegateDiagAdminService</SHORT-NAME>
+                      <INNER-PORT-IREF>
+                        <P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                          <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ServiceInst</CONTEXT-COMPONENT-REF>
+                          <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</TARGET-P-PORT-REF>
+                        </P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                      </INNER-PORT-IREF>
+                      <OUTER-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/DiagAdminSrv</OUTER-PORT-REF>
+                    </DELEGATION-SW-CONNECTOR>
+                    <DELEGATION-SW-CONNECTOR>
+                      <SHORT-NAME>DelegatePowerModeOut</SHORT-NAME>
+                      <INNER-PORT-IREF>
+                        <P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                          <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ServiceInst</CONTEXT-COMPONENT-REF>
+                          <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/PowerModeOut</TARGET-P-PORT-REF>
+                        </P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                      </INNER-PORT-IREF>
+                      <OUTER-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/PowerModeOut</OUTER-PORT-REF>
+                    </DELEGATION-SW-CONNECTOR>
+                    <DELEGATION-SW-CONNECTOR>
+                      <SHORT-NAME>DelegateWakeupStatusOut</SHORT-NAME>
+                      <INNER-PORT-IREF>
+                        <P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                          <CONTEXT-COMPONENT-REF DEST="SW-COMPONENT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/ComplexDriverInst</CONTEXT-COMPONENT-REF>
+                          <TARGET-P-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/WakeupComplexDriverSwc/WakeupStatusOut</TARGET-P-PORT-REF>
+                        </P-PORT-IN-COMPOSITION-INSTANCE-REF>
+                      </INNER-PORT-IREF>
+                      <OUTER-PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition/WakeupStatusOut</OUTER-PORT-REF>
+                    </DELEGATION-SW-CONNECTOR>
+                  </CONNECTORS>
+                </COMPOSITION-SW-COMPONENT-TYPE>
+              </ELEMENTS>
+            </AR-PACKAGE>
+          </AR-PACKAGES>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>System</SHORT-NAME>
+          <ELEMENTS>
+            <SYSTEM>
+              <SHORT-NAME>VehicleEcuSystem</SHORT-NAME>
+              <FIBEX-ELEMENT-REFS>
+                <FIBEX-ELEMENT-REF DEST="COMPOSITION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/PowertrainComposition</FIBEX-ELEMENT-REF>
+              </FIBEX-ELEMENT-REFS>
+            </SYSTEM>
+            <ECU-INSTANCE>
+              <SHORT-NAME>PowertrainEcu</SHORT-NAME>
+            </ECU-INSTANCE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+      </AR-PACKAGES>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>
