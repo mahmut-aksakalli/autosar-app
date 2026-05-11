@@ -57,6 +57,7 @@ type SelectedSearchResult =
 type ModelTreeNode = {
   id: string;
   label: string;
+  icon?: string;
   focusEntityId?: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
@@ -1157,19 +1158,6 @@ export function App() {
                     </div>
                   ))}
             </div>
-            <div className="editor-toolbar">
-              <div className="panel-actions">
-                <span className="panel-eyebrow">
-                  {navigationMode === "model" ? activeModelWorkspaceTab?.title ?? "Model Workspace" : "Structured Editor"}
-                </span>
-              </div>
-              <div className="panel-actions">
-                <button onClick={() => void handleSaveDocument()} disabled={!activeFilePath}>
-                  Save
-                </button>
-              </div>
-            </div>
-
             <div className="editor-view">
               {navigationMode === "model" ? (
                 <ModelPanel
@@ -1271,6 +1259,75 @@ function updateXmlValueAtPath(content: string, xmlPath: string, nextValue: strin
   return xmlBuilder.build(parsed);
 }
 
+function formatModelWorkspaceIcon(kind: ModelWorkspaceTab["kind"]) {
+  switch (kind) {
+    case "graph":
+      return "G";
+    case "runnables":
+    case "runnable":
+      return "R";
+    case "ports":
+    case "port":
+      return "P";
+    case "interRunnableVariables":
+      return "V";
+    case "parameters":
+      return "K";
+    case "perInstanceMemory":
+    case "memory":
+      return "M";
+    case "serviceDependencies":
+      return "S";
+    case "events":
+    case "event":
+      return "E";
+    case "behavior":
+      return "B";
+    case "exclusiveAreas":
+      return "X";
+    default:
+      return "D";
+  }
+}
+
+function formatPortIcon(direction: AutosarEntity["portDirection"]) {
+  switch (direction) {
+    case "provided":
+      return ">";
+    case "required":
+      return "<";
+    case "provided-required":
+      return "<>";
+    default:
+      return "P";
+  }
+}
+
+function formatSwcKindIcon(kind: AutosarEntity["swcKind"]) {
+  switch (kind) {
+    case "composition":
+      return "C";
+    case "application":
+      return "A";
+    case "parameter":
+      return "K";
+    case "sensor-actuator":
+      return "T";
+    case "ecu-abstraction":
+      return "E";
+    case "complex-device-driver":
+      return "D";
+    case "service":
+      return "S";
+    case "service-proxy":
+      return "X";
+    case "nv-block":
+      return "N";
+    default:
+      return "W";
+  }
+}
+
 function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
   if (!workspace) {
     return [];
@@ -1307,6 +1364,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
         return {
           id: `${composition.id}:${instance.id}`,
           label: instance.shortName,
+          icon: "I",
           focusEntityId: composition.id,
           preferredScope: "composition" as const,
           preferredNodeId: instance.id,
@@ -1318,6 +1376,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
     return {
       id: composition.id,
       label: composition.shortName,
+      icon: "C",
       focusEntityId: composition.id,
       preferredScope: "composition",
       workspaceTab: makeModelTab(composition, "graph", "Graph", {
@@ -1336,6 +1395,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
         return {
           id: `software-component:${swc.id}`,
           label: swc.shortName,
+          icon: formatSwcKindIcon(swc.swcKind),
           focusEntityId: swc.id,
           preferredScope: "swc" as const,
           selectable: true,
@@ -1370,6 +1430,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
         .map(([label, children]) => ({
           id: `software-components:${label}`,
           label,
+          icon: "F",
           selectable: false,
           children
         }))
@@ -1388,27 +1449,11 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
   return [
     makeSwcWorkspaceNode(swc, "graph", "Graph"),
     {
-      ...makeSwcWorkspaceNode(swc, "ports", "Ports"),
-      children: ports
-        .slice()
-        .sort((left, right) => left.shortName.localeCompare(right.shortName))
-        .map((port) => ({
-          id: `${swc.id}:port:${port.id}`,
-          label: port.shortName,
-          focusEntityId: swc.id,
-          preferredScope: "swc" as const,
-          selectable: true,
-          workspaceTab: makeModelTab(swc, "port", `Port: ${port.shortName}`, {
-            entityId: port.id,
-            xmlPath: port.xmlPath
-          })
-        }))
-    },
-    {
       ...makeSwcWorkspaceNode(swc, "runnables", "Runnables"),
       children: runnables.map((runnable) => ({
-        id: `${swc.id}:runnable:${runnable.id}`,
-        label: runnable.label,
+          id: `${swc.id}:runnable:${runnable.id}`,
+          label: runnable.label,
+          icon: "R",
         focusEntityId: swc.id,
         preferredScope: "swc" as const,
         selectable: true,
@@ -1419,14 +1464,28 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
         })
       }))
     },
-    makeSwcWorkspaceNode(swc, "events", "Events"),
-    makeSwcWorkspaceNode(swc, "behavior", "Behavior"),
-    makeSwcWorkspaceNode(swc, "parameters", "Parameters", parameters.length),
+    {
+      ...makeSwcWorkspaceNode(swc, "ports", "Ports"),
+      children: ports
+        .slice()
+        .sort((left, right) => left.shortName.localeCompare(right.shortName))
+        .map((port) => ({
+          id: `${swc.id}:port:${port.id}`,
+          label: port.shortName,
+          icon: formatPortIcon(port.portDirection),
+          focusEntityId: swc.id,
+          preferredScope: "swc" as const,
+          selectable: true,
+          workspaceTab: makeModelTab(swc, "port", `Port: ${port.shortName}`, {
+            entityId: port.id,
+            xmlPath: port.xmlPath
+          })
+        }))
+    },
     makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
+    makeSwcWorkspaceNode(swc, "parameters", "Calibration Parameters", parameters.length),
     makeSwcWorkspaceNode(swc, "perInstanceMemory", "Per-Instance Memory", perInstanceMemory.length),
-    makeSwcWorkspaceNode(swc, "memory", "Memory"),
-    makeSwcWorkspaceNode(swc, "exclusiveAreas", "Exclusive Areas"),
-    makeSwcWorkspaceNode(swc, "serviceDependencies", "Service Dependencies")
+    makeSwcWorkspaceNode(swc, "serviceDependencies", "Service Needs")
   ];
 }
 
@@ -1439,6 +1498,7 @@ function makeSwcWorkspaceNode(
   return {
     id: `${swc.id}:${kind}`,
     label: count !== undefined ? `${label} (${count})` : label,
+    icon: formatModelWorkspaceIcon(kind),
     focusEntityId: swc.id,
     preferredScope: "swc",
     selectable: true,
@@ -1582,6 +1642,11 @@ function ModelTreeBranch(input: {
           />
         ) : (
           <span className="structured-spacer" />
+        )}
+        {node.icon && (
+          <span className={`model-tree-icon model-tree-icon-${node.icon.toLowerCase()}`} aria-hidden="true">
+            {node.icon}
+          </span>
         )}
         <span className="tree-label">{node.label}</span>
       </button>

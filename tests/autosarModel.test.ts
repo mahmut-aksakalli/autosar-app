@@ -222,6 +222,22 @@ test("buildAutosarModel attaches interface member sections to SWC inspectors", (
   );
 });
 
+test("buildAutosarModel enriches runnable details with access points and trigger events", () => {
+  const model = buildAutosarModel("C:/workspace/example-ecu-project.arxml", parser.parse(standardsCoverageFixture));
+  const swc = model.entities.find((entity) => entity.shortName === "CoverageApplicationSwc");
+  const runnable = swc?.inspector?.sections
+    .find((section) => section.id === "runnables")
+    ?.items.find((item) => item.label === "EvaluateCoveragePaths");
+
+  assert.equal(runnable?.metadata?.SYMBOL, "Coverage_EvaluateCoveragePaths");
+  assert.equal(runnable?.metadata?.CONCURRENT, "true");
+  assert.equal(runnable?.metadata?.["MIN-START-INTERVAL"], "0.02");
+  assert.equal(runnable?.metadata?.["ACCESS-POINTS"]?.includes("ReadSpeedImplicit"), true);
+  assert.equal(runnable?.metadata?.["ACCESS-POINTS"]?.includes("EvaluateToPublishTrigger"), true);
+  assert.equal(runnable?.metadata?.["TRIGGER-EVENTS"]?.includes("EvaluateCoveragePathsEvent"), true);
+  assert.equal(runnable?.metadata?.["TRIGGER-EVENTS"]?.includes("SpeedInEvent"), true);
+});
+
 test("buildAutosarModel preserves mayBeUnconnected and raises interface validation warnings", () => {
   const warningXml = `<?xml version="1.0" encoding="utf-8"?>
 <AUTOSAR>

@@ -416,9 +416,9 @@ function ModelSemanticTab(props: {
   if (tab.kind === "runnable") {
     const runnable = findInspectorItem(semanticInspector, "runnables", tab.itemId);
     return (
-      <ModelKeyValueSurface
+      <ModelRunnableSurface
         title={tab.title}
-        rows={inspectorItemRows(runnable)}
+        runnable={runnable}
         filePath={focusEntity.filePath}
         xmlPath={runnable?.xmlPath ?? tab.xmlPath}
         onJumpToPath={onJumpToPath}
@@ -464,8 +464,6 @@ function ModelSemanticTab(props: {
       columns={getSemanticColumns(tab.kind)}
       rows={rows}
       onJumpToPath={onJumpToPath}
-      selectedNode={selectedNode}
-      selectedEdge={selectedEdge}
     />
   );
 }
@@ -475,19 +473,14 @@ function ModelTableSurface(props: {
   emptyLabel: string;
   columns: Array<{ key: string; label: string }>;
   rows: Array<Record<string, string | undefined>>;
-  selectedNode?: SwcGraphNode;
-  selectedEdge?: SwcGraphResult["edges"][number];
   onJumpToPath?: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }) {
-  const { title, emptyLabel, columns, rows, onJumpToPath, selectedNode, selectedEdge } = props;
+  const { title, emptyLabel, columns, rows, onJumpToPath } = props;
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <span className="panel-eyebrow">Model Workspace</span>
         <strong>{title}</strong>
       </div>
-      {selectedEdge && <div className="model-semantic-note">Selected connector: {selectedEdge.label}</div>}
-      {selectedNode && <div className="model-semantic-note">Selected node: {selectedNode.label}</div>}
       {rows.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table">
@@ -545,7 +538,6 @@ function ModelKeyValueSurface(props: {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <span className="panel-eyebrow">Model Workspace</span>
         <strong>{title}</strong>
         {filePath && (
           <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
@@ -562,6 +554,78 @@ function ModelKeyValueSurface(props: {
         ))}
       </div>
     </div>
+  );
+}
+
+function ModelRunnableSurface(props: {
+  title: string;
+  runnable?: SwcInspectorItem;
+  filePath?: string;
+  xmlPath?: string;
+  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
+}) {
+  const { title, runnable, filePath, xmlPath, onJumpToPath } = props;
+  const concurrent = readBooleanMetadata(runnable?.metadata?.CONCURRENT);
+  const accessPoints = splitMetadataList(runnable?.metadata?.["ACCESS-POINTS"]);
+  const triggerEvents = splitMetadataList(runnable?.metadata?.["TRIGGER-EVENTS"]);
+
+  return (
+    <div className="model-semantic-surface">
+      <div className="model-semantic-header">
+        <strong>{title}</strong>
+        {filePath && (
+          <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
+            Open Source
+          </button>
+        )}
+      </div>
+      <div className="model-runnable-detail">
+        <div className="model-semantic-kv model-runnable-fields">
+          <div>
+            <span>Name</span>
+            <strong>{runnable?.label ?? "-"}</strong>
+          </div>
+          <div>
+            <span>Symbol</span>
+            <strong>{runnable?.metadata?.SYMBOL ?? "-"}</strong>
+          </div>
+          <div>
+            <span>Can Be Invoked Concurrently</span>
+            <strong>
+              <input type="checkbox" checked={concurrent === true} disabled readOnly />
+            </strong>
+          </div>
+          <div>
+            <span>Minimum Start Interval</span>
+            <strong>{formatTimeInterval(runnable?.metadata?.["MIN-START-INTERVAL"])}</strong>
+          </div>
+          <div>
+            <span>Description</span>
+            <strong>{runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
+          </div>
+        </div>
+        <ModelListSection title="Access Points" items={accessPoints} />
+        <ModelListSection title="Trigger Events" items={triggerEvents} />
+      </div>
+    </div>
+  );
+}
+
+function ModelListSection(props: { title: string; items: string[] }) {
+  const { title, items } = props;
+  return (
+    <section className="model-list-section">
+      <h3>{title}</h3>
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="model-list-empty">No items discovered.</div>
+      )}
+    </section>
   );
 }
 
@@ -660,6 +724,55 @@ function inspectorItemRows(item: SwcInspectorItem | undefined): Array<[string, s
     ["Name", item.label],
     ...Object.entries(item.metadata ?? {}).map(([key, value]) => [key, value] as [string, string])
   ];
+}
+
+function readBooleanMetadata(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+  return undefined;
+}
+
+function splitMetadataList(value: string | undefined) {
+  return value
+    ? value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function formatTimeInterval(value: string | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) {
+    return value;
+  }
+
+  if (seconds === 0 || Math.abs(seconds) >= 1) {
+    return `${formatNumber(seconds)} sec`;
+  }
+
+  const milliseconds = seconds * 1000;
+  if (Math.abs(milliseconds) >= 1) {
+    return `${formatNumber(milliseconds)} msec`;
+  }
+
+  return `${formatNumber(seconds * 1_000_000)} usec`;
+}
+
+function formatNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(3).replace(/\.?0+$/, "");
 }
 
 function ModelInspector(props: {

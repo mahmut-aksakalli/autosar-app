@@ -57,6 +57,7 @@ interface MutableSwcInspector {
   ownerSemanticPath: string;
   sections: Record<SwcInspectorSectionId, SwcInspectorItem[]>;
   runnablePeriodsByName: Record<string, string>;
+  runnableEventsByName: Record<string, string[]>;
 }
 
 interface InterfaceDefinition {
@@ -674,6 +675,12 @@ function collectSwcInspectorFeature(
     if (runnableRef && period) {
       inspector.runnablePeriodsByName[getReferenceLeafName(runnableRef)] = period;
     }
+    if (runnableRef) {
+      const eventName = extractShortName(record) ?? tagName;
+      const runnableName = getReferenceLeafName(runnableRef);
+      const runnableEvents = (inspector.runnableEventsByName[runnableName] ??= []);
+      runnableEvents.push(`${eventName} (${formatAutosarTagLabel(tagName)})`);
+    }
   }
 
   const inspectorSection = getInspectorSectionId(tagName, currentPath);
@@ -732,7 +739,8 @@ function getOrCreateInspector(
         interfaceModeGroups: [],
         interfaceTriggers: []
       },
-      runnablePeriodsByName: {}
+      runnablePeriodsByName: {},
+      runnableEventsByName: {}
     };
     inspectorsByOwner.set(ownerSemanticPath, inspector);
   }
@@ -745,7 +753,9 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
       PERIOD: undefined,
       SYMBOL: readSimpleValue(record["SYMBOL"]),
       "MIN-START-INTERVAL": readSimpleValue(record["MINIMUM-START-INTERVAL"]),
-      CONCURRENT: readSimpleValue(record["CAN-BE-INVOKED-CONCURRENTLY"])
+      CONCURRENT: readSimpleValue(record["CAN-BE-INVOKED-CONCURRENTLY"]),
+      DESCRIPTION: extractDescription(record),
+      "ACCESS-POINTS": collectRunnableAccessPoints(record)
     });
   }
 
@@ -764,6 +774,51 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
   }
 
   return collectMetadata(record);
+}
+
+function collectRunnableAccessPoints(record: Record<string, unknown>) {
+  const accessPointNames: string[] = [];
+  const accessContainerPattern = /ACCESS|POINT|TRIGGERING/i;
+
+  const visit = (value: unknown, ancestorKeys: string[]) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => visit(entry, ancestorKeys));
+      return;
+    }
+
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    const nestedRecord = value as Record<string, unknown>;
+    const shortName = extractShortName(nestedRecord);
+    if (shortName && ancestorKeys.some((key) => accessContainerPattern.test(key))) {
+      accessPointNames.push(shortName);
+    }
+
+    for (const [key, nestedValue] of Object.entries(nestedRecord)) {
+      if (key === "SHORT-NAME" || key.startsWith("@_")) {
+        continue;
+      }
+      visit(nestedValue, [...ancestorKeys, key]);
+    }
+  };
+
+  visit(record, []);
+  return accessPointNames.length > 0 ? Array.from(new Set(accessPointNames)).join(", ") : undefined;
+}
+
+function extractDescription(record: Record<string, unknown>) {
+  return findNestedStringValue(record["DESC"], ["L-2", "#text", "L-4", "L-1"]) ?? readSimpleValue(record["DESC"]);
+}
+
+function formatAutosarTagLabel(tagName: string) {
+  return tagName
+    .toLowerCase()
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function compactMetadata(metadata: Record<string, string | undefined>) {
@@ -879,6 +934,7 @@ function enrichInspectorItem(item: SwcInspectorItem, inspector: MutableSwcInspec
     ...item,
     metadata: compactMetadata({
       PERIOD: inspector.runnablePeriodsByName[item.label],
+      "TRIGGER-EVENTS": inspector.runnableEventsByName[item.label]?.join(", "),
       ...(item.metadata ?? {})
     })
   };
