@@ -15,7 +15,11 @@ test("renders the standards coverage AUTOSAR example in model mode", async () =>
   const electronApp = await electron.launch({
     executablePath: electronBinary,
     args: [electronEntry],
-    cwd: repoRoot
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: undefined
+    }
   });
 
   try {

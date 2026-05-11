@@ -52,15 +52,25 @@ References:
 - [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
 - Sections: `3.3 Composition`, `3.3.2 SwComponentPrototype`, `3.3.3 Connectors`, `3.4 Port Interface`, `4.2.2 Sender Receiver Communication`, `4.2.3 Client Server Communication`, `4.2.4 External Trigger Event Communication`, `4.2.5 Communication of Modes`, `4.2.6 Parameter Communication`
 - Constraints: `constr_1032`, `constr_1036`, `constr_1069` to `constr_1084`
-- [x] 4.1 Update the model tree to group components by SWC family.
-- [x] 4.2 Enrich the SWC inspector with interface-specific sections for operations, parameters, mode declarations, triggers, and nv-data details.
-- [ ] 4.3 Show connector compatibility issues based on AUTOSAR interface-kind rules.
-- [ ] 4.4 Support compositions that contain the newly supported SWC families without collapsing them back to generic nodes.
-  - [x] Keep composition layout to one SWC per row for the standards coverage fixture, including delegated composition ports.
-  - [x] Keep composition selections and port navigation from collapsing the view to a single SWC lane.
-  - [x] Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.
-- [ ] 4.5 Add family-specific icons or glyphs for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
-- [ ] 4.6 Add tests for mixed compositions containing application, parameter, service, sensor-actuator, and nv-block components.
+- [x] 4.1 Update the `Model` explorer tree to group components by SWC family.
+- [x] 4.2 Replace the bottom SWC inspector panel with a tabbed model workspace in the main canvas area.
+  - [x] Keep `File` mode explorer unchanged for physical workspace browsing.
+  - [x] Turn `Model` mode explorer into a semantic AUTOSAR browser with tree nodes for SWCs, compositions, and later ECU/system entities.
+  - [x] Under each SWC, expose explorer children such as `Graph`, `Ports`, `Runnables`, `Events`, `Parameters`, `Inter-Runnable Variables`, `Per-Instance Memory`, `Exclusive Areas`, and `Service Dependencies`.
+  - [x] Open semantic detail tabs from the model explorer, using titles like `Graph: CoverageApplicationSwc`, `Runnable: EvaluateCoveragePaths`, and `Port: WakeupDataPr`.
+  - [x] Keep the graph tab as the default entry point for an SWC workspace.
+- [x] 4.3 Add dedicated canvas tabs for SWC details instead of inspector sections, starting with interface details and Chapter 7 internal-behavior details.
+  - [x] Add `Graph`, `Runnables`, `Events`, `Behavior`, and `Memory` workspace tabs for an SWC.
+  - [x] Support entity-specific tabs opened from explorer or graph selections, such as `Runnable`, `Port`, and `Event`.
+  - [x] Make runnable tabs the primary surface for Chapter `7.2 RunnableEntity` details.
+- [x] 4.4 Keep composition layout to one SWC per row for the standards coverage fixture, including delegated composition ports.
+- [x] 4.5 Preserve composition-instance selection so clicking an individual SWC under a composition opens the focused component graph with its connections.
+- [x] 4.6 Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.
+- [x] 4.7 Add family-specific icons or glyphs for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
+- [x] 4.8 Add tests for mixed compositions containing application, parameter, service, sensor-actuator, and nv-block components.
+- [ ] 4.9 Add renderer tests for model-explorer navigation and semantic workspace tab opening from AUTOSAR tree nodes.
+  - [x] Implement semantic model explorer nodes and tab-opening behavior for AUTOSAR tree nodes.
+  - [ ] Add formal renderer automation around model explorer tab opening.
 
 ### Step 5 - ECU Abstraction and Complex Driver support
 References:
@@ -161,9 +171,9 @@ References:
 - [ ] Edit a file in structured mode and verify the resulting raw XML stays loadable.
 - [ ] Trigger validation issues with malformed XML and confirm the UI reports them without crashing.
 - [ ] Modify an `.arxml` file outside the app and verify file watching refreshes the workspace safely.
-- [ ] Run `npm run typecheck`.
-- [ ] Run `npm test`.
-- [ ] Prefer `npm run verify:functional` after each functional milestone.
+- [x] Run `npm run typecheck`.
+- [x] Run `npm test`.
+- [x] Prefer `npm run verify:functional` after each functional milestone.
 
 ## Assumptions and Defaults
 - Desktop Electron app remains the active target.

@@ -19,6 +19,8 @@ import type {
   SwcGraphResult,
   SwcGraphScope,
   SwcInspectorData,
+  SwcInspectorItem,
+  SwcInspectorSectionId,
   ValidationIssue
 } from "../shared/contracts";
 import { layoutSwcGraph, type FlowNode, type FlowNodeData } from "./graphLayout";
@@ -34,12 +36,41 @@ interface ModelPanelProps {
   focusEntity?: AutosarEntity;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  activeWorkspaceTab?: ModelWorkspaceTab;
   onOpenFile: (filePath: string) => void | Promise<void>;
   onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }
 
+export interface ModelWorkspaceTab {
+  id: string;
+  title: string;
+  pinned?: boolean;
+  kind:
+    | "graph"
+    | "ports"
+    | "runnables"
+    | "events"
+    | "behavior"
+    | "memory"
+    | "parameters"
+    | "interRunnableVariables"
+    | "perInstanceMemory"
+    | "exclusiveAreas"
+    | "serviceDependencies"
+    | "port"
+    | "runnable"
+    | "event";
+  focusEntityId: string;
+  preferredScope?: SwcGraphScope;
+  preferredNodeId?: string;
+  entityId?: string;
+  sectionId?: SwcInspectorSectionId;
+  itemId?: string;
+  xmlPath?: string;
+}
+
 export function ModelPanel(props: ModelPanelProps) {
-  const { focusEntity, preferredScope, preferredNodeId, onOpenFile, onJumpToPath } = props;
+  const { focusEntity, preferredScope, preferredNodeId, activeWorkspaceTab, onOpenFile, onJumpToPath } = props;
   const [graphScope, setGraphScope] = useState<SwcGraphScope>(
     preferredScope ?? (focusEntity?.type === "composition" ? "composition" : "swc")
   );
@@ -50,8 +81,6 @@ export function ModelPanel(props: ModelPanelProps) {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
-  const [inspectorHeight, setInspectorHeight] = useState(240);
-  const resizeStateRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const reactFlowRef = useRef<{
     getNode: (id: string) => {
       positionAbsolute?: { x: number; y: number };
@@ -71,30 +100,11 @@ export function ModelPanel(props: ModelPanelProps) {
   }, [preferredNodeId, focusEntity?.id]);
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      const resizeState = resizeStateRef.current;
-      if (!resizeState) {
-        return;
-      }
-
-      const delta = resizeState.startY - event.clientY;
-      const nextHeight = Math.min(480, Math.max(140, resizeState.startHeight + delta));
-      setInspectorHeight(nextHeight);
-    };
-
-    const handleMouseUp = () => {
-      resizeStateRef.current = null;
-      document.body.classList.remove("is-resizing-model-inspector");
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
+    if (activeWorkspaceTab?.kind === "graph" && activeWorkspaceTab.preferredScope) {
+      setGraphScope(activeWorkspaceTab.preferredScope);
+      setActiveCompositionNodeId(activeWorkspaceTab.preferredNodeId);
+    }
+  }, [activeWorkspaceTab?.kind, activeWorkspaceTab?.preferredNodeId, activeWorkspaceTab?.preferredScope]);
 
   useEffect(() => {
     if (!focusEntity) {
@@ -263,15 +273,11 @@ export function ModelPanel(props: ModelPanelProps) {
 
   return (
     <div className="model-workbench">
-      <div
-        className="model-content"
-        style={
-          {
-            ["--model-inspector-height" as string]: `${inspectorHeight}px`
-          } as React.CSSProperties
-        }
-      >
-        <div className="model-canvas-shell">
+      <div className="model-content">
+        {!activeWorkspaceTab ? (
+          <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>
+        ) : activeWorkspaceTab.kind === "graph" ? (
+          <div className="model-canvas-shell">
           {warnings.length > 0 && (
             <div className="model-warning-strip">
               {warnings.map((warning) => warning.message).join(" ")}
@@ -326,26 +332,334 @@ export function ModelPanel(props: ModelPanelProps) {
           ) : (
             <div className="empty-state">Select an SWC or composition to visualize it.</div>
           )}
-        </div>
-        <div
-          className="model-inspector-resizer"
-          role="separator"
-          aria-label="Resize SWC inspector"
-          aria-orientation="horizontal"
-          onMouseDown={(event) => {
-            resizeStateRef.current = {
-              startY: event.clientY,
-              startHeight: inspectorHeight
-            };
-            document.body.classList.add("is-resizing-model-inspector");
-          }}
-        />
-        <div className="model-inspector-panel">
-          <ModelInspector inspector={inspector} selectedNode={selectedGraphNode} selectedEdge={selectedGraphEdge} />
-        </div>
+          </div>
+        ) : (
+          <ModelSemanticTab
+            tab={activeWorkspaceTab}
+            focusEntity={focusEntity}
+            graphResult={graphResult}
+            inspector={inspector}
+            selectedNode={selectedGraphNode}
+            selectedEdge={selectedGraphEdge}
+            onJumpToPath={onJumpToPath}
+          />
+        )}
       </div>
     </div>
   );
+}
+
+function ModelSemanticTab(props: {
+  tab: ModelWorkspaceTab;
+  focusEntity?: AutosarEntity;
+  graphResult?: SwcGraphResult;
+  inspector?: SwcInspectorData;
+  selectedNode?: SwcGraphNode;
+  selectedEdge?: SwcGraphResult["edges"][number];
+  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
+}) {
+  const { tab, focusEntity, graphResult, inspector, selectedNode, selectedEdge, onJumpToPath } = props;
+  const semanticInspector = inspector ?? focusEntity?.inspector;
+  const ports = graphResult?.nodes.find((node) => node.id === focusEntity?.id)?.ports ?? graphResult?.nodes[0]?.ports ?? [];
+
+  if (!focusEntity) {
+    return <div className="empty-state">Select an AUTOSAR model entity.</div>;
+  }
+
+  if (tab.kind === "ports") {
+    return (
+      <ModelTableSurface
+        title={tab.title}
+        emptyLabel="No ports discovered."
+        columns={[
+          { key: "label", label: "Port" },
+          { key: "direction", label: "Direction" },
+          { key: "interfaceKind", label: "Interface" },
+          { key: "interfaceRef", label: "Interface Ref" }
+        ]}
+        rows={ports.map((port) => ({
+          id: port.id,
+          label: port.label,
+          direction: port.direction,
+          interfaceKind: port.interfaceKind ?? "unknown",
+          interfaceRef: port.interfaceRef ?? "-",
+          filePath: port.filePath,
+          xmlPath: port.xmlPath
+        }))}
+        onJumpToPath={onJumpToPath}
+      />
+    );
+  }
+
+  if (tab.kind === "port") {
+    const port =
+      ports.find((entry) => entry.id === tab.entityId || entry.xmlPath === tab.xmlPath) ??
+      graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === tab.entityId);
+    return (
+      <ModelKeyValueSurface
+        title={tab.title}
+        rows={[
+          ["Owner", focusEntity.shortName],
+          ["Port", port?.label ?? tab.title.replace(/^Port:\s*/, "")],
+          ["Direction", port?.direction ?? "-"],
+          ["Interface", port?.interfaceRef ?? "-"],
+          ["Interface Kind", port?.interfaceKind ?? "unknown"],
+          ["Warning", port?.warning ?? "-"]
+        ]}
+        filePath={port?.filePath ?? focusEntity.filePath}
+        xmlPath={port?.xmlPath ?? tab.xmlPath}
+        onJumpToPath={onJumpToPath}
+      />
+    );
+  }
+
+  if (tab.kind === "runnable") {
+    const runnable = findInspectorItem(semanticInspector, "runnables", tab.itemId);
+    return (
+      <ModelKeyValueSurface
+        title={tab.title}
+        rows={inspectorItemRows(runnable)}
+        filePath={focusEntity.filePath}
+        xmlPath={runnable?.xmlPath ?? tab.xmlPath}
+        onJumpToPath={onJumpToPath}
+      />
+    );
+  }
+
+  if (tab.kind === "behavior") {
+    return (
+      <ModelTableSurface
+        title={tab.title}
+        emptyLabel="No behavior details discovered."
+        columns={[
+          { key: "section", label: "Section" },
+          { key: "count", label: "Items" }
+        ]}
+        rows={(semanticInspector?.sections ?? []).map((section) => ({
+          id: section.id,
+          section: section.label,
+          count: String(section.items.length)
+        }))}
+      />
+    );
+  }
+
+  const sectionIds = getSectionsForTab(tab.kind);
+  const rows = sectionIds.flatMap((sectionId) => {
+    const section = semanticInspector?.sections.find((entry) => entry.id === sectionId);
+    return (section?.items ?? []).map((item) => ({
+      id: `${sectionId}:${item.id}`,
+      label: item.label,
+      section: section?.label ?? sectionId,
+      ...item.metadata,
+      filePath: focusEntity.filePath,
+      xmlPath: item.xmlPath
+    }));
+  });
+
+  return (
+    <ModelTableSurface
+      title={tab.title}
+      emptyLabel={getEmptyLabel(tab.kind)}
+      columns={getSemanticColumns(tab.kind)}
+      rows={rows}
+      onJumpToPath={onJumpToPath}
+      selectedNode={selectedNode}
+      selectedEdge={selectedEdge}
+    />
+  );
+}
+
+function ModelTableSurface(props: {
+  title: string;
+  emptyLabel: string;
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<Record<string, string | undefined>>;
+  selectedNode?: SwcGraphNode;
+  selectedEdge?: SwcGraphResult["edges"][number];
+  onJumpToPath?: (filePath: string, xmlPath?: string) => void | Promise<void>;
+}) {
+  const { title, emptyLabel, columns, rows, onJumpToPath, selectedNode, selectedEdge } = props;
+  return (
+    <div className="model-semantic-surface">
+      <div className="model-semantic-header">
+        <span className="panel-eyebrow">Model Workspace</span>
+        <strong>{title}</strong>
+      </div>
+      {selectedEdge && <div className="model-semantic-note">Selected connector: {selectedEdge.label}</div>}
+      {selectedNode && <div className="model-semantic-note">Selected node: {selectedNode.label}</div>}
+      {rows.length > 0 ? (
+        <div className="model-semantic-table-shell">
+          <table className="model-inspector-section-table model-semantic-table">
+            <thead>
+              <tr>
+                {columns.map((column) => (
+                  <th key={column.key} scope="col">
+                    {column.label}
+                  </th>
+                ))}
+                {onJumpToPath && <th scope="col">Source</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id ?? JSON.stringify(row)}>
+                  {columns.map((column) => (
+                    <td key={column.key}>{row[column.key] || "-"}</td>
+                  ))}
+                  {onJumpToPath && (
+                    <td>
+                      {row.filePath ? (
+                        <button
+                          type="button"
+                          className="model-source-button"
+                          onClick={() => void onJumpToPath(row.filePath!, row.xmlPath)}
+                        >
+                          Open
+                        </button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="empty-state">{emptyLabel}</div>
+      )}
+    </div>
+  );
+}
+
+function ModelKeyValueSurface(props: {
+  title: string;
+  rows: Array<[string, string]>;
+  filePath?: string;
+  xmlPath?: string;
+  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
+}) {
+  const { title, rows, filePath, xmlPath, onJumpToPath } = props;
+  return (
+    <div className="model-semantic-surface">
+      <div className="model-semantic-header">
+        <span className="panel-eyebrow">Model Workspace</span>
+        <strong>{title}</strong>
+        {filePath && (
+          <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
+            Open Source
+          </button>
+        )}
+      </div>
+      <div className="model-semantic-kv">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{value || "-"}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getSectionsForTab(kind: ModelWorkspaceTab["kind"]): SwcInspectorSectionId[] {
+  switch (kind) {
+    case "runnables":
+      return ["runnables"];
+    case "parameters":
+      return ["calibrationVariables", "interfaceParameters"];
+    case "interRunnableVariables":
+      return ["interRunnableVariables"];
+    case "perInstanceMemory":
+    case "memory":
+      return ["perInstanceMemory"];
+    case "events":
+    case "event":
+      return ["interfaceTriggers", "interfaceModeGroups"];
+    case "serviceDependencies":
+      return ["interfaceOperations", "interfaceApplicationErrors"];
+    case "exclusiveAreas":
+      return [];
+    default:
+      return [
+        "runnables",
+        "calibrationVariables",
+        "interRunnableVariables",
+        "perInstanceMemory",
+        "interfaceDataElements",
+        "interfaceOperations",
+        "interfaceApplicationErrors",
+        "interfaceParameters",
+        "interfaceModeGroups",
+        "interfaceTriggers"
+      ];
+  }
+}
+
+function getSemanticColumns(kind: ModelWorkspaceTab["kind"]) {
+  if (kind === "parameters") {
+    return [
+      { key: "section", label: "Source" },
+      { key: "label", label: "Parameter" },
+      { key: "INTERFACE", label: "Interface" },
+      { key: "PORT", label: "Port" },
+      { key: "TYPE", label: "Type" }
+    ];
+  }
+
+  if (kind === "events" || kind === "event") {
+    return [
+      { key: "section", label: "Source" },
+      { key: "label", label: "Event" },
+      { key: "INTERFACE", label: "Interface" },
+      { key: "PORT", label: "Port" }
+    ];
+  }
+
+  return [
+    { key: "section", label: "Section" },
+    { key: "label", label: "Name" },
+    { key: "TYPE", label: "Type" },
+    { key: "SYMBOL", label: "Symbol" },
+    { key: "PERIOD", label: "Period" }
+  ];
+}
+
+function getEmptyLabel(kind: ModelWorkspaceTab["kind"]) {
+  switch (kind) {
+    case "events":
+      return "No events discovered.";
+    case "parameters":
+      return "No parameters discovered.";
+    case "exclusiveAreas":
+      return "No exclusive areas discovered.";
+    case "serviceDependencies":
+      return "No service dependencies discovered.";
+    default:
+      return "No semantic details discovered.";
+  }
+}
+
+function findInspectorItem(
+  inspector: SwcInspectorData | undefined,
+  sectionId: SwcInspectorSectionId,
+  itemId: string | undefined
+) {
+  return inspector?.sections.find((section) => section.id === sectionId)?.items.find((item) => item.id === itemId);
+}
+
+function inspectorItemRows(item: SwcInspectorItem | undefined): Array<[string, string]> {
+  if (!item) {
+    return [["Name", "-"]];
+  }
+
+  return [
+    ["Name", item.label],
+    ...Object.entries(item.metadata ?? {}).map(([key, value]) => [key, value] as [string, string])
+  ];
 }
 
 function ModelInspector(props: {
@@ -493,6 +807,9 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
               {data.kind !== "port" && (
                 <div className="autosar-node-badges">
                   <span className="autosar-node-badge">
+                    <span className="autosar-family-glyph" aria-hidden="true">
+                      {formatSwcKindGlyph(data.swcKind)}
+                    </span>
                     {data.kind === "composition" ? "Composition" : formatSwcKindLabel(data.swcKind)}
                   </span>
                 </div>
@@ -947,5 +1264,28 @@ function formatSwcKindLabel(kind: SwcGraphNode["swcKind"]) {
       return "NvBlock SWC";
     default:
       return "SWC";
+  }
+}
+
+function formatSwcKindGlyph(kind: SwcGraphNode["swcKind"]) {
+  switch (kind) {
+    case "service":
+      return "S";
+    case "sensor-actuator":
+      return "A";
+    case "ecu-abstraction":
+      return "E";
+    case "complex-device-driver":
+      return "D";
+    case "nv-block":
+      return "N";
+    case "parameter":
+      return "P";
+    case "service-proxy":
+      return "X";
+    case "application":
+      return "C";
+    default:
+      return "G";
   }
 }

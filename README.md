@@ -14,7 +14,8 @@ The current app focuses on local ARXML workspace exploration and editing:
 - search within the active document
 - jump from reference values to the referenced node
 - build model graph data from indexed AUTOSAR entities
-- visualize SWCs and compositions in a dedicated model canvas
+- visualize SWCs and compositions in a dedicated tabbed model workspace
+- browse semantic AUTOSAR model nodes and open graph, port, runnable, behavior, and memory detail tabs
 - classify AUTOSAR SWCs by family, including application, parameter, service, service-proxy, sensor-actuator, ECU abstraction, complex driver, nv-block, and composition components
 - render `P`, `R`, and `PR` ports with interface-aware metadata
 - inspect ports and connectors and jump back into the structured editor
@@ -141,6 +142,7 @@ The renderer lives under `src/` and is responsible for:
 - raw XML and structured editing experiences
 - in-document search and reference jumps
 - model navigation views
+- semantic model workspace tabs for graphs and SWC details
 
 Main entry points:
 

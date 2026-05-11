@@ -10,6 +10,7 @@ import type {
   WorkspaceSnapshot
 } from "./shared/contracts";
 import { ModelPanel } from "./model/ModelPanel";
+import type { ModelWorkspaceTab } from "./model/ModelPanel";
 import type { SwcGraphScope } from "./shared/contracts";
 
 type NavigationMode = "file" | "search" | "model";
@@ -59,6 +60,7 @@ type ModelTreeNode = {
   focusEntityId?: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  workspaceTab?: ModelWorkspaceTab;
   selectable?: boolean;
   children?: ModelTreeNode[];
 };
@@ -104,7 +106,10 @@ export function App() {
   const [modelFocusEntityId, setModelFocusEntityId] = useState<string>();
   const [modelPreferredScope, setModelPreferredScope] = useState<SwcGraphScope>("swc");
   const [modelPreferredNodeId, setModelPreferredNodeId] = useState<string>();
+  const [modelWorkspaceTabs, setModelWorkspaceTabs] = useState<ModelWorkspaceTab[]>([]);
+  const [activeModelWorkspaceTabId, setActiveModelWorkspaceTabId] = useState<string>();
   const [collapsedModelPaths, setCollapsedModelPaths] = useState<Record<string, true>>({});
+  const initializedModelTreeKeyRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     void window.autosarApi.getWorkspaceState().then((snapshot) => {
@@ -168,11 +173,21 @@ export function App() {
       .sort((left, right) => left.shortName.localeCompare(right.shortName));
   }, [workspace]);
   const modelTree = useMemo(() => buildModelTree(workspace), [workspace]);
-  const modelFocusEntity = useMemo(
+  const selectedModelFocusEntity = useMemo(
     () =>
       modelEntities.find((entity) => entity.id === modelFocusEntityId) ??
       modelEntities[0],
     [modelEntities, modelFocusEntityId]
+  );
+  const activeModelWorkspaceTab = useMemo(
+    () => modelWorkspaceTabs.find((tab) => tab.id === activeModelWorkspaceTabId) ?? modelWorkspaceTabs[0],
+    [activeModelWorkspaceTabId, modelWorkspaceTabs]
+  );
+  const activeModelFocusEntity = useMemo(
+    () =>
+      modelEntities.find((entity) => entity.id === activeModelWorkspaceTab?.focusEntityId) ??
+      selectedModelFocusEntity,
+    [activeModelWorkspaceTab?.focusEntityId, modelEntities, selectedModelFocusEntity]
   );
 
   const openDocumentList = useMemo(() => Object.values(openDocuments), [openDocuments]);
@@ -375,6 +390,45 @@ export function App() {
       setModelPreferredNodeId(undefined);
     }
   }, [modelEntities, modelFocusEntityId]);
+
+  useEffect(() => {
+    if (!selectedModelFocusEntity) {
+      setModelWorkspaceTabs((current) => (current.length > 0 ? [] : current));
+      setActiveModelWorkspaceTabId((current) => (current ? undefined : current));
+      return;
+    }
+
+    if (modelWorkspaceTabs.length > 0) {
+      return;
+    }
+
+    const defaultTab = makeDefaultModelGraphTab(selectedModelFocusEntity, modelPreferredScope, modelPreferredNodeId);
+    setModelWorkspaceTabs((current) => {
+      if (current.some((tab) => tab.id === defaultTab.id)) {
+        return current;
+      }
+      return [...current.filter((tab) => tab.pinned), defaultTab];
+    });
+    setActiveModelWorkspaceTabId((current) =>
+      current && modelWorkspaceTabs.some((tab) => tab.id === current) ? current : defaultTab.id
+    );
+  }, [modelPreferredNodeId, modelPreferredScope, modelWorkspaceTabs, selectedModelFocusEntity]);
+
+  useEffect(() => {
+    const workspaceKey = workspace ? `${workspace.rootPath}:${workspace.files.length}:${workspace.entities.length}` : undefined;
+    if (!workspaceKey) {
+      initializedModelTreeKeyRef.current = undefined;
+      setCollapsedModelPaths({});
+      return;
+    }
+
+    if (initializedModelTreeKeyRef.current === workspaceKey) {
+      return;
+    }
+
+    initializedModelTreeKeyRef.current = workspaceKey;
+    setCollapsedModelPaths(collectDefaultCollapsedModelPaths(modelTree));
+  }, [modelTree, workspace]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -754,6 +808,60 @@ export function App() {
     });
   }
 
+  function openModelWorkspaceTab(tab: ModelWorkspaceTab | undefined, pinned = false) {
+    if (!tab) {
+      return;
+    }
+
+    const nextTab = {
+      ...tab,
+      pinned: pinned || tab.pinned
+    };
+
+    setModelWorkspaceTabs((current) => {
+      const existingTab = current.find((entry) => entry.id === nextTab.id);
+      if (existingTab) {
+        if (existingTab.pinned || !nextTab.pinned) {
+          return current;
+        }
+        return current.map((entry) =>
+          entry.id === nextTab.id
+            ? {
+                ...entry,
+                pinned: entry.pinned || nextTab.pinned
+              }
+            : entry
+        );
+      }
+
+      return [...current.filter((entry) => entry.pinned), nextTab];
+    });
+    setActiveModelWorkspaceTabId(nextTab.id);
+  }
+
+  function activateModelWorkspaceTab(tab: ModelWorkspaceTab) {
+    setActiveModelWorkspaceTabId(tab.id);
+    setModelFocusEntityId(tab.focusEntityId);
+    setModelPreferredScope(tab.preferredScope ?? "swc");
+    setModelPreferredNodeId(tab.preferredNodeId);
+  }
+
+  function pinModelWorkspaceTab(tabId: string) {
+    setModelWorkspaceTabs((current) =>
+      current.map((tab) => (tab.id === tabId ? { ...tab, pinned: true } : tab))
+    );
+  }
+
+  function closeModelWorkspaceTab(tabId: string) {
+    setModelWorkspaceTabs((current) => {
+      const next = current.filter((tab) => tab.id !== tabId);
+      if (activeModelWorkspaceTabId === tabId) {
+        setActiveModelWorkspaceTabId(next.at(-1)?.id);
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="app-shell">
       <div className="workspace-shell">
@@ -951,6 +1059,7 @@ export function App() {
                   collapsedModelPaths={collapsedModelPaths}
                   selectedEntityId={modelFocusEntityId}
                   selectedNodeId={modelPreferredNodeId}
+                  selectedWorkspaceTabId={activeModelWorkspaceTab?.id}
                   onToggle={(nodeId) =>
                     setCollapsedModelPaths((current) => {
                       const nextState = { ...current };
@@ -969,6 +1078,16 @@ export function App() {
                     setModelFocusEntityId(selection.focusEntityId);
                     setModelPreferredScope(selection.preferredScope ?? "swc");
                     setModelPreferredNodeId(selection.preferredNodeId);
+                    openModelWorkspaceTab(selection.workspaceTab);
+                  }}
+                  onPin={(selection) => {
+                    if (!selection.focusEntityId) {
+                      return;
+                    }
+                    setModelFocusEntityId(selection.focusEntityId);
+                    setModelPreferredScope(selection.preferredScope ?? "swc");
+                    setModelPreferredNodeId(selection.preferredNodeId);
+                    openModelWorkspaceTab(selection.workspaceTab, true);
                   }}
                 />
               ))}
@@ -986,35 +1105,62 @@ export function App() {
 
           <section className="panel center-panel">
             <div className="editor-tabs">
-              {openDocumentList.map((document) => (
-                <div
-                  key={document.filePath}
-                  className={`editor-tab ${document.filePath === activeFilePath ? "active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="editor-tab-button"
-                    onClick={() => {
-                      setActiveFilePath(document.filePath);
-                    }}
-                  >
-                    {getDirtyLabel(document.filePath, getDocumentTabLabel(document), openDocuments, drafts)}
-                  </button>
-                  <button
-                    type="button"
-                    className="editor-tab-close"
-                    onClick={() => void handleCloseDocument(document.filePath)}
-                    aria-label={`Close ${getDocumentTabLabel(document)}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {navigationMode === "model"
+                ? modelWorkspaceTabs.map((tab) => (
+                    <div
+                      key={tab.id}
+                      className={`editor-tab ${tab.id === activeModelWorkspaceTab?.id ? "active" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="editor-tab-button"
+                        onClick={() => activateModelWorkspaceTab(tab)}
+                        onDoubleClick={() => pinModelWorkspaceTab(tab.id)}
+                        title={tab.pinned ? tab.title : `${tab.title} (preview)`}
+                      >
+                        {tab.title}
+                      </button>
+                      {modelWorkspaceTabs.length > 1 && (
+                        <button
+                          type="button"
+                          className="editor-tab-close"
+                          onClick={() => closeModelWorkspaceTab(tab.id)}
+                          aria-label={`Close ${tab.title}`}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))
+                : openDocumentList.map((document) => (
+                    <div
+                      key={document.filePath}
+                      className={`editor-tab ${document.filePath === activeFilePath ? "active" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="editor-tab-button"
+                        onClick={() => {
+                          setActiveFilePath(document.filePath);
+                        }}
+                      >
+                        {getDirtyLabel(document.filePath, getDocumentTabLabel(document), openDocuments, drafts)}
+                      </button>
+                      <button
+                        type="button"
+                        className="editor-tab-close"
+                        onClick={() => void handleCloseDocument(document.filePath)}
+                        aria-label={`Close ${getDocumentTabLabel(document)}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
             </div>
             <div className="editor-toolbar">
               <div className="panel-actions">
                 <span className="panel-eyebrow">
-                  {navigationMode === "model" ? "SWC Visualization" : "Structured Editor"}
+                  {navigationMode === "model" ? activeModelWorkspaceTab?.title ?? "Model Workspace" : "Structured Editor"}
                 </span>
               </div>
               <div className="panel-actions">
@@ -1027,9 +1173,10 @@ export function App() {
             <div className="editor-view">
               {navigationMode === "model" ? (
                 <ModelPanel
-                  focusEntity={modelFocusEntity}
-                  preferredScope={modelPreferredScope}
-                  preferredNodeId={modelPreferredNodeId}
+                  focusEntity={activeModelFocusEntity}
+                  preferredScope={activeModelWorkspaceTab?.preferredScope ?? modelPreferredScope}
+                  preferredNodeId={activeModelWorkspaceTab?.preferredNodeId ?? modelPreferredNodeId}
+                  activeWorkspaceTab={activeModelWorkspaceTab}
                   onOpenFile={(filePath) => handleOpenDocumentAndReveal(filePath)}
                   onJumpToPath={(filePath, xmlPath) => handleOpenDocumentAndReveal(filePath, xmlPath)}
                 />
@@ -1138,6 +1285,14 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
     .filter((entity) => entity.type === "swc")
     .slice()
     .sort((left, right) => left.shortName.localeCompare(right.shortName));
+  const portsByOwner = new Map<string, AutosarEntity[]>();
+  entities
+    .filter((entity) => entity.type === "port" && entity.parentSemanticPath)
+    .forEach((port) => {
+      const ports = portsByOwner.get(port.parentSemanticPath!) ?? [];
+      ports.push(port);
+      portsByOwner.set(port.parentSemanticPath!, ports);
+    });
 
   const tree: ModelTreeNode[] = compositions.map((composition) => {
     const children = entities
@@ -1165,6 +1320,9 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
       label: composition.shortName,
       focusEntityId: composition.id,
       preferredScope: "composition",
+      workspaceTab: makeModelTab(composition, "graph", "Graph", {
+        preferredScope: "composition"
+      }),
       selectable: true,
       children
     };
@@ -1180,7 +1338,11 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
           label: swc.shortName,
           focusEntityId: swc.id,
           preferredScope: "swc" as const,
-          selectable: true
+          selectable: true,
+          workspaceTab: makeModelTab(swc, "graph", "Graph", {
+            preferredScope: "swc"
+          }),
+          children: buildSwcWorkspaceChildren(swc, portsByOwner.get(swc.semanticPath ?? "") ?? [])
         };
       });
     const componentFamilies = new Map<string, ModelTreeNode[]>();
@@ -1193,26 +1355,160 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
     });
 
     return [
-      {
-        id: "software-components",
-        label: "Software Components",
-        selectable: false,
-        children: Array.from(componentFamilies.entries())
-          .sort(([left], [right]) => left.localeCompare(right))
-          .map(([label, children]) => ({
-            id: `software-components:${label}`,
-            label,
-            selectable: false,
-            children
-          }))
-      },
     {
       id: "software-compositions",
       label: "Software Compositions",
       selectable: false,
       children: tree
+    },
+    {
+      id: "software-components",
+      label: "Software Components",
+      selectable: false,
+      children: Array.from(componentFamilies.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([label, children]) => ({
+          id: `software-components:${label}`,
+          label,
+          selectable: false,
+          children
+        }))
     }
   ];
+}
+
+function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): ModelTreeNode[] {
+  const inspector = swc.inspector;
+  const runnables = inspector?.sections.find((section) => section.id === "runnables")?.items ?? [];
+  const interRunnableVariables =
+    inspector?.sections.find((section) => section.id === "interRunnableVariables")?.items ?? [];
+  const perInstanceMemory = inspector?.sections.find((section) => section.id === "perInstanceMemory")?.items ?? [];
+  const parameters = inspector?.sections.find((section) => section.id === "interfaceParameters")?.items ?? [];
+
+  return [
+    makeSwcWorkspaceNode(swc, "graph", "Graph"),
+    {
+      ...makeSwcWorkspaceNode(swc, "ports", "Ports"),
+      children: ports
+        .slice()
+        .sort((left, right) => left.shortName.localeCompare(right.shortName))
+        .map((port) => ({
+          id: `${swc.id}:port:${port.id}`,
+          label: port.shortName,
+          focusEntityId: swc.id,
+          preferredScope: "swc" as const,
+          selectable: true,
+          workspaceTab: makeModelTab(swc, "port", `Port: ${port.shortName}`, {
+            entityId: port.id,
+            xmlPath: port.xmlPath
+          })
+        }))
+    },
+    {
+      ...makeSwcWorkspaceNode(swc, "runnables", "Runnables"),
+      children: runnables.map((runnable) => ({
+        id: `${swc.id}:runnable:${runnable.id}`,
+        label: runnable.label,
+        focusEntityId: swc.id,
+        preferredScope: "swc" as const,
+        selectable: true,
+        workspaceTab: makeModelTab(swc, "runnable", `Runnable: ${runnable.label}`, {
+          sectionId: "runnables",
+          itemId: runnable.id,
+          xmlPath: runnable.xmlPath
+        })
+      }))
+    },
+    makeSwcWorkspaceNode(swc, "events", "Events"),
+    makeSwcWorkspaceNode(swc, "behavior", "Behavior"),
+    makeSwcWorkspaceNode(swc, "parameters", "Parameters", parameters.length),
+    makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
+    makeSwcWorkspaceNode(swc, "perInstanceMemory", "Per-Instance Memory", perInstanceMemory.length),
+    makeSwcWorkspaceNode(swc, "memory", "Memory"),
+    makeSwcWorkspaceNode(swc, "exclusiveAreas", "Exclusive Areas"),
+    makeSwcWorkspaceNode(swc, "serviceDependencies", "Service Dependencies")
+  ];
+}
+
+function makeSwcWorkspaceNode(
+  swc: AutosarEntity,
+  kind: ModelWorkspaceTab["kind"],
+  label: string,
+  count?: number
+): ModelTreeNode {
+  return {
+    id: `${swc.id}:${kind}`,
+    label: count !== undefined ? `${label} (${count})` : label,
+    focusEntityId: swc.id,
+    preferredScope: "swc",
+    selectable: true,
+    workspaceTab: makeModelTab(swc, kind, label, {
+      preferredScope: "swc"
+    })
+  };
+}
+
+function makeModelTab(
+  entity: AutosarEntity,
+  kind: ModelWorkspaceTab["kind"],
+  titlePrefix: string,
+  options: Partial<ModelWorkspaceTab> = {}
+): ModelWorkspaceTab {
+  return {
+    id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}`,
+    title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
+    pinned: options.pinned,
+    kind,
+    focusEntityId: entity.id,
+    preferredScope: options.preferredScope,
+    preferredNodeId: options.preferredNodeId,
+    entityId: options.entityId,
+    sectionId: options.sectionId,
+    itemId: options.itemId,
+    xmlPath: options.xmlPath
+  };
+}
+
+function makeDefaultModelGraphTab(
+  entity: AutosarEntity,
+  preferredScope: SwcGraphScope | undefined,
+  preferredNodeId: string | undefined
+): ModelWorkspaceTab {
+  return makeModelTab(entity, "graph", "Graph", {
+    preferredScope: preferredScope ?? (entity.type === "composition" ? "composition" : "swc"),
+    preferredNodeId
+  });
+}
+
+function collectDefaultCollapsedModelPaths(nodes: ModelTreeNode[]): Record<string, true> {
+  const collapsed: Record<string, true> = {};
+  const defaultCollapsedKinds = new Set([
+    "ports",
+    "runnables",
+    "events",
+    "behavior",
+    "parameters",
+    "interRunnableVariables",
+    "perInstanceMemory",
+    "memory",
+    "exclusiveAreas",
+    "serviceDependencies"
+  ]);
+
+  const visit = (node: ModelTreeNode) => {
+    const isSwcWorkspaceRoot = node.children?.length && node.workspaceTab?.kind === "graph";
+    const isSwcDetailGroup =
+      node.children?.length && node.workspaceTab && defaultCollapsedKinds.has(node.workspaceTab.kind);
+
+    if (isSwcWorkspaceRoot || isSwcDetailGroup) {
+      collapsed[node.id] = true;
+    }
+
+    node.children?.forEach(visit);
+  };
+
+  nodes.forEach(visit);
+  return collapsed;
 }
 
 function ModelTreeBranch(input: {
@@ -1221,16 +1517,31 @@ function ModelTreeBranch(input: {
   collapsedModelPaths: Record<string, true>;
   selectedEntityId?: string;
   selectedNodeId?: string;
+  selectedWorkspaceTabId?: string;
   onToggle: (nodeId: string) => void;
-  onSelect: (selection: Pick<ModelTreeNode, "focusEntityId" | "preferredScope" | "preferredNodeId">) => void;
+  onSelect: (selection: Pick<ModelTreeNode, "focusEntityId" | "preferredScope" | "preferredNodeId" | "workspaceTab">) => void;
+  onPin: (selection: Pick<ModelTreeNode, "focusEntityId" | "preferredScope" | "preferredNodeId" | "workspaceTab">) => void;
 }) {
-  const { node, depth, collapsedModelPaths, selectedEntityId, selectedNodeId, onToggle, onSelect } = input;
+  const {
+    node,
+    depth,
+    collapsedModelPaths,
+    selectedEntityId,
+    selectedNodeId,
+    selectedWorkspaceTabId,
+    onToggle,
+    onSelect,
+    onPin
+  } = input;
   const hasChildren = Boolean(node.children?.length);
   const collapsed = hasChildren ? Boolean(collapsedModelPaths[node.id]) : false;
   const selected =
     node.selectable &&
-    node.focusEntityId === selectedEntityId &&
-    (node.preferredNodeId ? node.preferredNodeId === selectedNodeId : true);
+    (node.workspaceTab
+      ? node.workspaceTab.id === selectedWorkspaceTabId
+      : node.focusEntityId === selectedEntityId &&
+        Boolean(node.preferredNodeId) &&
+        node.preferredNodeId === selectedNodeId);
 
   return (
     <div className="tree-group">
@@ -1243,10 +1554,23 @@ function ModelTreeBranch(input: {
             ? onSelect({
                 focusEntityId: node.focusEntityId,
                 preferredScope: node.preferredScope,
-                preferredNodeId: node.preferredNodeId
+                preferredNodeId: node.preferredNodeId,
+                workspaceTab: node.workspaceTab
               })
             : onToggle(node.id)
         }
+        onDoubleClick={() => {
+          if (!node.selectable) {
+            return;
+          }
+
+          onPin({
+            focusEntityId: node.focusEntityId,
+            preferredScope: node.preferredScope,
+            preferredNodeId: node.preferredNodeId,
+            workspaceTab: node.workspaceTab
+          });
+        }}
       >
         {hasChildren ? (
           <span
@@ -1271,8 +1595,10 @@ function ModelTreeBranch(input: {
               collapsedModelPaths={collapsedModelPaths}
               selectedEntityId={selectedEntityId}
               selectedNodeId={selectedNodeId}
+              selectedWorkspaceTabId={selectedWorkspaceTabId}
               onToggle={onToggle}
               onSelect={onSelect}
+              onPin={onPin}
             />
           ))}
         </div>

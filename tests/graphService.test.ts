@@ -255,3 +255,37 @@ test("layoutSwcGraph keeps standards composition ports on the composition bounda
   assert.equal(nodeByLabel.get("StandardsCoverageComposition")!.position.x < nodeByLabel.get("CalibrationInst")!.position.x, true);
   assert.equal(nodeByLabel.get("StandardsCoverageComposition")!.position.y < nodeByLabel.get("CalibrationInst")!.position.y, true);
 });
+
+test("buildGraph covers mixed standards composition SWC families", async () => {
+  const fixtureXml = fs.readFileSync(path.join(process.cwd(), "examples", "example-ecu-project.arxml"), "utf8");
+  const model = buildAutosarModel("C:/workspace/example-ecu-project.arxml", parser.parse(fixtureXml));
+  const fixtureSnapshot: WorkspaceSnapshot = {
+    rootPath: "C:/workspace",
+    files: [],
+    explorerEntries: [],
+    watched: true,
+    lastIndexedAt: new Date().toISOString(),
+    entities: model.entities,
+    connections: model.connections
+  };
+
+  const graphService = createGraphService(fixtureSnapshot);
+  const compositionGraph = await graphService.buildGraph({
+    scope: "composition",
+    focusId: "/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition",
+    depth: 1
+  });
+  const families = new Set(
+    compositionGraph.nodes
+      .filter((node) => node.kind === "instance")
+      .map((node) => node.swcKind)
+  );
+
+  assert.equal(families.has("application"), true);
+  assert.equal(families.has("parameter"), true);
+  assert.equal(families.has("service"), true);
+  assert.equal(families.has("sensor-actuator"), true);
+  assert.equal(families.has("nv-block"), true);
+  assert.equal(compositionGraph.edges.some((edge) => edge.kind === "assembly"), true);
+  assert.equal(compositionGraph.edges.some((edge) => edge.kind === "delegation"), true);
+});

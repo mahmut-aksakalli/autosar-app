@@ -51,6 +51,7 @@ function runSmoke(): Promise<SmokeReport> {
       cwd: repoRoot,
       env: {
         ...process.env,
+        ELECTRON_RUN_AS_NODE: undefined,
         CODEX_SMOKE: "1",
         CODEX_SMOKE_TIMEOUT_MS: "15000",
         CODEX_SMOKE_REPORT_FILE: reportFile
