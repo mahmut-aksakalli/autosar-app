@@ -57,6 +57,21 @@ src/
     contracts.ts
 tests/
   autosarModel.test.ts
+resources/
+  autosar-schemas/
+    schema-manifest.json
+    R4.0.3/
+    R4.1.3/
+    R4.2.2/
+    R4.3.1/
+    R4.4.0/
+    R19-11/
+    R20-11/
+    R21-11/
+    R22-11/
+    R23-11/
+    R24-11/
+    R25-11/
 scripts/
   copy-preload.ts
   electron-smoke.ts
@@ -65,8 +80,21 @@ PLAN.md
 
 ## Prerequisites
 
-- `Node.js` 20+
-- `npm` 10+
+- `Node.js` 22.22.2
+- `npm` 10.9.8
+- `Volta` is recommended; the project pins these tool versions in `package.json`.
+
+If Electron's install step fails with a local certificate issuer error, rerun install with Node's system certificate store enabled:
+
+```bash
+NODE_OPTIONS=--use-system-ca npm install
+```
+
+On Windows `cmd.exe`, use:
+
+```cmd
+set NODE_OPTIONS=--use-system-ca&& npm install
+```
 
 ## Install
 
@@ -110,6 +138,16 @@ npm run test:e2e
 npm run smoke:app
 npm run verify:functional
 ```
+
+## Local AUTOSAR Schemas
+
+Official AUTOSAR Classic 4.x XML schema files are stored under `resources/autosar-schemas/`
+for future offline ARXML validation. The folder keeps only the XSD files needed for validation
+and `resources/autosar-schemas/schema-manifest.json`, which maps AUTOSAR releases to local XSD
+files and original AUTOSAR source URLs.
+
+AUTOSAR publishes these materials for information only. Review AUTOSAR's terms and release
+disclaimers before using them beyond local validation.
 
 ## Main Scripts
 
