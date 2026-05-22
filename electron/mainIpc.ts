@@ -59,6 +59,7 @@ export function registerIpcHandlers() {
     if (activeWorkspace) {
       const document = await documentService.openDocument(selectedPath);
       return {
+        workspace: workspaceService.getSnapshot() ?? activeWorkspace,
         document
       };
     }
@@ -79,6 +80,7 @@ export function registerIpcHandlers() {
     if (activeWorkspace) {
       const document = await documentService.openDocument(filePath);
       return {
+        workspace: workspaceService.getSnapshot() ?? activeWorkspace,
         document
       };
     }
@@ -103,6 +105,14 @@ export function registerIpcHandlers() {
     "document:save",
     async (_event, payload: { filePath: string; content: string }) =>
       documentService.saveDocument(payload.filePath, payload.content)
+  );
+  ipcMain.handle("document:close", async (_event, filePath: string) =>
+    documentService.closeDocument(filePath)
+  );
+  ipcMain.handle(
+    "document:validate",
+    async (_event, payload: { filePath: string; content: string }) =>
+      documentService.validateDocument(payload.filePath, payload.content)
   );
   ipcMain.handle("graph:build", async (_event, query: SwcGraphQuery) =>
     graphService.buildGraph(query)

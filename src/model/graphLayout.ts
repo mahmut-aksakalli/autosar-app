@@ -78,13 +78,14 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
   });
 
   const compositionBounds = getCompositionBounds(instanceMetrics);
+  const shouldRenderCompositionContainer = graph.scope === "composition" && instanceNodes.length > 0;
 
   componentNodes.forEach((node) => {
     const compositionRailWidth = getNodeRailWidth(node.ports);
     const compositionWidth = compositionBounds ? compositionBounds.width : getEstimatedNodeWidth(node);
     const compositionBodyWidth = Math.max(340, compositionWidth - compositionRailWidth * 2);
     const position =
-      graph.scope === "composition" && node.kind === "composition"
+      shouldRenderCompositionContainer && node.kind === "composition"
         ? { x: compositionBounds?.x ?? 40, y: compositionBounds?.y ?? 140 }
         : { x: 340, y: 140 };
     flowNodes.push({
@@ -92,7 +93,7 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
       type: "autosarNode",
       position,
       style:
-        graph.scope === "composition" && node.kind === "composition"
+        shouldRenderCompositionContainer && node.kind === "composition"
           ? ({
               zIndex: 0,
               ["--autosar-rail-width" as string]: `${compositionRailWidth}px`,

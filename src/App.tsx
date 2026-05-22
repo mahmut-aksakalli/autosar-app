@@ -7,6 +7,7 @@ import type {
   ExplorerEntry,
   SearchInputDocument,
   StructuredField,
+  ValidationIssue,
   WorkspaceSnapshot
 } from "./shared/contracts";
 import { ModelPanel } from "./model/ModelPanel";
@@ -99,6 +100,7 @@ export function App() {
   const [fileSearchResults, setFileSearchResults] = useState<FileSearchResult[]>([]);
   const [searchPending, setSearchPending] = useState(false);
   const [selectedSearchResult, setSelectedSearchResult] = useState<SelectedSearchResult>(undefined);
+  const [validationPanelFilePath, setValidationPanelFilePath] = useState<string>();
   const [pendingStructuredScrollPath, setPendingStructuredScrollPath] = useState<string>();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -126,6 +128,16 @@ export function App() {
 
   const activeDocument = activeFilePath ? openDocuments[activeFilePath] : undefined;
   const activeDraft = activeFilePath ? drafts[activeFilePath] ?? activeDocument?.content ?? "" : "";
+  const shouldShowValidationPanel =
+    Boolean(activeFilePath) &&
+    activeFilePath === validationPanelFilePath &&
+    activeDocument?.validation.completeness !== "not-validated" &&
+    activeDraft === activeDocument?.content;
+  const activeValidationIssues =
+    shouldShowValidationPanel ? activeDocument?.validationIssues ?? [] : [];
+  const activeValidationPanelIssues = activeValidationIssues.filter(
+    (issue) => issue.severity === "error" || issue.severity === "warning"
+  );
 
   useEffect(() => {
     if (!activeFilePath) {
@@ -143,12 +155,18 @@ export function App() {
         .then((preview) => {
           setOpenDocuments((current) => {
             const existing = current[activeFilePath];
+            const keepExistingValidation =
+              existing &&
+              existing.content === preview.content &&
+              existing.validation.completeness !== "not-validated";
             return {
               ...current,
               [activeFilePath]: existing
                 ? {
                     ...preview,
-                    content: existing.content
+                    content: existing.content,
+                    validation: keepExistingValidation ? existing.validation : preview.validation,
+                    validationIssues: keepExistingValidation ? existing.validationIssues : preview.validationIssues
                   }
                 : preview
             };
@@ -524,10 +542,12 @@ export function App() {
       return;
     }
 
-    if (result.workspace && !workspace) {
+    if (result.workspace) {
       setWorkspace(result.workspace);
-      setStatus(`Opened ${result.workspace.files[0]?.relativePath ?? "ARXML file"}.`);
-      setCollapsedExplorerPaths({});
+      setStatus(`Opened ${openedDocument.relativePath}.`);
+      if (!workspace) {
+        setCollapsedExplorerPaths({});
+      }
     } else {
       setStatus(`Opened ${openedDocument.relativePath}.`);
     }
@@ -584,6 +604,32 @@ export function App() {
     await saveDocumentByPath(activeFilePath);
   }
 
+  async function handleValidateDocument() {
+    if (!activeFilePath || !activeDocument) {
+      return;
+    }
+
+    const content = drafts[activeFilePath] ?? activeDocument.content;
+    try {
+      const validated = await window.autosarApi.validateDocument(activeFilePath, content);
+      setOpenDocuments((current) => ({ ...current, [activeFilePath]: validated }));
+      setDrafts((current) => ({ ...current, [activeFilePath]: content }));
+      setValidationPanelFilePath(activeFilePath);
+      const errorCount = validated.validationIssues.filter((issue) => issue.severity === "error").length;
+      const warningCount = validated.validationIssues.filter((issue) => issue.severity === "warning").length;
+      setStatus(
+        errorCount > 0
+          ? `Validation found ${errorCount} error${errorCount === 1 ? "" : "s"} in ${validated.relativePath}.`
+          : warningCount > 0
+            ? `Validation found ${warningCount} warning${warningCount === 1 ? "" : "s"} in ${validated.relativePath}.`
+          : `Validation completed for ${validated.relativePath}.`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Could not validate ${activeDocument.relativePath}: ${message}`);
+    }
+  }
+
   async function handleCloseDocument(filePath: string) {
     const isDirty = getIsDocumentDirty(filePath, openDocuments, drafts);
     if (isDirty) {
@@ -603,6 +649,7 @@ export function App() {
     setOpenDocuments((current) => {
       const next = { ...current };
       delete next[filePath];
+      setValidationPanelFilePath((currentPath) => (currentPath === filePath ? undefined : currentPath));
       setActiveFilePath((activePath) => {
         if (activePath !== filePath) {
           return activePath;
@@ -625,6 +672,14 @@ export function App() {
       delete next[filePath];
       return next;
     });
+
+    try {
+      const updatedWorkspace = await window.autosarApi.closeDocument(filePath);
+      setWorkspace(updatedWorkspace);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Closed ${getDocumentTabLabel(openDocuments[filePath]!)} locally, but could not update model index: ${message}`);
+    }
   }
 
   function handleStructuredFieldChange(field: StructuredField, nextValue: string) {
@@ -915,12 +970,15 @@ export function App() {
                   <button onClick={() => void handleSaveDocument()} disabled={!activeFilePath}>
                     Save Active File
                   </button>
+                  <button onClick={() => void handleValidateDocument()} disabled={!activeFilePath}>
+                    Validate File
+                  </button>
                 </div>
               </div>
             )}
           {navigationMode === "file" ? (
             <div className="explorer-sections">
-              <section className="explorer-section">
+              <section className="explorer-section open-editors-section">
                 <div className="explorer-section-header">OPEN EDITORS</div>
                 <div className="open-editors-list">
                   {Object.values(openDocuments).length > 0 ? (
@@ -958,7 +1016,7 @@ export function App() {
                   )}
                 </div>
               </section>
-              <section className="explorer-section">
+              <section className="explorer-section workspace-tree-section">
                 <div className="explorer-section-header">{getWorkspaceLabel(workspace)}</div>
                 <div className="tree">
                   {fileTree.map((node) => (
@@ -1196,11 +1254,71 @@ export function App() {
                 <div className="empty-state">Open an ARXML file to start editing.</div>
               )}
             </div>
+            {navigationMode !== "model" && activeDocument && shouldShowValidationPanel && (
+              <div className="validation-bottom-panel">
+                <ValidationPanel
+                  document={activeDocument}
+                  issues={activeValidationPanelIssues}
+                  onClose={() => setValidationPanelFilePath(undefined)}
+                />
+              </div>
+            )}
           </section>
         </main>
       </div>
     </div>
   );
+}
+
+function ValidationPanel(input: { document: ArxmlDocumentData; issues: ValidationIssue[]; onClose: () => void }) {
+  const { document, issues, onClose } = input;
+  if (issues.length === 0) {
+    return (
+      <div className="validation-panel validation-panel-clean">
+        <span>Validation</span>
+        <strong>No validation issues</strong>
+        {document.validation.autosarRelease && <em>{document.validation.autosarRelease}</em>}
+        <button type="button" className="validation-panel-close" onClick={onClose} aria-label="Close validation results">
+          ×
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="validation-panel">
+      <div className="validation-panel-header">
+        <span>Validation</span>
+        <strong>{issues.length} issue{issues.length === 1 ? "" : "s"}</strong>
+        <em>{formatValidationContext(document)}</em>
+        <button type="button" className="validation-panel-close" onClick={onClose} aria-label="Close validation results">
+          ×
+        </button>
+      </div>
+      <div className="validation-issue-list">
+        {issues.slice(0, 8).map((issue, index) => (
+          <div key={`${issue.code ?? "issue"}:${issue.line ?? 0}:${issue.column ?? 0}:${index}`} className={`validation-issue ${issue.severity}`}>
+            <span className="validation-issue-severity">{issue.severity}</span>
+            <span className="validation-issue-body">
+              {issue.category && <span className="validation-issue-category">{issue.category}</span>}
+              {issue.line && <span className="validation-issue-location">L{issue.line}{issue.column ? `:${issue.column}` : ""}</span>}
+              <span>{issue.message}</span>
+            </span>
+          </div>
+        ))}
+        {issues.length > 8 && <div className="validation-issue-more">{issues.length - 8} more issues</div>}
+      </div>
+    </div>
+  );
+}
+
+function formatValidationContext(document: ArxmlDocumentData) {
+  const parts = [
+    document.validation.scope,
+    document.validation.autosarRelease ?? document.validation.autosarVersion,
+    document.validation.schemaFile
+  ].filter(Boolean);
+  return parts.join(" / ");
 }
 
 function updateXmlValueAtPath(content: string, xmlPath: string, nextValue: string) {
@@ -1368,7 +1486,11 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
           focusEntityId: composition.id,
           preferredScope: "composition" as const,
           preferredNodeId: instance.id,
-          selectable: true
+          selectable: true,
+          workspaceTab: makeModelTab(composition, "graph", `Graph: ${instance.shortName}`, {
+            preferredScope: "composition",
+            preferredNodeId: instance.id
+          })
         };
       })
       .sort((left, right) => left.label.localeCompare(right.label));

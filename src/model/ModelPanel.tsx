@@ -120,7 +120,8 @@ export function ModelPanel(props: ModelPanelProps) {
       .buildGraph({
         scope: graphScope,
         focusId: focusEntity.semanticPath ?? focusEntity.id,
-        depth: 1
+        depth: 1,
+        includeCompositionInternals: graphScope === "composition" && Boolean(activeCompositionNodeId)
       })
       .then((graph) => {
         if (cancelled) {

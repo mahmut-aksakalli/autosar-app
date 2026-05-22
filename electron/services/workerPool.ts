@@ -7,7 +7,13 @@ const __dirname = path.dirname(__filename);
 const workerPath = path.join(__dirname, "workers", "autosarWorker.js");
 
 type WorkerRequest =
-  | { type: "parse"; filePath: string; content: string };
+  | {
+      type: "parse";
+      filePath: string;
+      content: string;
+      validationScope: "single-file" | "workspace" | "batch";
+      validationEnabled?: boolean;
+    };
 
 export class WorkerPool {
   async run<T>(request: WorkerRequest): Promise<T> {

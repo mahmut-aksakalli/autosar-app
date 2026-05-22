@@ -138,12 +138,29 @@ test("buildGraph returns SWC detail node with explicit ports", async () => {
   assert.equal(graph.edges.length, 0);
 });
 
-test("buildGraph returns composition nodes and delegation edge", async () => {
+test("buildGraph returns composition node without expanding child SWCs", async () => {
   const graphService = createGraphService(snapshot);
   const graph = await graphService.buildGraph({
     scope: "composition",
     focusId: "/Pkg/RootComposition",
     depth: 1
+  });
+
+  assert.equal(graph.nodes.length, 1);
+  assert.equal(graph.nodes[0]?.kind, "composition");
+  assert.equal(graph.nodes[0]?.label, "RootComposition");
+  assert.equal(graph.nodes[0]?.ports[0]?.label, "ExportedData");
+  assert.equal(graph.nodes.some((node) => node.kind === "instance"), false);
+  assert.equal(graph.edges.length, 0);
+});
+
+test("buildGraph expands composition wiring for selected child instances", async () => {
+  const graphService = createGraphService(snapshot);
+  const graph = await graphService.buildGraph({
+    scope: "composition",
+    focusId: "/Pkg/RootComposition",
+    depth: 1,
+    includeCompositionInternals: true
   });
 
   assert.equal(graph.nodes.some((node) => node.kind === "composition" && node.label === "RootComposition"), true);
@@ -194,7 +211,8 @@ test("buildGraph carries Step 3 SWC and PR port semantics from the standards fix
   const compositionGraph = await graphService.buildGraph({
     scope: "composition",
     focusId: "/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition",
-    depth: 1
+    depth: 1,
+    includeCompositionInternals: true
   });
 
   assert.equal(
@@ -230,7 +248,8 @@ test("layoutSwcGraph keeps standards composition ports on the composition bounda
   const compositionGraph = await graphService.buildGraph({
     scope: "composition",
     focusId: "/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition",
-    depth: 1
+    depth: 1,
+    includeCompositionInternals: true
   });
   const flowGraph = layoutSwcGraph(compositionGraph);
   const nodePositionByLabel = new Map(
@@ -256,7 +275,7 @@ test("layoutSwcGraph keeps standards composition ports on the composition bounda
   assert.equal(nodeByLabel.get("StandardsCoverageComposition")!.position.y < nodeByLabel.get("CalibrationInst")!.position.y, true);
 });
 
-test("buildGraph covers mixed standards composition SWC families", async () => {
+test("buildGraph covers mixed standards composition SWC families when internals are requested", async () => {
   const fixtureXml = fs.readFileSync(path.join(process.cwd(), "examples", "example-ecu-project.arxml"), "utf8");
   const model = buildAutosarModel("C:/workspace/example-ecu-project.arxml", parser.parse(fixtureXml));
   const fixtureSnapshot: WorkspaceSnapshot = {
@@ -273,7 +292,8 @@ test("buildGraph covers mixed standards composition SWC families", async () => {
   const compositionGraph = await graphService.buildGraph({
     scope: "composition",
     focusId: "/ExampleEcuProject/StandardsCoverage/Components/StandardsCoverageComposition",
-    depth: 1
+    depth: 1,
+    includeCompositionInternals: true
   });
   const families = new Set(
     compositionGraph.nodes

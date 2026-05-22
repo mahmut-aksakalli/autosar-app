@@ -52,21 +52,23 @@ References:
 - [AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf](https://www.autosar.org/fileadmin/standards/R25-11/FO/AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf)
 - [AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf](https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf)
 - Scope: XML well-formedness, AUTOSAR namespace/release detection, XSD validation, and AUTOSAR ARXML serialization-rule checks.
-- [ ] 4.1 Add an explicit ARXML validation service in the Electron backend, separate from model extraction, so validation can run for open, preview, save, workspace refresh, and future batch validation flows.
-- [ ] 4.2 Report XML well-formedness errors before semantic parsing, including parser message, line, column when available, file path, and a stable issue code.
-- [ ] 4.3 Detect AUTOSAR namespace, declared schema location, and AUTOSAR release/version hints from the root `AUTOSAR` element.
-- [ ] 4.4 Warn when the root namespace is missing, not the AUTOSAR namespace, or uses an unsupported namespace/prefix form for the selected validation mode.
-- [ ] 4.5 Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files without hard-coding paths inside parser code.
+- [x] 4.1 Add an explicit ARXML validation service in the Electron backend, separate from model extraction, so validation can run on demand for the active file and later support workspace or batch validation flows.
+- [x] 4.2 Report XML well-formedness errors before semantic parsing, including parser message, line, column when available, file path, and a stable issue code.
+- [x] 4.3 Detect AUTOSAR namespace, declared schema location, and AUTOSAR release/version hints from the root `AUTOSAR` element.
+- [x] 4.4 Warn when the root namespace is missing, not the AUTOSAR namespace, or uses an unsupported namespace/prefix form for the selected validation mode.
+- [x] 4.5 Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files without hard-coding paths inside parser code.
   - [x] Download official AUTOSAR Classic 4.x schema bundles locally under `resources/autosar-schemas/` for offline validation.
-- [ ] 4.6 Validate ARXML documents against the selected AUTOSAR XSD and surface structural schema errors with file, path, message, severity, and source category.
-- [ ] 4.7 Define validation scopes for `single-file`, `workspace`, and future `batch` runs so individual SWC extracts can be validated without pretending the whole AUTOSAR project is present.
-- [ ] 4.8 Support workspace-level validation of ARXML fragments while preserving per-file results, because AUTOSAR projects are commonly split across many `.arxml` files.
-- [ ] 4.9 Add serialization-rule checks that XSD alone does not cover, including namespace usage, `xsi:schemaLocation` shape, unsupported extra namespaces, and root/schema consistency.
-- [ ] 4.10 Add validation result contracts in `src/shared/` that distinguish `syntax`, `namespace`, `schema`, and `serialization` issues from later semantic/model issues.
-- [ ] 4.11 Carry validation scope and completeness metadata in document/workspace results so the UI can explain whether diagnostics came from one file or a full workspace.
-- [ ] 4.12 Show syntax/schema/serialization validation issues in the renderer without blocking read-only exploration of partially valid files.
-- [ ] 4.13 Add fixtures for malformed XML, missing namespace, wrong namespace, missing schema location, unsupported schema version, schema-invalid ARXML structure, and schema-valid standalone SWC extracts.
+- [x] 4.6 Validate ARXML documents against the selected AUTOSAR XSD and surface structural schema errors with file, path, message, severity, and source category.
+- [x] 4.7 Define validation scopes for `single-file`, `workspace`, and future `batch` runs so individual SWC extracts can be validated without pretending the whole AUTOSAR project is present.
+- [x] 4.8 Support workspace-level validation of ARXML fragments while preserving per-file results, because AUTOSAR projects are commonly split across many `.arxml` files.
+- [x] 4.9 Add serialization-rule checks that XSD alone does not cover, including namespace usage, `xsi:schemaLocation` shape, unsupported extra namespaces, and root/schema consistency.
+- [x] 4.10 Add validation result contracts in `src/shared/` that distinguish `syntax`, `namespace`, `schema`, and `serialization` issues from later semantic/model issues.
+- [x] 4.11 Carry validation scope and completeness metadata in document/workspace results so the UI can explain whether diagnostics came from one file or a full workspace.
+- [x] 4.12 Show syntax/schema/serialization validation issues in the renderer after the user explicitly runs validation, without blocking read-only exploration of partially valid files.
+- [x] 4.13 Add fixtures for malformed XML, missing namespace, wrong namespace, missing schema location, unsupported schema version, schema-invalid ARXML structure, and schema-valid standalone SWC extracts.
 - [ ] 4.14 Add unit tests for validation issue normalization and functional tests that verify invalid ARXML files produce actionable UI diagnostics.
+  - [x] Add unit coverage for valid schema-backed ARXML, malformed XML, missing namespace/schema location, wrong namespace, unsupported schema location, malformed schema location shape, and XSD structural errors.
+  - [ ] Add Playwright/Electron UI coverage for invalid ARXML diagnostics once the smoke-test runtime issue is resolved.
 
 ### Step 5 - AUTOSAR reference and semantic validation
 References:
@@ -112,7 +114,7 @@ References:
   - [x] Add `Graph`, `Runnables`, `Events`, `Behavior`, and `Memory` workspace tabs for an SWC.
   - [x] Support entity-specific tabs opened from explorer or graph selections, such as `Runnable`, `Port`, and `Event`.
   - [x] Make runnable tabs the primary surface for Chapter `7.2 RunnableEntity` details.
-- [x] 6.4 Keep composition layout to one SWC per row for the standards coverage fixture, including delegated composition ports.
+- [x] 6.4 Render a selected software composition as its own focused graph node with composition ports, without expanding child SWCs inside the composition.
 - [x] 6.5 Preserve composition-instance selection so clicking an individual SWC under a composition opens the focused component graph with its connections.
 - [x] 6.6 Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.
 - [x] 6.7 Add family-specific icons or glyphs for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
@@ -199,7 +201,7 @@ References:
 
 ## Important Interfaces and Public Surface
 - `WorkspaceService`: open folder, watch files, maintain workspace snapshot, rebuild on external change.
-- `ArxmlDocumentService`: open and save one ARXML document, run validation in single-file or workspace context, and return structured editor data.
+- `ArxmlDocumentService`: open and save one ARXML document, run on-demand validation in single-file or workspace context, and return structured editor data.
 - `ArxmlValidationService`: validate XML well-formedness, AUTOSAR namespace/schema metadata, XSD conformance, serialization rules, validation scope, completeness, and normalized issue reporting.
 - `AutosarVersionAdapterRegistry`: select the correct semantic extractor behavior from detected AUTOSAR namespace, schema filename, or user-selected version.
 - `AutosarSemanticExtractor`: convert generic XML AST nodes into stable app-level AUTOSAR entities for SWCs, ports, interfaces, compositions, connectors, behavior, mapping, and hardware features.

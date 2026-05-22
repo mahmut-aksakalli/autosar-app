@@ -1,4 +1,7 @@
 export type Severity = "info" | "warning" | "error";
+export type ValidationIssueCategory = "syntax" | "namespace" | "schema" | "serialization" | "semantic";
+export type ValidationScope = "single-file" | "workspace" | "batch";
+export type ValidationCompleteness = "complete" | "partial" | "not-validated";
 export type SwcKind =
   | "application"
   | "composition"
@@ -25,6 +28,25 @@ export interface ValidationIssue {
   severity: Severity;
   message: string;
   path?: string;
+  category?: ValidationIssueCategory;
+  code?: string;
+  line?: number;
+  column?: number;
+  filePath?: string;
+  source?: "xml-parser" | "namespace" | "xsd" | "serialization" | "autosar-model";
+  schemaFile?: string;
+}
+
+export interface ArxmlValidationMetadata {
+  scope: ValidationScope;
+  completeness: ValidationCompleteness;
+  rootTag?: string;
+  namespace?: string;
+  schemaLocation?: string;
+  autosarRelease?: string;
+  autosarVersion?: string;
+  schemaFile?: string;
+  validatedAt: string;
 }
 
 export interface AutosarEntity {
@@ -108,6 +130,7 @@ export interface ArxmlDocumentSummary {
   shortName: string;
   rootTag: string;
   validationIssues: ValidationIssue[];
+  validation: ArxmlValidationMetadata;
   entityCount: number;
 }
 
@@ -196,6 +219,7 @@ export interface SwcGraphQuery {
   scope: SwcGraphScope;
   focusId?: string;
   depth: number;
+  includeCompositionInternals?: boolean;
 }
 
 export interface SearchInputDocument {
@@ -237,6 +261,8 @@ export interface AutosarApi {
   openDocument(filePath: string): Promise<ArxmlDocumentData>;
   previewDocument(filePath: string, content: string): Promise<ArxmlDocumentData>;
   saveDocument(filePath: string, content: string): Promise<ArxmlDocumentData>;
+  closeDocument(filePath: string): Promise<WorkspaceSnapshot | null>;
+  validateDocument(filePath: string, content: string): Promise<ArxmlDocumentData>;
   buildGraph(query: SwcGraphQuery): Promise<SwcGraphResult>;
   searchFiles(query: string, openDocuments: SearchInputDocument[]): Promise<FileSearchResult[]>;
   onWorkspaceUpdated(listener: (workspace: WorkspaceSnapshot) => void): () => void;

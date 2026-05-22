@@ -20,6 +20,7 @@ The current app focuses on local ARXML workspace exploration and editing:
 - render `P`, `R`, and `PR` ports with interface-aware metadata
 - inspect ports and connectors and jump back into the structured editor
 - inspect SWC internals in a bottom panel, including runnables, internal variables, and interface members when available
+- validate the active ARXML file on demand for syntax, AUTOSAR namespace/schema metadata, local AUTOSAR XSD conformance, and serialization diagnostics
 
 The app also remembers the last opened workspace folder and restores it on the next launch.
 
@@ -43,10 +44,13 @@ electron/
   services/
     appStateService.ts
     arxmlDocumentService.ts
+    arxmlValidationService.ts
     autosarModel.ts
+    autosarSchemaRegistry.ts
     graphService.ts
     workerPool.ts
     workspaceService.ts
+    xsdValidationEngine.ts
     workers/
       autosarWorker.ts
 src/
@@ -56,6 +60,7 @@ src/
   shared/
     contracts.ts
 tests/
+  arxmlValidationService.test.ts
   autosarModel.test.ts
 resources/
   autosar-schemas/
@@ -142,9 +147,15 @@ npm run verify:functional
 ## Local AUTOSAR Schemas
 
 Official AUTOSAR Classic 4.x XML schema files are stored under `resources/autosar-schemas/`
-for future offline ARXML validation. The folder keeps only the XSD files needed for validation
+for offline ARXML validation. The folder keeps only the XSD files needed for validation
 and `resources/autosar-schemas/schema-manifest.json`, which maps AUTOSAR releases to local XSD
 files and original AUTOSAR source URLs.
+
+XSD validation runs on demand from the renderer's `Validate File` action through the
+Electron/Node service layer with `xmllint-wasm`, while
+`fast-xml-parser` remains responsible for XML well-formedness checks and model extraction.
+The shared `resources/autosar-schemas/xml.xsd` file is preloaded for AUTOSAR schemas that
+import the standard XML namespace schema.
 
 AUTOSAR publishes these materials for information only. Review AUTOSAR's terms and release
 disclaimers before using them beyond local validation.
@@ -167,7 +178,11 @@ npm run verify:functional
 2. Click `Open Folder` to load an AUTOSAR workspace, or `Open File` to inspect a single `.arxml` file.
 3. Use the Explorer to open ARXML files in tabs.
 4. Edit the active file in raw XML or structured mode.
-5. Save the active document with the save action or `Ctrl/Cmd+S`.
+5. Run `Validate File` from the Explorer sidebar when you want syntax/schema diagnostics.
+6. Save the active document with the save action or `Ctrl/Cmd+S`.
+
+The ARXML fixtures under `examples/` target AUTOSAR Classic 4.4.0 and validate against
+`resources/autosar-schemas/R4.4.0/AUTOSAR_00046.xsd`.
 
 ## Architecture Overview
 
@@ -208,6 +223,7 @@ Main files:
 Backend services handle:
 
 - workspace indexing and file watching
+- on-demand ARXML syntax, namespace, schema, and serialization validation
 - ARXML parsing and document loading
 - save and preview flows
 - model extraction and graph generation

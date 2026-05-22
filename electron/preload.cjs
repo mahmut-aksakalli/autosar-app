@@ -10,6 +10,8 @@ const api = {
   previewDocument: (filePath, content) =>
     ipcRenderer.invoke("document:preview", { filePath, content }),
   saveDocument: (filePath, content) => ipcRenderer.invoke("document:save", { filePath, content }),
+  closeDocument: (filePath) => ipcRenderer.invoke("document:close", filePath),
+  validateDocument: (filePath, content) => ipcRenderer.invoke("document:validate", { filePath, content }),
   buildGraph: (query) => ipcRenderer.invoke("graph:build", query),
   searchFiles: (query, openDocuments) => ipcRenderer.invoke("search:files", { query, openDocuments }),
   onWorkspaceUpdated: (listener) => {

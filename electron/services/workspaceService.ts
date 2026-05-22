@@ -7,6 +7,7 @@ import type {
   ArxmlDocumentSummary,
   ExplorerEntry,
   OpenWorkspaceResult,
+  ValidationScope,
   WorkspaceSnapshot
 } from "../../src/shared/contracts.js";
 import { WorkerPool } from "./workerPool.js";
@@ -16,6 +17,7 @@ export class WorkspaceService {
   private readonly workerPool = new WorkerPool();
   private watcher?: FSWatcher;
   private rootPath?: string;
+  private validationScopeMode: ValidationScope = "single-file";
   private watchTargets: string[] = [];
   private workspace?: WorkspaceSnapshot;
   private documentCache = new Map<string, ArxmlDocumentData>();
@@ -23,6 +25,7 @@ export class WorkspaceService {
 
   async openWorkspace(rootPath: string): Promise<OpenWorkspaceResult> {
     this.rootPath = rootPath;
+    this.validationScopeMode = "workspace";
     this.documentCache.clear();
     this.explorerEntries = await collectExplorerEntries(rootPath);
     this.watchTargets = [path.join(rootPath, "**/*.arxml")];
@@ -35,6 +38,7 @@ export class WorkspaceService {
 
   async openFile(filePath: string): Promise<OpenWorkspaceResult> {
     this.rootPath = path.dirname(filePath);
+    this.validationScopeMode = "single-file";
     this.documentCache.clear();
     this.explorerEntries = [
       {
@@ -90,18 +94,23 @@ export class WorkspaceService {
     const document = await this.workerPool.run<ArxmlDocumentData>({
       type: "parse",
       filePath,
-      content
+      content,
+      validationScope: this.getValidationScope(filePath)
     });
     document.relativePath = this.getRelativePath(document.filePath);
     return document;
   }
 
+  getValidationScope(filePath: string): ValidationScope {
+    return this.rootPath && this.isTrackedWorkspaceFile(filePath) ? this.validationScopeMode : "single-file";
+  }
+
   updateDocument(document: ArxmlDocumentData) {
     this.documentCache.set(document.filePath, document);
-    if (!this.rootPath || !this.isTrackedWorkspaceFile(document.filePath)) {
+    if (!this.rootPath) {
       return;
     }
-    this.workspace = this.buildSnapshot(this.getTrackedDocuments());
+    this.workspace = this.buildSnapshot(this.getIndexedDocuments());
     this.emitUpdated();
   }
 
@@ -117,10 +126,11 @@ export class WorkspaceService {
     const files: ArxmlDocumentSummary[] = documents
       .map((document) => ({
         filePath: document.filePath,
-        relativePath: path.relative(this.rootPath!, document.filePath),
+        relativePath: this.getRelativePath(document.filePath),
         shortName: document.shortName,
         rootTag: document.rootTag,
         validationIssues: document.validationIssues,
+        validation: document.validation,
         entityCount: document.entityCount
       }))
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
@@ -141,7 +151,8 @@ export class WorkspaceService {
     const document = await this.workerPool.run<ArxmlDocumentData>({
       type: "parse",
       filePath,
-      content
+      content,
+      validationScope: this.getValidationScope(filePath)
     });
     document.relativePath = this.getRelativePath(document.filePath);
     this.documentCache.set(filePath, document);
@@ -153,7 +164,8 @@ export class WorkspaceService {
     const document = await this.workerPool.run<ArxmlDocumentData>({
       type: "parse",
       filePath,
-      content
+      content,
+      validationScope: "single-file"
     });
     document.relativePath = path.basename(document.filePath);
     this.documentCache.set(filePath, document);
@@ -168,10 +180,36 @@ export class WorkspaceService {
     return path.basename(filePath);
   }
 
-  private getTrackedDocuments() {
-    return Array.from(this.documentCache.values()).filter((document) =>
-      this.isTrackedWorkspaceFile(document.filePath)
-    );
+  private getIndexedDocuments() {
+    return Array.from(this.documentCache.values());
+  }
+
+  async validateDocument(filePath: string, content: string) {
+    const document = await this.workerPool.run<ArxmlDocumentData>({
+      type: "parse",
+      filePath,
+      content,
+      validationScope: this.getValidationScope(filePath),
+      validationEnabled: true
+    });
+    document.relativePath = this.getRelativePath(document.filePath);
+    this.documentCache.set(filePath, document);
+    if (this.rootPath) {
+      this.workspace = this.buildSnapshot(this.getIndexedDocuments());
+      this.emitUpdated();
+    }
+    return document;
+  }
+
+  closeDocument(filePath: string) {
+    this.documentCache.delete(filePath);
+    if (!this.rootPath) {
+      return null;
+    }
+
+    this.workspace = this.buildSnapshot(this.getIndexedDocuments());
+    this.emitUpdated();
+    return this.workspace;
   }
 
   private isTrackedWorkspaceFile(filePath: string) {

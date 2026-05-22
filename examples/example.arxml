@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Copyright 2015-2016 The MathWorks, Inc.
---><AUTOSAR xmlns="http://autosar.org/schema/r4.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://autosar.org/schema/r4.0 autosar_4-0-3.xsd">
+--><AUTOSAR xmlns="http://autosar.org/schema/r4.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://autosar.org/schema/r4.0 AUTOSAR_00046.xsd">
     <AR-PACKAGES>
     <AR-PACKAGE UUID="272bbb53-1503-4d35-8455-e222545bbd63">
       <SHORT-NAME>pkg</SHORT-NAME>
@@ -300,7 +300,7 @@ Copyright 2015-2016 The MathWorks, Inc.
                       <SERVER-CALL-POINTS>
                         <ASYNCHRONOUS-SERVER-CALL-POINT S="" UUID="27f58f83-1d93-44fc-ae78-b51c399ee66d">
                           <SHORT-NAME>asyncCallBar</SHORT-NAME>
-                          <CATEGORY />
+                          <CATEGORY>GENERAL</CATEGORY>
                           <OPERATION-IREF S="requiredOperation">
                             <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/pkg/tst002/swc001/rport</CONTEXT-R-PORT-REF>
                             <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/pkg/interfaces/iServer/bar</TARGET-REQUIRED-OPERATION-REF>

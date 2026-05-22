@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<AUTOSAR xmlns="http://autosar.org/schema/r4.0">
+<AUTOSAR xmlns="http://autosar.org/schema/r4.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://autosar.org/schema/r4.0 AUTOSAR_00046.xsd">
   <AR-PACKAGES>
     <AR-PACKAGE>
       <SHORT-NAME>ExampleEcuProject</SHORT-NAME>
@@ -248,75 +248,6 @@
               <INTERNAL-BEHAVIORS>
                 <SWC-INTERNAL-BEHAVIOR>
                   <SHORT-NAME>SpeedSensorBehavior</SHORT-NAME>
-                  <RUNNABLES>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>AcquireSignals</SHORT-NAME>
-                      <SYMBOL>SpeedSensor_AcquireSignals</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <PARAMETER-ACCESSS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadSpeedScaleCalibration</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadTemperatureOffsetCalibration</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                      </PARAMETER-ACCESSS>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>PublishSignals</SHORT-NAME>
-                      <SYMBOL>SpeedSensor_PublishSignals</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <READ-LOCAL-VARIABLES>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadRawSpeedIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadFilteredTemperatureIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                      </READ-LOCAL-VARIABLES>
-                      <DATA-SEND-POINTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendVehicleSpeed</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendPedalPosition</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendTemperature</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-SEND-POINTS>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>HandleSensorEvents</SHORT-NAME>
-                      <SYMBOL>SpeedSensor_HandleSensorEvents</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
-                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReceiveEventCode</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReceiveFaultCounter</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                      <SERVER-CALL-POINTS>
-                        <SYNCHRONOUS-SERVER-CALL-POINT>
-                          <SHORT-NAME>StoreSensorFault</SHORT-NAME>
-                          <OPERATION-IREF>
-                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/FaultMemoryClient</CONTEXT-R-PORT-REF>
-                            <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/Interfaces/FaultMemoryService_I/StoreFault</TARGET-REQUIRED-OPERATION-REF>
-                          </OPERATION-IREF>
-                        </SYNCHRONOUS-SERVER-CALL-POINT>
-                      </SERVER-CALL-POINTS>
-                    </RUNNABLE-ENTITY>
-                  </RUNNABLES>
                   <EVENTS>
                     <TIMING-EVENT>
                       <SHORT-NAME>AcquireSignalsEvent</SHORT-NAME>
@@ -337,19 +268,7 @@
                       </DATA-IREF>
                     </DATA-RECEIVED-EVENT>
                   </EVENTS>
-                  <PARAMETER-DATA-PROTOTYPES>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>SpeedScale_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>1000</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>TemperatureOffset_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>25</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                  </PARAMETER-DATA-PROTOTYPES>
-                  <INTER-RUNNABLE-VARIABLES>
+                  <EXPLICIT-INTER-RUNNABLE-VARIABLES>
                     <VARIABLE-DATA-PROTOTYPE>
                       <SHORT-NAME>RawSpeed_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
@@ -358,7 +277,86 @@
                       <SHORT-NAME>FilteredTemperature_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
                     </VARIABLE-DATA-PROTOTYPE>
-                  </INTER-RUNNABLE-VARIABLES>
+                  </EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>AcquireSignals</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <PARAMETER-ACCESSS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadSpeedScaleCalibration</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadTemperatureOffsetCalibration</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                      </PARAMETER-ACCESSS>
+                      <SYMBOL>SpeedSensor_AcquireSignals</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishSignals</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-SEND-POINTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendVehicleSpeed</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendPedalPosition</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendTemperature</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-SEND-POINTS>
+                      <READ-LOCAL-VARIABLES>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadRawSpeedIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadFilteredTemperatureIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                      </READ-LOCAL-VARIABLES>
+                      <SYMBOL>SpeedSensor_PublishSignals</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>HandleSensorEvents</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReceiveEventCode</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReceiveFaultCounter</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                      <SERVER-CALL-POINTS>
+                        <SYNCHRONOUS-SERVER-CALL-POINT>
+                          <SHORT-NAME>StoreSensorFault</SHORT-NAME>
+                          <OPERATION-IREF>
+                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/SpeedSensorSwc/FaultMemoryClient</CONTEXT-R-PORT-REF>
+                            <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/Interfaces/FaultMemoryService_I/StoreFault</TARGET-REQUIRED-OPERATION-REF>
+                          </OPERATION-IREF>
+                        </SYNCHRONOUS-SERVER-CALL-POINT>
+                      </SERVER-CALL-POINTS>
+                      <SYMBOL>SpeedSensor_HandleSensorEvents</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <SHARED-PARAMETERS>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>SpeedScale_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>TemperatureOffset_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </SHARED-PARAMETERS>
                 </SWC-INTERNAL-BEHAVIOR>
               </INTERNAL-BEHAVIORS>
             </APPLICATION-SW-COMPONENT-TYPE>
@@ -417,87 +415,6 @@
               <INTERNAL-BEHAVIORS>
                 <SWC-INTERNAL-BEHAVIOR>
                   <SHORT-NAME>TorqueControllerBehavior</SHORT-NAME>
-                  <RUNNABLES>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>ReadInputs</SHORT-NAME>
-                      <SYMBOL>TorqueController_ReadInputs</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <DATA-READ-ACCESSS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadVehicleSpeed</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadPedalPosition</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadTemperature</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-READ-ACCESSS>
-                      <SERVER-CALL-POINTS>
-                        <SYNCHRONOUS-SERVER-CALL-POINT>
-                          <SHORT-NAME>ReadCalibration</SHORT-NAME>
-                          <OPERATION-IREF>
-                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/CalibrationClient</CONTEXT-R-PORT-REF>
-                            <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/Interfaces/CalibrationService_I/ReadCalibration</TARGET-REQUIRED-OPERATION-REF>
-                          </OPERATION-IREF>
-                        </SYNCHRONOUS-SERVER-CALL-POINT>
-                      </SERVER-CALL-POINTS>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>ComputeTorque</SHORT-NAME>
-                      <SYMBOL>TorqueController_ComputeTorque</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
-                      <PARAMETER-ACCESSS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadTorqueGain</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadPressureLimit</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                      </PARAMETER-ACCESSS>
-                      <WRITTEN-LOCAL-VARIABLES>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>WriteRequestedTorqueIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                      </WRITTEN-LOCAL-VARIABLES>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>PublishControlOutputs</SHORT-NAME>
-                      <SYMBOL>TorqueController_PublishControlOutputs</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <READ-LOCAL-VARIABLES>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadRequestedTorqueIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                      </READ-LOCAL-VARIABLES>
-                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReceiveFaultCounter</SHORT-NAME>
-                          <SCOPE>communicationIntraPartition</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                      <DATA-SEND-POINTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendTorqueRequest</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendPressureValue</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendDiagnosticStatus</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-SEND-POINTS>
-                    </RUNNABLE-ENTITY>
-                  </RUNNABLES>
                   <EVENTS>
                     <TIMING-EVENT>
                       <SHORT-NAME>ReadInputsEvent</SHORT-NAME>
@@ -518,19 +435,7 @@
                       </DATA-IREF>
                     </DATA-RECEIVED-EVENT>
                   </EVENTS>
-                  <PARAMETER-DATA-PROTOTYPES>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>TorqueGain_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>320</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>PressureLimit_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>1800</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                  </PARAMETER-DATA-PROTOTYPES>
-                  <INTER-RUNNABLE-VARIABLES>
+                  <EXPLICIT-INTER-RUNNABLE-VARIABLES>
                     <VARIABLE-DATA-PROTOTYPE>
                       <SHORT-NAME>RequestedTorque_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
@@ -539,7 +444,98 @@
                       <SHORT-NAME>DiagnosticState_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
                     </VARIABLE-DATA-PROTOTYPE>
-                  </INTER-RUNNABLE-VARIABLES>
+                  </EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ReadInputs</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-READ-ACCESSS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadVehicleSpeed</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadPedalPosition</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadTemperature</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-READ-ACCESSS>
+                      <SERVER-CALL-POINTS>
+                        <SYNCHRONOUS-SERVER-CALL-POINT>
+                          <SHORT-NAME>ReadCalibration</SHORT-NAME>
+                          <OPERATION-IREF>
+                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/Components/TorqueControllerSwc/CalibrationClient</CONTEXT-R-PORT-REF>
+                            <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/Interfaces/CalibrationService_I/ReadCalibration</TARGET-REQUIRED-OPERATION-REF>
+                          </OPERATION-IREF>
+                        </SYNCHRONOUS-SERVER-CALL-POINT>
+                      </SERVER-CALL-POINTS>
+                      <SYMBOL>TorqueController_ReadInputs</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>ComputeTorque</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                      <PARAMETER-ACCESSS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadTorqueGain</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadPressureLimit</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                      </PARAMETER-ACCESSS>
+                      <SYMBOL>TorqueController_ComputeTorque</SYMBOL>
+                      <WRITTEN-LOCAL-VARIABLES>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>WriteRequestedTorqueIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                      </WRITTEN-LOCAL-VARIABLES>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishControlOutputs</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReceiveFaultCounter</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                      <DATA-SEND-POINTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendTorqueRequest</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendPressureValue</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendDiagnosticStatus</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-SEND-POINTS>
+                      <READ-LOCAL-VARIABLES>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadRequestedTorqueIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                      </READ-LOCAL-VARIABLES>
+                      <SYMBOL>TorqueController_PublishControlOutputs</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <SHARED-PARAMETERS>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>TorqueGain_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>PressureLimit_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </SHARED-PARAMETERS>
                 </SWC-INTERNAL-BEHAVIOR>
               </INTERNAL-BEHAVIORS>
             </APPLICATION-SW-COMPONENT-TYPE>
@@ -594,26 +590,53 @@
               <INTERNAL-BEHAVIORS>
                 <SWC-INTERNAL-BEHAVIOR>
                   <SHORT-NAME>ThrottleActuatorBehavior</SHORT-NAME>
+                  <EVENTS>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ReceiveCommandsEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReceiveCommands</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>DriveActuatorEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/DriveActuator</START-ON-EVENT-REF>
+                      <PERIOD>0.01</PERIOD>
+                    </TIMING-EVENT>
+                    <TIMING-EVENT>
+                      <SHORT-NAME>ReportStatusEvent</SHORT-NAME>
+                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReportStatus</START-ON-EVENT-REF>
+                      <PERIOD>0.02</PERIOD>
+                    </TIMING-EVENT>
+                  </EVENTS>
+                  <EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>DesiredDuty_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                    <VARIABLE-DATA-PROTOTYPE>
+                      <SHORT-NAME>MeasuredPosition_Irv</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </VARIABLE-DATA-PROTOTYPE>
+                  </EXPLICIT-INTER-RUNNABLE-VARIABLES>
                   <RUNNABLES>
                     <RUNNABLE-ENTITY>
                       <SHORT-NAME>ReceiveCommands</SHORT-NAME>
-                      <SYMBOL>ThrottleActuator_ReceiveCommands</SYMBOL>
                       <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
                       <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
                       <DATA-READ-ACCESSS>
                         <VARIABLE-ACCESS>
                           <SHORT-NAME>ReadTorqueRequest</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
                         </VARIABLE-ACCESS>
                         <VARIABLE-ACCESS>
                           <SHORT-NAME>ReadPressureValue</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
                         </VARIABLE-ACCESS>
                         <VARIABLE-ACCESS>
                           <SHORT-NAME>ReadDiagStatus</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
                         </VARIABLE-ACCESS>
                       </DATA-READ-ACCESSS>
+                      <SYMBOL>ThrottleActuator_ReceiveCommands</SYMBOL>
                       <WRITTEN-LOCAL-VARIABLES>
                         <VARIABLE-ACCESS>
                           <SHORT-NAME>WriteDesiredDutyIrv</SHORT-NAME>
@@ -622,7 +645,6 @@
                     </RUNNABLE-ENTITY>
                     <RUNNABLE-ENTITY>
                       <SHORT-NAME>DriveActuator</SHORT-NAME>
-                      <SYMBOL>ThrottleActuator_DriveActuator</SYMBOL>
                       <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
                       <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
                       <PARAMETER-ACCESSS>
@@ -647,31 +669,31 @@
                           </OPERATION-IREF>
                         </SYNCHRONOUS-SERVER-CALL-POINT>
                       </SERVER-CALL-POINTS>
+                      <SYMBOL>ThrottleActuator_DriveActuator</SYMBOL>
                     </RUNNABLE-ENTITY>
                     <RUNNABLE-ENTITY>
                       <SHORT-NAME>ReportStatus</SHORT-NAME>
-                      <SYMBOL>ThrottleActuator_ReportStatus</SYMBOL>
                       <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
                       <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-SEND-POINTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendActuatorCommand</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendPositionFeedback</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendHealthStatus</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-SEND-POINTS>
                       <READ-LOCAL-VARIABLES>
                         <VARIABLE-ACCESS>
                           <SHORT-NAME>ReadMeasuredPositionIrv</SHORT-NAME>
                         </VARIABLE-ACCESS>
                       </READ-LOCAL-VARIABLES>
-                      <DATA-SEND-POINTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendActuatorCommand</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendPositionFeedback</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendHealthStatus</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-SEND-POINTS>
                       <SERVER-CALL-POINTS>
                         <SYNCHRONOUS-SERVER-CALL-POINT>
                           <SHORT-NAME>QueryHealthMonitor</SHORT-NAME>
@@ -681,47 +703,19 @@
                           </OPERATION-IREF>
                         </SYNCHRONOUS-SERVER-CALL-POINT>
                       </SERVER-CALL-POINTS>
+                      <SYMBOL>ThrottleActuator_ReportStatus</SYMBOL>
                     </RUNNABLE-ENTITY>
                   </RUNNABLES>
-                  <EVENTS>
-                    <TIMING-EVENT>
-                      <SHORT-NAME>ReceiveCommandsEvent</SHORT-NAME>
-                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReceiveCommands</START-ON-EVENT-REF>
-                      <PERIOD>0.01</PERIOD>
-                    </TIMING-EVENT>
-                    <TIMING-EVENT>
-                      <SHORT-NAME>DriveActuatorEvent</SHORT-NAME>
-                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/DriveActuator</START-ON-EVENT-REF>
-                      <PERIOD>0.01</PERIOD>
-                    </TIMING-EVENT>
-                    <TIMING-EVENT>
-                      <SHORT-NAME>ReportStatusEvent</SHORT-NAME>
-                      <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/Components/ThrottleActuatorSwc/ThrottleActuatorBehavior/ReportStatus</START-ON-EVENT-REF>
-                      <PERIOD>0.02</PERIOD>
-                    </TIMING-EVENT>
-                  </EVENTS>
-                  <PARAMETER-DATA-PROTOTYPES>
+                  <SHARED-PARAMETERS>
                     <PARAMETER-DATA-PROTOTYPE>
                       <SHORT-NAME>ActuatorSlewRate_C</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>75</INIT-VALUE>
                     </PARAMETER-DATA-PROTOTYPE>
                     <PARAMETER-DATA-PROTOTYPE>
                       <SHORT-NAME>HomePosition_C</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                      <INIT-VALUE>10</INIT-VALUE>
                     </PARAMETER-DATA-PROTOTYPE>
-                  </PARAMETER-DATA-PROTOTYPES>
-                  <INTER-RUNNABLE-VARIABLES>
-                    <VARIABLE-DATA-PROTOTYPE>
-                      <SHORT-NAME>DesiredDuty_Irv</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                    </VARIABLE-DATA-PROTOTYPE>
-                    <VARIABLE-DATA-PROTOTYPE>
-                      <SHORT-NAME>MeasuredPosition_Irv</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                    </VARIABLE-DATA-PROTOTYPE>
-                  </INTER-RUNNABLE-VARIABLES>
+                  </SHARED-PARAMETERS>
                 </SWC-INTERNAL-BEHAVIOR>
               </INTERNAL-BEHAVIORS>
             </APPLICATION-SW-COMPONENT-TYPE>
@@ -788,80 +782,6 @@
               <INTERNAL-BEHAVIORS>
                 <SWC-INTERNAL-BEHAVIOR>
                   <SHORT-NAME>DiagnosticsBehavior</SHORT-NAME>
-                  <RUNNABLES>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>CollectDiagnostics</SHORT-NAME>
-                      <SYMBOL>Diagnostics_CollectDiagnostics</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <DATA-READ-ACCESSS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadStatusInput</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadActuatorFeedback</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadPositionFeedback</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-READ-ACCESSS>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>EvaluateFaults</SHORT-NAME>
-                      <SYMBOL>Diagnostics_EvaluateFaults</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
-                      <PARAMETER-ACCESSS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadFaultDebounce</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                        <PARAMETER-ACCESS>
-                          <SHORT-NAME>ReadEventThreshold</SHORT-NAME>
-                        </PARAMETER-ACCESS>
-                      </PARAMETER-ACCESSS>
-                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReceiveDiagnosticStatus</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                      <WRITTEN-LOCAL-VARIABLES>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>WriteFaultCounterIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>WriteLatestEventCodeIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                      </WRITTEN-LOCAL-VARIABLES>
-                    </RUNNABLE-ENTITY>
-                    <RUNNABLE-ENTITY>
-                      <SHORT-NAME>PublishEvents</SHORT-NAME>
-                      <SYMBOL>Diagnostics_PublishEvents</SYMBOL>
-                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
-                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                      <READ-LOCAL-VARIABLES>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadFaultCounterIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>ReadLatestEventCodeIrv</SHORT-NAME>
-                        </VARIABLE-ACCESS>
-                      </READ-LOCAL-VARIABLES>
-                      <DATA-SEND-POINTS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendEventCode</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                        <VARIABLE-ACCESS>
-                          <SHORT-NAME>SendFaultCounter</SHORT-NAME>
-                          <SCOPE>communicationInterEcu</SCOPE>
-                        </VARIABLE-ACCESS>
-                      </DATA-SEND-POINTS>
-                    </RUNNABLE-ENTITY>
-                  </RUNNABLES>
                   <EVENTS>
                     <TIMING-EVENT>
                       <SHORT-NAME>CollectDiagnosticsEvent</SHORT-NAME>
@@ -882,19 +802,7 @@
                       <PERIOD>0.05</PERIOD>
                     </TIMING-EVENT>
                   </EVENTS>
-                  <PARAMETER-DATA-PROTOTYPES>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>FaultDebounce_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                      <INIT-VALUE>5</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                    <PARAMETER-DATA-PROTOTYPE>
-                      <SHORT-NAME>EventThreshold_C</SHORT-NAME>
-                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                      <INIT-VALUE>3</INIT-VALUE>
-                    </PARAMETER-DATA-PROTOTYPE>
-                  </PARAMETER-DATA-PROTOTYPES>
-                  <INTER-RUNNABLE-VARIABLES>
+                  <EXPLICIT-INTER-RUNNABLE-VARIABLES>
                     <VARIABLE-DATA-PROTOTYPE>
                       <SHORT-NAME>FaultCounter_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
@@ -903,7 +811,91 @@
                       <SHORT-NAME>LatestEventCode_Irv</SHORT-NAME>
                       <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
                     </VARIABLE-DATA-PROTOTYPE>
-                  </INTER-RUNNABLE-VARIABLES>
+                  </EXPLICIT-INTER-RUNNABLE-VARIABLES>
+                  <RUNNABLES>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>CollectDiagnostics</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-READ-ACCESSS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadStatusInput</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadActuatorFeedback</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadPositionFeedback</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-READ-ACCESSS>
+                      <SYMBOL>Diagnostics_CollectDiagnostics</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>EvaluateFaults</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReceiveDiagnosticStatus</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                      <PARAMETER-ACCESSS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadFaultDebounce</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                        <PARAMETER-ACCESS>
+                          <SHORT-NAME>ReadEventThreshold</SHORT-NAME>
+                        </PARAMETER-ACCESS>
+                      </PARAMETER-ACCESSS>
+                      <SYMBOL>Diagnostics_EvaluateFaults</SYMBOL>
+                      <WRITTEN-LOCAL-VARIABLES>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>WriteFaultCounterIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>WriteLatestEventCodeIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                      </WRITTEN-LOCAL-VARIABLES>
+                    </RUNNABLE-ENTITY>
+                    <RUNNABLE-ENTITY>
+                      <SHORT-NAME>PublishEvents</SHORT-NAME>
+                      <MINIMUM-START-INTERVAL>0.05</MINIMUM-START-INTERVAL>
+                      <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                      <DATA-SEND-POINTS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendEventCode</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>SendFaultCounter</SHORT-NAME>
+                          <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                        </VARIABLE-ACCESS>
+                      </DATA-SEND-POINTS>
+                      <READ-LOCAL-VARIABLES>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadFaultCounterIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                        <VARIABLE-ACCESS>
+                          <SHORT-NAME>ReadLatestEventCodeIrv</SHORT-NAME>
+                        </VARIABLE-ACCESS>
+                      </READ-LOCAL-VARIABLES>
+                      <SYMBOL>Diagnostics_PublishEvents</SYMBOL>
+                    </RUNNABLE-ENTITY>
+                  </RUNNABLES>
+                  <SHARED-PARAMETERS>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>FaultDebounce_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                    <PARAMETER-DATA-PROTOTYPE>
+                      <SHORT-NAME>EventThreshold_C</SHORT-NAME>
+                      <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
+                    </PARAMETER-DATA-PROTOTYPE>
+                  </SHARED-PARAMETERS>
                 </SWC-INTERNAL-BEHAVIOR>
               </INTERNAL-BEHAVIORS>
             </APPLICATION-SW-COMPONENT-TYPE>
@@ -1309,12 +1301,6 @@
                   <OPERATIONS>
                     <CLIENT-SERVER-OPERATION>
                       <SHORT-NAME>RequestSession</SHORT-NAME>
-                      <ARGUMENTS>
-                        <ARGUMENT-DATA-PROTOTYPE>
-                          <SHORT-NAME>RequestedSession</SHORT-NAME>
-                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                        </ARGUMENT-DATA-PROTOTYPE>
-                      </ARGUMENTS>
                       <POSSIBLE-ERROR-REFS>
                         <POSSIBLE-ERROR-REF DEST="APPLICATION-ERROR">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagDenied_E</POSSIBLE-ERROR-REF>
                       </POSSIBLE-ERROR-REFS>
@@ -1351,12 +1337,10 @@
                 </NV-DATA-INTERFACE>
                 <MODE-SWITCH-INTERFACE>
                   <SHORT-NAME>PowerMode_I</SHORT-NAME>
-                  <MODE-GROUPS>
-                    <MODE-DECLARATION-GROUP-PROTOTYPE>
+                  <MODE-GROUP>
                       <SHORT-NAME>PowerMode</SHORT-NAME>
                       <TYPE-TREF DEST="MODE-DECLARATION-GROUP">/ExampleEcuProject/Modes/PowerModeGroup</TYPE-TREF>
-                    </MODE-DECLARATION-GROUP-PROTOTYPE>
-                  </MODE-GROUPS>
+                    </MODE-GROUP>
                 </MODE-SWITCH-INTERFACE>
                 <TRIGGER-INTERFACE>
                   <SHORT-NAME>WakeupTrigger_I</SHORT-NAME>
@@ -1412,21 +1396,6 @@
                   <INTERNAL-BEHAVIORS>
                     <SWC-INTERNAL-BEHAVIOR>
                       <SHORT-NAME>DiagnosticServiceBehavior</SHORT-NAME>
-                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
-                      <RUNNABLES>
-                        <RUNNABLE-ENTITY>
-                          <SHORT-NAME>HandleDiagAdminRequest</SHORT-NAME>
-                          <SYMBOL>DiagAdminSrv_HandleRequest</SYMBOL>
-                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
-                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                        </RUNNABLE-ENTITY>
-                        <RUNNABLE-ENTITY>
-                          <SHORT-NAME>AnnouncePowerMode</SHORT-NAME>
-                          <SYMBOL>DiagAdminSrv_AnnouncePowerMode</SYMBOL>
-                          <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
-                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                        </RUNNABLE-ENTITY>
-                      </RUNNABLES>
                       <EVENTS>
                         <OPERATION-INVOKED-EVENT>
                           <SHORT-NAME>HandleDiagAdminRequestEvent</SHORT-NAME>
@@ -1444,31 +1413,31 @@
                       <PORT-API-OPTIONS>
                         <PORT-API-OPTION>
                           <PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/DiagAdminSrv</PORT-REF>
-                          <ENABLE-TAKE-ADDRESS>true</ENABLE-TAKE-ADDRESS>
-                          <INDIRECT-API>true</INDIRECT-API>
-                          <ERROR-HANDLING>transformerErrorHandling</ERROR-HANDLING>
-                          <TRANSFORMER-STATUS-FORWARDING>transformerStatusForwarding</TRANSFORMER-STATUS-FORWARDING>
                           <SUPPORTED-FEATURES>
                             <COMMUNICATION-BUFFER-LOCKING>
-                              <SUPPORT-BUFFER-LOCKING>supportsBufferLocking</SUPPORT-BUFFER-LOCKING>
+                              <SUPPORT-BUFFER-LOCKING>SUPPORTS-BUFFER-LOCKING</SUPPORT-BUFFER-LOCKING>
                             </COMMUNICATION-BUFFER-LOCKING>
                           </SUPPORTED-FEATURES>
-                          <PORT-ARG-VALUES>
-                            <PORT-DEFINED-ARGUMENT-VALUE>
-                              <VALUE-TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/ExampleEcuProject/ImplementationDataTypes/DiagAdminRequestContext</VALUE-TYPE-TREF>
-                              <VALUE>
-                                <TEXT-VALUE-SPECIFICATION>
-                                  <VALUE>DiagAdmin</VALUE>
-                                </TEXT-VALUE-SPECIFICATION>
-                              </VALUE>
-                            </PORT-DEFINED-ARGUMENT-VALUE>
-                          </PORT-ARG-VALUES>
                         </PORT-API-OPTION>
                         <PORT-API-OPTION>
                           <PORT-REF DEST="P-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/DiagnosticServiceSwc/PowerModeOut</PORT-REF>
-                          <INDIRECT-API>false</INDIRECT-API>
                         </PORT-API-OPTION>
                       </PORT-API-OPTIONS>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>HandleDiagAdminRequest</SHORT-NAME>
+                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <SYMBOL>DiagAdminSrv_HandleRequest</SYMBOL>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>AnnouncePowerMode</SHORT-NAME>
+                          <MINIMUM-START-INTERVAL>0.01</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <SYMBOL>DiagAdminSrv_AnnouncePowerMode</SYMBOL>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
+                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
                     </SWC-INTERNAL-BEHAVIOR>
                   </INTERNAL-BEHAVIORS>
                 </SERVICE-SW-COMPONENT-TYPE>
@@ -1492,7 +1461,6 @@
                 </NV-BLOCK-SW-COMPONENT-TYPE>
                 <SENSOR-ACTUATOR-SW-COMPONENT-TYPE>
                   <SHORT-NAME>WheelSpeedSensorSwc</SHORT-NAME>
-                  <SENSOR-ACTUATOR-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WheelSpeedSensorHw</SENSOR-ACTUATOR-REF>
                   <PORTS>
                     <R-PORT-PROTOTYPE>
                       <SHORT-NAME>CurrentIn</SHORT-NAME>
@@ -1513,17 +1481,10 @@
                       </RUNNABLES>
                     </SWC-INTERNAL-BEHAVIOR>
                   </INTERNAL-BEHAVIORS>
+                  <SENSOR-ACTUATOR-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WheelSpeedSensorHw</SENSOR-ACTUATOR-REF>
                 </SENSOR-ACTUATOR-SW-COMPONENT-TYPE>
                 <ECU-ABSTRACTION-SW-COMPONENT-TYPE>
                   <SHORT-NAME>IoAbstractionSwc</SHORT-NAME>
-                  <HARDWARE-ELEMENT-REFS>
-                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/MainIoExpanderHw</HARDWARE-ELEMENT-REF>
-                  </HARDWARE-ELEMENT-REFS>
-                  <SWC-BSW-MAPPINGS>
-                    <SWC-BSW-MAPPING>
-                      <SHORT-NAME>IoAbstractionToBsw</SHORT-NAME>
-                    </SWC-BSW-MAPPING>
-                  </SWC-BSW-MAPPINGS>
                   <PORTS>
                     <P-PORT-PROTOTYPE>
                       <SHORT-NAME>RawCurrentOut</SHORT-NAME>
@@ -1534,17 +1495,12 @@
                       <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/ExampleEcuProject/StandardsCoverage/Interfaces/ActuatorEnable_I</REQUIRED-INTERFACE-TREF>
                     </R-PORT-PROTOTYPE>
                   </PORTS>
+                  <HARDWARE-ELEMENT-REFS>
+                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/MainIoExpanderHw</HARDWARE-ELEMENT-REF>
+                  </HARDWARE-ELEMENT-REFS>
                 </ECU-ABSTRACTION-SW-COMPONENT-TYPE>
                 <COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE>
                   <SHORT-NAME>WakeupComplexDriverSwc</SHORT-NAME>
-                  <HARDWARE-ELEMENT-REFS>
-                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WakeupControllerHw</HARDWARE-ELEMENT-REF>
-                  </HARDWARE-ELEMENT-REFS>
-                  <SWC-BSW-MAPPINGS>
-                    <SWC-BSW-MAPPING>
-                      <SHORT-NAME>WakeupDriverToBsw</SHORT-NAME>
-                    </SWC-BSW-MAPPING>
-                  </SWC-BSW-MAPPINGS>
                   <PORTS>
                     <P-PORT-PROTOTYPE>
                       <SHORT-NAME>WakeupStatusOut</SHORT-NAME>
@@ -1569,6 +1525,9 @@
                       </RUNNABLES>
                     </SWC-INTERNAL-BEHAVIOR>
                   </INTERNAL-BEHAVIORS>
+                  <HARDWARE-ELEMENT-REFS>
+                    <HARDWARE-ELEMENT-REF DEST="HW-TYPE">/ExampleEcuProject/StandardsCoverage/Hardware/WakeupControllerHw</HARDWARE-ELEMENT-REF>
+                  </HARDWARE-ELEMENT-REFS>
                 </COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE>
                 <APPLICATION-SW-COMPONENT-TYPE>
                   <SHORT-NAME>CoverageApplicationSwc</SHORT-NAME>
@@ -1605,143 +1564,26 @@
                   <INTERNAL-BEHAVIORS>
                     <SWC-INTERNAL-BEHAVIOR>
                       <SHORT-NAME>CoverageApplicationBehavior</SHORT-NAME>
-                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
-                      <RUNNABLES>
-                        <RUNNABLE-ENTITY>
-                          <SHORT-NAME>InitCoverage</SHORT-NAME>
-                          <SYMBOL>Coverage_InitCoverage</SYMBOL>
-                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
-                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                          <PARAMETER-ACCESSS>
-                            <PARAMETER-ACCESS>
-                              <SHORT-NAME>ReadStartupCalibration</SHORT-NAME>
-                            </PARAMETER-ACCESS>
-                          </PARAMETER-ACCESSS>
-                          <DATA-READ-ACCESSS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReadWakeupMirrorOnInit</SHORT-NAME>
-                              <SCOPE>communicationIntraPartition</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-READ-ACCESSS>
-                          <SERVER-CALL-POINTS>
-                            <SYNCHRONOUS-SERVER-CALL-POINT>
-                              <SHORT-NAME>RequestDefaultSession</SHORT-NAME>
-                              <OPERATION-IREF>
-                                <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</CONTEXT-R-PORT-REF>
-                                <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I/RequestSession</TARGET-REQUIRED-OPERATION-REF>
-                              </OPERATION-IREF>
-                            </SYNCHRONOUS-SERVER-CALL-POINT>
-                          </SERVER-CALL-POINTS>
-                          <INTERNAL-TRIGGERING-POINTS>
-                            <INTERNAL-TRIGGERING-POINT>
-                              <SHORT-NAME>InitToEvaluateTrigger</SHORT-NAME>
-                              <SW-IMPL-POLICY>QUEUED</SW-IMPL-POLICY>
-                            </INTERNAL-TRIGGERING-POINT>
-                          </INTERNAL-TRIGGERING-POINTS>
-                        </RUNNABLE-ENTITY>
-                        <RUNNABLE-ENTITY>
-                          <SHORT-NAME>EvaluateCoveragePaths</SHORT-NAME>
-                          <SYMBOL>Coverage_EvaluateCoveragePaths</SYMBOL>
-                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
-                          <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
-                          <ARGUMENTS>
-                            <RUNNABLE-ENTITY-ARGUMENT>
-                              <SHORT-NAME>ActivationReason</SHORT-NAME>
-                              <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</TYPE-TREF>
-                            </RUNNABLE-ENTITY-ARGUMENT>
-                          </ARGUMENTS>
-                          <DATA-READ-ACCESSS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReadSpeedImplicit</SHORT-NAME>
-                              <SCOPE>communicationIntraPartition</SCOPE>
-                            </VARIABLE-ACCESS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReadWakeupMirrorImplicit</SHORT-NAME>
-                              <SCOPE>interPartitionIntraEcu</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-READ-ACCESSS>
-                          <DATA-RECEIVE-POINT-BY-VALUES>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReceiveSpeedByValue</SHORT-NAME>
-                              <SCOPE>communicationIntraPartition</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-RECEIVE-POINT-BY-VALUES>
-                          <DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReceiveWakeupCounterByArgument</SHORT-NAME>
-                              <SCOPE>interPartitionIntraEcu</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-RECEIVE-POINT-BY-ARGUMENTS>
-                          <DATA-WRITE-ACCESSS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>WriteActuatorEnableImplicit</SHORT-NAME>
-                              <SCOPE>communicationInterEcu</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-WRITE-ACCESSS>
-                          <DATA-SEND-POINTS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>SendActuatorEnableExplicit</SHORT-NAME>
-                              <SCOPE>communicationInterEcu</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-SEND-POINTS>
-                          <PARAMETER-ACCESSS>
-                            <PARAMETER-ACCESS>
-                              <SHORT-NAME>ReadCoverageCalibration</SHORT-NAME>
-                            </PARAMETER-ACCESS>
-                          </PARAMETER-ACCESSS>
-                          <SERVER-CALL-POINTS>
-                            <ASYNCHRONOUS-SERVER-CALL-POINT>
-                              <SHORT-NAME>RequestExtendedSession</SHORT-NAME>
-                              <TIMEOUT>0.05</TIMEOUT>
-                            </ASYNCHRONOUS-SERVER-CALL-POINT>
-                          </SERVER-CALL-POINTS>
-                          <ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
-                            <ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
-                              <SHORT-NAME>AwaitExtendedSessionResult</SHORT-NAME>
-                            </ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
-                          </ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
-                          <WAIT-POINTS>
-                            <WAIT-POINT>
-                              <SHORT-NAME>WaitForDiagResult</SHORT-NAME>
-                              <TIMEOUT>0.05</TIMEOUT>
-                              <TRIGGER-REF DEST="DATA-RECEIVED-EVENT">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/SpeedInEvent</TRIGGER-REF>
-                            </WAIT-POINT>
-                          </WAIT-POINTS>
-                          <EXTERNAL-TRIGGERING-POINTS>
-                            <EXTERNAL-TRIGGERING-POINT>
-                              <SHORT-NAME>ForwardWakeupTrigger</SHORT-NAME>
-                            </EXTERNAL-TRIGGERING-POINT>
-                          </EXTERNAL-TRIGGERING-POINTS>
-                          <INTERNAL-TRIGGERING-POINTS>
-                            <INTERNAL-TRIGGERING-POINT>
-                              <SHORT-NAME>EvaluateToPublishTrigger</SHORT-NAME>
-                              <SW-IMPL-POLICY>STANDARD</SW-IMPL-POLICY>
-                            </INTERNAL-TRIGGERING-POINT>
-                          </INTERNAL-TRIGGERING-POINTS>
-                        </RUNNABLE-ENTITY>
-                        <RUNNABLE-ENTITY>
-                          <SHORT-NAME>PublishCoverageState</SHORT-NAME>
-                          <SYMBOL>Coverage_PublishCoverageState</SYMBOL>
-                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
-                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
-                          <READ-LOCAL-VARIABLES>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>ReadCoverageStateIrv</SHORT-NAME>
-                            </VARIABLE-ACCESS>
-                          </READ-LOCAL-VARIABLES>
-                          <WRITTEN-LOCAL-VARIABLES>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>WriteCoverageDebounceIrv</SHORT-NAME>
-                            </VARIABLE-ACCESS>
-                          </WRITTEN-LOCAL-VARIABLES>
-                          <DATA-SEND-POINTS>
-                            <VARIABLE-ACCESS>
-                              <SHORT-NAME>SendActuatorEnableState</SHORT-NAME>
-                              <SCOPE>communicationInterEcu</SCOPE>
-                            </VARIABLE-ACCESS>
-                          </DATA-SEND-POINTS>
-                        </RUNNABLE-ENTITY>
-                      </RUNNABLES>
+                      <CONSTANT-MEMORYS>
+                        <PARAMETER-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageConstTable</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </PARAMETER-DATA-PROTOTYPE>
+                      </CONSTANT-MEMORYS>
+                      <EXCLUSIVE-AREAS>
+                        <EXCLUSIVE-AREA>
+                          <SHORT-NAME>CoverageStateLock</SHORT-NAME>
+                        </EXCLUSIVE-AREA>
+                        <EXCLUSIVE-AREA>
+                          <SHORT-NAME>DiagnosticSessionLock</SHORT-NAME>
+                        </EXCLUSIVE-AREA>
+                      </EXCLUSIVE-AREAS>
+                      <AR-TYPED-PER-INSTANCE-MEMORYS>
+                        <VARIABLE-DATA-PROTOTYPE>
+                          <SHORT-NAME>CoverageHistoryPim</SHORT-NAME>
+                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
+                        </VARIABLE-DATA-PROTOTYPE>
+                      </AR-TYPED-PER-INSTANCE-MEMORYS>
                       <EVENTS>
                         <INIT-EVENT>
                           <SHORT-NAME>InitCoverageEvent</SHORT-NAME>
@@ -1764,7 +1606,7 @@
                           <SHORT-NAME>WakeupMirrorErrorEvent</SHORT-NAME>
                           <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/PublishCoverageState</START-ON-EVENT-REF>
                           <DATA-IREF>
-                            <CONTEXT-PR-PORT-REF DEST="PR-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/WakeupDataPr</CONTEXT-PR-PORT-REF>
+                            <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/WakeupDataPr</CONTEXT-R-PORT-REF>
                             <TARGET-DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Interfaces/SharedNvData_I/StoredWakeupCounter</TARGET-DATA-ELEMENT-REF>
                           </DATA-IREF>
                         </DATA-RECEIVE-ERROR-EVENT>
@@ -1778,19 +1620,6 @@
                           <EVENT-SOURCE-REF DEST="INTERNAL-TRIGGERING-POINT">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/EvaluateCoveragePaths/EvaluateToPublishTrigger</EVENT-SOURCE-REF>
                         </INTERNAL-TRIGGER-OCCURRED-EVENT>
                       </EVENTS>
-                      <EXCLUSIVE-AREAS>
-                        <EXCLUSIVE-AREA>
-                          <SHORT-NAME>CoverageStateLock</SHORT-NAME>
-                        </EXCLUSIVE-AREA>
-                        <EXCLUSIVE-AREA>
-                          <SHORT-NAME>DiagnosticSessionLock</SHORT-NAME>
-                        </EXCLUSIVE-AREA>
-                      </EXCLUSIVE-AREAS>
-                      <EXCLUSIVE-AREA-NESTING-ORDERS>
-                        <EXCLUSIVE-AREA-NESTING-ORDER>
-                          <SHORT-NAME>CoverageLockOrder</SHORT-NAME>
-                        </EXCLUSIVE-AREA-NESTING-ORDER>
-                      </EXCLUSIVE-AREA-NESTING-ORDERS>
                       <EXPLICIT-INTER-RUNNABLE-VARIABLES>
                         <VARIABLE-DATA-PROTOTYPE>
                           <SHORT-NAME>CoverageStateIrv</SHORT-NAME>
@@ -1803,81 +1632,177 @@
                           <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
                         </VARIABLE-DATA-PROTOTYPE>
                       </IMPLICIT-INTER-RUNNABLE-VARIABLES>
+                      <INCLUDED-DATA-TYPE-SETS>
+                        <INCLUDED-DATA-TYPE-SET>
+                          <DATA-TYPE-REFS>
+                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</DATA-TYPE-REF>
+                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</DATA-TYPE-REF>
+                          </DATA-TYPE-REFS>
+                          <LITERAL-PREFIX>COVERAGE_DT</LITERAL-PREFIX>
+                        </INCLUDED-DATA-TYPE-SET>
+                      </INCLUDED-DATA-TYPE-SETS>
+                      <INCLUDED-MODE-DECLARATION-GROUP-SETS>
+                        <INCLUDED-MODE-DECLARATION-GROUP-SET>
+                          <MODE-DECLARATION-GROUP-REFS>
+                            <MODE-DECLARATION-GROUP-REF DEST="MODE-DECLARATION-GROUP">/ExampleEcuProject/Modes/PowerModeGroup</MODE-DECLARATION-GROUP-REF>
+                          </MODE-DECLARATION-GROUP-REFS>
+                          <PREFIX>COVERAGE_MODE</PREFIX>
+                        </INCLUDED-MODE-DECLARATION-GROUP-SET>
+                      </INCLUDED-MODE-DECLARATION-GROUP-SETS>
                       <PER-INSTANCE-MEMORYS>
                         <PER-INSTANCE-MEMORY>
                           <SHORT-NAME>CoverageScratchpad</SHORT-NAME>
                           <TYPE>uint8</TYPE>
                           <TYPE-DEFINITION>typedef uint8 CoverageScratchpadType;</TYPE-DEFINITION>
-                          <INIT-VALUE>0</INIT-VALUE>
                         </PER-INSTANCE-MEMORY>
                       </PER-INSTANCE-MEMORYS>
-                      <AR-TYPED-PER-INSTANCE-MEMORYS>
-                        <VARIABLE-DATA-PROTOTYPE>
-                          <SHORT-NAME>CoverageHistoryPim</SHORT-NAME>
-                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                        </VARIABLE-DATA-PROTOTYPE>
-                      </AR-TYPED-PER-INSTANCE-MEMORYS>
                       <PER-INSTANCE-PARAMETERS>
                         <PARAMETER-DATA-PROTOTYPE>
                           <SHORT-NAME>CoverageThresholdPerInstance</SHORT-NAME>
                           <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
                         </PARAMETER-DATA-PROTOTYPE>
                       </PER-INSTANCE-PARAMETERS>
-                      <PARAMETERS>
-                        <PARAMETER-DATA-PROTOTYPE>
-                          <SHORT-NAME>CoverageGain</SHORT-NAME>
-                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                        </PARAMETER-DATA-PROTOTYPE>
-                      </PARAMETERS>
-                      <STATIC-MEMORYS>
-                        <VARIABLE-DATA-PROTOTYPE>
-                          <SHORT-NAME>CoverageDebugCounter</SHORT-NAME>
-                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint32</TYPE-TREF>
-                        </VARIABLE-DATA-PROTOTYPE>
-                      </STATIC-MEMORYS>
-                      <CONSTANT-MEMORYS>
-                        <PARAMETER-DATA-PROTOTYPE>
-                          <SHORT-NAME>CoverageConstTable</SHORT-NAME>
-                          <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</TYPE-TREF>
-                        </PARAMETER-DATA-PROTOTYPE>
-                      </CONSTANT-MEMORYS>
                       <PORT-API-OPTIONS>
                         <PORT-API-OPTION>
                           <PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/SpeedIn</PORT-REF>
-                          <INDIRECT-API>true</INDIRECT-API>
                         </PORT-API-OPTION>
                         <PORT-API-OPTION>
                           <PORT-REF DEST="PR-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/WakeupDataPr</PORT-REF>
-                          <ERROR-HANDLING>transformerErrorHandling</ERROR-HANDLING>
-                          <TRANSFORMER-STATUS-FORWARDING>transformerStatusForwarding</TRANSFORMER-STATUS-FORWARDING>
                           <SUPPORTED-FEATURES>
                             <COMMUNICATION-BUFFER-LOCKING>
-                              <SUPPORT-BUFFER-LOCKING>supportsBufferLocking</SUPPORT-BUFFER-LOCKING>
+                              <SUPPORT-BUFFER-LOCKING>SUPPORTS-BUFFER-LOCKING</SUPPORT-BUFFER-LOCKING>
                             </COMMUNICATION-BUFFER-LOCKING>
                           </SUPPORTED-FEATURES>
                         </PORT-API-OPTION>
                       </PORT-API-OPTIONS>
-                      <INCLUDED-DATA-TYPE-SETS>
-                        <INCLUDED-DATA-TYPE-SET>
-                          <LITERAL-PREFIX>COVERAGE_DT</LITERAL-PREFIX>
-                          <DATA-TYPE-REFS>
-                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint8</DATA-TYPE-REF>
-                            <DATA-TYPE-REF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/ExampleEcuProject/DataTypes/uint16</DATA-TYPE-REF>
-                          </DATA-TYPE-REFS>
-                        </INCLUDED-DATA-TYPE-SET>
-                      </INCLUDED-DATA-TYPE-SETS>
-                      <INCLUDED-MODE-DECLARATION-GROUP-SETS>
-                        <INCLUDED-MODE-DECLARATION-GROUP-SET>
-                          <PREFIX>COVERAGE_MODE</PREFIX>
-                          <MODE-DECLARATION-GROUP-REFS>
-                            <MODE-DECLARATION-GROUP-REF DEST="MODE-DECLARATION-GROUP">/ExampleEcuProject/Modes/PowerModeGroup</MODE-DECLARATION-GROUP-REF>
-                          </MODE-DECLARATION-GROUP-REFS>
-                        </INCLUDED-MODE-DECLARATION-GROUP-SET>
-                      </INCLUDED-MODE-DECLARATION-GROUP-SETS>
+                      <RUNNABLES>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>InitCoverage</SHORT-NAME>
+                          <MINIMUM-START-INTERVAL>0</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <DATA-READ-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadWakeupMirrorOnInit</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-READ-ACCESSS>
+                          <INTERNAL-TRIGGERING-POINTS>
+                            <INTERNAL-TRIGGERING-POINT>
+                              <SHORT-NAME>InitToEvaluateTrigger</SHORT-NAME>
+                              <SW-IMPL-POLICY>QUEUED</SW-IMPL-POLICY>
+                            </INTERNAL-TRIGGERING-POINT>
+                          </INTERNAL-TRIGGERING-POINTS>
+                          <PARAMETER-ACCESSS>
+                            <PARAMETER-ACCESS>
+                              <SHORT-NAME>ReadStartupCalibration</SHORT-NAME>
+                            </PARAMETER-ACCESS>
+                          </PARAMETER-ACCESSS>
+                          <SERVER-CALL-POINTS>
+                            <SYNCHRONOUS-SERVER-CALL-POINT>
+                              <SHORT-NAME>RequestDefaultSession</SHORT-NAME>
+                              <OPERATION-IREF>
+                                <CONTEXT-R-PORT-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</CONTEXT-R-PORT-REF>
+                                <TARGET-REQUIRED-OPERATION-REF DEST="CLIENT-SERVER-OPERATION">/ExampleEcuProject/StandardsCoverage/Interfaces/DiagAdmin_I/RequestSession</TARGET-REQUIRED-OPERATION-REF>
+                              </OPERATION-IREF>
+                            </SYNCHRONOUS-SERVER-CALL-POINT>
+                          </SERVER-CALL-POINTS>
+                          <SYMBOL>Coverage_InitCoverage</SYMBOL>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>EvaluateCoveragePaths</SHORT-NAME>
+                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                          <ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
+                            <ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
+                              <SHORT-NAME>AwaitExtendedSessionResult</SHORT-NAME>
+                            </ASYNCHRONOUS-SERVER-CALL-RESULT-POINT>
+                          </ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS>
+                          <CAN-BE-INVOKED-CONCURRENTLY>true</CAN-BE-INVOKED-CONCURRENTLY>
+                          <DATA-READ-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadSpeedImplicit</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                            </VARIABLE-ACCESS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadWakeupMirrorImplicit</SHORT-NAME>
+                              <SCOPE>INTER-PARTITION-INTRA-ECU</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-READ-ACCESSS>
+                          <DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReceiveWakeupCounterByArgument</SHORT-NAME>
+                              <SCOPE>INTER-PARTITION-INTRA-ECU</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-RECEIVE-POINT-BY-ARGUMENTS>
+                          <DATA-RECEIVE-POINT-BY-VALUES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReceiveSpeedByValue</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTRA-PARTITION</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-RECEIVE-POINT-BY-VALUES>
+                          <DATA-SEND-POINTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>SendActuatorEnableExplicit</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-SEND-POINTS>
+                          <DATA-WRITE-ACCESSS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>WriteActuatorEnableImplicit</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-WRITE-ACCESSS>
+                          <INTERNAL-TRIGGERING-POINTS>
+                            <INTERNAL-TRIGGERING-POINT>
+                              <SHORT-NAME>EvaluateToPublishTrigger</SHORT-NAME>
+                              <SW-IMPL-POLICY>STANDARD</SW-IMPL-POLICY>
+                            </INTERNAL-TRIGGERING-POINT>
+                          </INTERNAL-TRIGGERING-POINTS>
+                          <PARAMETER-ACCESSS>
+                            <PARAMETER-ACCESS>
+                              <SHORT-NAME>ReadCoverageCalibration</SHORT-NAME>
+                            </PARAMETER-ACCESS>
+                          </PARAMETER-ACCESSS>
+                          <SERVER-CALL-POINTS>
+                            <ASYNCHRONOUS-SERVER-CALL-POINT>
+                              <SHORT-NAME>RequestExtendedSession</SHORT-NAME>
+                              <TIMEOUT>0.05</TIMEOUT>
+                            </ASYNCHRONOUS-SERVER-CALL-POINT>
+                          </SERVER-CALL-POINTS>
+                          <SYMBOL>Coverage_EvaluateCoveragePaths</SYMBOL>
+                          <WAIT-POINTS>
+                            <WAIT-POINT>
+                              <SHORT-NAME>WaitForDiagResult</SHORT-NAME>
+                              <TIMEOUT>0.05</TIMEOUT>
+                              <TRIGGER-REF DEST="DATA-RECEIVED-EVENT">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/CoverageApplicationBehavior/SpeedInEvent</TRIGGER-REF>
+                            </WAIT-POINT>
+                          </WAIT-POINTS>
+                        </RUNNABLE-ENTITY>
+                        <RUNNABLE-ENTITY>
+                          <SHORT-NAME>PublishCoverageState</SHORT-NAME>
+                          <MINIMUM-START-INTERVAL>0.02</MINIMUM-START-INTERVAL>
+                          <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
+                          <DATA-SEND-POINTS>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>SendActuatorEnableState</SHORT-NAME>
+                              <SCOPE>COMMUNICATION-INTER-ECU</SCOPE>
+                            </VARIABLE-ACCESS>
+                          </DATA-SEND-POINTS>
+                          <READ-LOCAL-VARIABLES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>ReadCoverageStateIrv</SHORT-NAME>
+                            </VARIABLE-ACCESS>
+                          </READ-LOCAL-VARIABLES>
+                          <SYMBOL>Coverage_PublishCoverageState</SYMBOL>
+                          <WRITTEN-LOCAL-VARIABLES>
+                            <VARIABLE-ACCESS>
+                              <SHORT-NAME>WriteCoverageDebounceIrv</SHORT-NAME>
+                            </VARIABLE-ACCESS>
+                          </WRITTEN-LOCAL-VARIABLES>
+                        </RUNNABLE-ENTITY>
+                      </RUNNABLES>
                       <SERVICE-DEPENDENCYS>
                         <SWC-SERVICE-DEPENDENCY>
                           <SHORT-NAME>CoverageDiagDependency</SHORT-NAME>
-                          <DIAGNOSTIC-RELEVANCE>isRelevant</DIAGNOSTIC-RELEVANCE>
                           <ASSIGNED-PORTS>
                             <ROLE-BASED-PORT-ASSIGNMENT>
                               <PORT-PROTOTYPE-REF DEST="R-PORT-PROTOTYPE">/ExampleEcuProject/StandardsCoverage/Components/CoverageApplicationSwc/DiagAdminClient</PORT-PROTOTYPE-REF>
@@ -1892,6 +1817,7 @@
                           </SERVICE-NEEDS>
                         </SWC-SERVICE-DEPENDENCY>
                       </SERVICE-DEPENDENCYS>
+                      <SUPPORTS-MULTIPLE-INSTANTIATION>false</SUPPORTS-MULTIPLE-INSTANTIATION>
                     </SWC-INTERNAL-BEHAVIOR>
                   </INTERNAL-BEHAVIORS>
                 </APPLICATION-SW-COMPONENT-TYPE>
@@ -2067,9 +1993,6 @@
           <ELEMENTS>
             <SYSTEM>
               <SHORT-NAME>VehicleEcuSystem</SHORT-NAME>
-              <FIBEX-ELEMENT-REFS>
-                <FIBEX-ELEMENT-REF DEST="COMPOSITION-SW-COMPONENT-TYPE">/ExampleEcuProject/Components/PowertrainComposition</FIBEX-ELEMENT-REF>
-              </FIBEX-ELEMENT-REFS>
             </SYSTEM>
             <ECU-INSTANCE>
               <SHORT-NAME>PowertrainEcu</SHORT-NAME>

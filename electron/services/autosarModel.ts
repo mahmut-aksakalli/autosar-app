@@ -620,7 +620,7 @@ function collectInterfaceDefinitionFeature(
     definition.parameters.push(item);
     return;
   }
-  if (tagName === "MODE-DECLARATION-GROUP-PROTOTYPE") {
+  if (tagName === "MODE-DECLARATION-GROUP-PROTOTYPE" || tagName === "MODE-GROUP") {
     definition.modeGroups.push(item);
     return;
   }

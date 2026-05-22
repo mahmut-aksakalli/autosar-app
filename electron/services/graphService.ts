@@ -27,7 +27,6 @@ export class GraphService {
         .filter((entity) => entity.semanticPath)
         .map((entity) => [entity.semanticPath!, entity])
     );
-
     const focus = findFocusEntity(entities, query);
     if (!focus) {
       return {
@@ -56,7 +55,7 @@ export class GraphService {
       };
     }
 
-    return buildCompositionGraph(focus, entities, connections, entityBySemanticPath);
+    return buildCompositionGraph(focus, entities, connections, entityBySemanticPath, query.includeCompositionInternals === true);
   }
 }
 
@@ -64,7 +63,8 @@ function buildCompositionGraph(
   focus: AutosarEntity,
   entities: AutosarEntity[],
   connections: PortConnection[],
-  entityBySemanticPath: Map<string, AutosarEntity>
+  entityBySemanticPath: Map<string, AutosarEntity>,
+  includeInternals: boolean
 ): SwcGraphResult {
   const warnings: ValidationIssue[] = [];
   const nodes = new Map<string, SwcGraphNode>();
@@ -73,6 +73,16 @@ function buildCompositionGraph(
   const focusSemanticPath = focus.semanticPath;
   const outerPorts = collectPortsForOwner(entities, focusSemanticPath);
   nodes.set(focus.id, toComponentNode(focus, outerPorts));
+
+  if (!includeInternals) {
+    return {
+      scope: "composition",
+      focusId: focus.semanticPath ?? focus.id,
+      nodes: Array.from(nodes.values()),
+      edges,
+      warnings
+    };
+  }
 
   const instances = entities.filter(
     (entity) => entity.type === "instance" && entity.parentSemanticPath === focusSemanticPath
