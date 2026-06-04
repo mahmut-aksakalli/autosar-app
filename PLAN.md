@@ -75,28 +75,38 @@ References:
 - [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
 - Scope: single-file and workspace model/reference resolution plus AUTOSAR semantic validation rules for the currently supported Classic Platform model surface.
-- [ ] 5.1 Build one AUTOSAR model index implementation that can be populated from either a single ARXML file or a full workspace.
-- [ ] 5.2 Add version-aware semantic extractor interfaces that convert generic XML nodes into app-level AUTOSAR entities instead of binding the renderer to XSD-generated XML shapes.
-- [ ] 5.3 Implement a shared Classic AUTOSAR extractor foundation for common `4.x` structures, then isolate version-specific differences behind adapters selected from namespace/schema metadata.
+- [x] 5.1 Build one AUTOSAR model index implementation that can be populated from either a single ARXML file or a full workspace.
+- [x] 5.2 Add version-aware semantic extractor interfaces that convert generic XML nodes into app-level AUTOSAR entities instead of binding the renderer to XSD-generated XML shapes.
+- [x] 5.3 Implement a shared Classic AUTOSAR extractor foundation for common `4.x` structures, then isolate version-specific differences behind adapters selected from namespace/schema metadata.
 - [ ] 5.4 Add focused extractors for SWCs, ports, interfaces, compositions, component prototypes, connectors, runnables, events, memory, calibration data, ECU mappings, and hardware references as each feature becomes supported.
-- [ ] 5.5 Keep extractor output stable across AUTOSAR versions by mapping version-specific XML differences into shared semantic contracts used by the rest of the app.
-- [ ] 5.6 Record semantic paths, XML paths, entity kinds, `SHORT-NAME` chains, defining file, owning package, validation scope, model completeness, AUTOSAR version, and raw XML source pointers for every supported entity.
-- [ ] 5.7 Build the model index first, then resolve references in a separate pass so cross-file links and forward references can be handled consistently.
-- [ ] 5.8 Resolve `*-REF` and `*-TREF` values against the currently available index, using single-file mode for isolated SWC extracts and workspace mode for project folders.
-- [ ] 5.9 Classify references as `resolved-local`, `resolved-workspace`, `external`, `unresolved`, or `wrong-kind` instead of flattening every missing target into the same warning.
-- [ ] 5.10 In single-file mode, treat well-formed references to missing outside entities as `external` or incomplete-context warnings so standalone SWC descriptions remain useful and viewable.
-- [ ] 5.11 In workspace mode, escalate missing cross-file references to unresolved-reference diagnostics when the target should be present in the loaded project.
-- [ ] 5.12 Validate that resolved references point to the expected AUTOSAR destination kind, including port interfaces, SWC types, component prototypes, ports, runnables, events, connectors, ECU instances, mappings, and hardware references as support grows.
-- [ ] 5.13 Report reference diagnostics with the source XML path, reference value, expected destination, resolved status, validation scope, AUTOSAR version, and nearest owning AUTOSAR entity.
-- [ ] 5.14 Detect duplicate or ambiguous semantic paths that would make reference resolution unsafe.
+  - [x] Route currently supported Classic SWC, port, interface, composition, component-prototype, connector, runnable, event, memory, and calibration extraction through the version-aware Classic adapter foundation.
+  - [ ] Add ECU mapping and hardware-reference extractors once Step 7 and Step 8 entities are introduced.
+- [x] 5.5 Keep extractor output stable across AUTOSAR versions by mapping version-specific XML differences into shared semantic contracts used by the rest of the app.
+- [x] 5.6 Record semantic paths, XML paths, entity kinds, `SHORT-NAME` chains, defining file, owning package, validation scope, model completeness, AUTOSAR version, and raw XML source pointers for every supported entity.
+- [x] 5.7 Build the model index first, then resolve references in a separate pass so cross-file links and forward references can be handled consistently.
+- [x] 5.8 Resolve `*-REF` and `*-TREF` values against the currently available index, using single-file mode for isolated SWC extracts and workspace mode for project folders.
+- [x] 5.9 Classify references as `resolved-local`, `resolved-workspace`, `external`, `unresolved`, or `wrong-kind` instead of flattening every missing target into the same warning.
+- [x] 5.10 In single-file mode, treat well-formed references to missing outside entities as `external` or incomplete-context warnings so standalone SWC descriptions remain useful and viewable.
+- [x] 5.11 In workspace mode, escalate missing cross-file references to unresolved-reference diagnostics when the target should be present in the loaded project.
+- [x] 5.12 Validate that resolved references point to the expected AUTOSAR destination kind, including port interfaces, SWC types, component prototypes, ports, runnables, events, connectors, ECU instances, mappings, and hardware references as support grows.
+  - [x] Implement destination-kind checks for currently indexed port interfaces, component types, component prototypes, and connector ports.
+  - [ ] Extend destination-kind checks to runnable/event/mapping/hardware references after those references are extracted into the semantic model.
+- [x] 5.13 Report reference diagnostics with the source XML path, reference value, expected destination, resolved status, validation scope, AUTOSAR version, and nearest owning AUTOSAR entity.
+- [x] 5.14 Detect duplicate or ambiguous semantic paths that would make reference resolution unsafe.
 - [ ] 5.15 Validate port/interface compatibility for `P`, `R`, and `PR` ports, including sender-receiver, client-server, mode-switch, parameter, nv-data, and trigger interfaces when the interface definition is available.
-- [ ] 5.16 Preserve port and connector display when interface definitions or connector endpoints are external to a single-file extract, using badges and warnings instead of dropping graph elements.
-- [ ] 5.17 Validate composition connectors, including assembly/delegation endpoint existence, compatible port direction, compatible interface type, and degraded handling for intentionally unconnected or external ports.
+- [x] 5.16 Preserve port and connector display when interface definitions or connector endpoints are external to a single-file extract, using badges and warnings instead of dropping graph elements.
+- [x] 5.17 Validate composition connectors, including assembly/delegation endpoint existence, compatible port direction, compatible interface type, and degraded handling for intentionally unconnected or external ports.
+  - [x] Validate assembly/delegation component and port endpoint existence.
+  - [ ] Add full connector port-direction and interface-compatibility checks once connector endpoint interface resolution is expanded.
 - [ ] 5.18 Validate SWC internal behavior relationships, including runnable references from events, runnable access points, calibration variables, inter-runnable variables, and per-instance memory links where currently parsed.
+  - [x] Extract runnable access-point detail rows for the runnable details view, including DEP/operation/trigger target, access type, and access-point name.
+  - [ ] Add semantic validation for runnable access-point references after referenced port/data/operation targets are indexed consistently.
 - [ ] 5.19 Validate component family constraints already represented in the app, including parameter SWC usage, service/service-proxy distinctions, sensor-actuator, ECU abstraction, complex driver, and nv-block expectations.
 - [ ] 5.20 Keep semantic validation incremental so editing one ARXML file revalidates affected references without forcing a full workspace rebuild when avoidable.
-- [ ] 5.21 Expose semantic validation issues in shared contracts with stable issue codes, severity, source file, XML path, semantic path, related target path, reference status, validation scope, AUTOSAR version, and optional quick-jump metadata.
+- [x] 5.21 Expose semantic validation issues in shared contracts with stable issue codes, severity, source file, XML path, semantic path, related target path, reference status, validation scope, AUTOSAR version, and optional quick-jump metadata.
 - [ ] 5.22 Add fixtures and tests for version-aware extraction, standalone SWC extracts, external interface references, unresolved workspace references, wrong destination types, incompatible port/interface pairs, invalid connector endpoints, duplicate semantic paths, and incomplete but still viewable AUTOSAR models.
+  - [x] Add unit tests for standalone external references, unresolved workspace references, wrong destination kinds, invalid connector endpoints, and duplicate semantic paths.
+  - [ ] Add version-aware extractor fixtures and incompatible port/interface-pair fixtures.
 
 ### Step 6 - Richer SWC and composition visualization
 References:
@@ -114,6 +124,13 @@ References:
   - [x] Add `Graph`, `Runnables`, `Events`, `Behavior`, and `Memory` workspace tabs for an SWC.
   - [x] Support entity-specific tabs opened from explorer or graph selections, such as `Runnable`, `Port`, and `Event`.
   - [x] Make runnable tabs the primary surface for Chapter `7.2 RunnableEntity` details.
+  - [x] Show runnable access points in a compact details table with user-resizable columns.
+  - [x] Show runnable trigger events in a collapsible details table with trigger, type, disabled modes, activation reason, and event name.
+  - [x] Show runnable activation reasons in a dedicated Bit/Name/Symbol table and expose `SW-ADDR-METHOD-REF` in runnable fields.
+  - [x] Add a richer port detail surface with direction checkboxes, port API options, port-defined argument values, and communication specs.
+  - [x] Trim the port detail surface to requested fields and make Port API Options and Communication Specs collapsible sections.
+  - [x] Expand Communication Specs data elements into collapsible detail rows with interface properties, sender com spec fields, init value typing, invalid/out-of-range handling, and transmission timing values in ms.
+  - [x] Make the Runnables tab a clickable SWC/Name/Symbol/Period-in-ms table that opens the selected runnable detail tab.
 - [x] 6.4 Render a selected software composition as its own focused graph node with composition ports, without expanding child SWCs inside the composition.
 - [x] 6.5 Preserve composition-instance selection so clicking an individual SWC under a composition opens the focused component graph with its connections.
 - [x] 6.6 Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.

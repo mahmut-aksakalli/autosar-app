@@ -10,8 +10,15 @@ import type {
   SwcInspectorData,
   SwcInspectorItem,
   SwcInspectorSectionId,
+  ValidationScope,
   ValidationIssue
 } from "../../src/shared/contracts.js";
+import {
+  createAutosarVersionAdapter,
+  type AutosarEntityType,
+  type AutosarVersionAdapter
+} from "./autosarVersionAdapters.js";
+import type { ArxmlValidationMetadata } from "../../src/shared/contracts.js";
 
 const PORT_TAGS = new Set(["P-PORT-PROTOTYPE", "R-PORT-PROTOTYPE", "PR-PORT-PROTOTYPE"]);
 const CONNECTION_TAGS = new Set(["ASSEMBLY-SW-CONNECTOR", "DELEGATION-SW-CONNECTOR"]);
@@ -26,7 +33,7 @@ const INTERFACE_TAGS = new Set([
   "TRIGGER-INTERFACE"
 ]);
 
-type EntityType = "swc" | "composition" | "instance" | "port" | "connection" | "interface" | "generic";
+type EntityType = AutosarEntityType;
 
 export interface ParsedAutosarModel {
   rootTag: string;
@@ -39,6 +46,8 @@ export interface ParsedAutosarModel {
 
 interface WalkState {
   filePath: string;
+  validationScope: ValidationScope;
+  adapter: AutosarVersionAdapter;
   tagName: string;
   node: unknown;
   currentPath: string;
@@ -58,6 +67,8 @@ interface MutableSwcInspector {
   sections: Record<SwcInspectorSectionId, SwcInspectorItem[]>;
   runnablePeriodsByName: Record<string, string>;
   runnableEventsByName: Record<string, string[]>;
+  runnableEventDetailsByName: Record<string, RunnableTriggerEventDetail[]>;
+  portApiOptionsByPortRef: Record<string, Record<string, string>>;
 }
 
 interface InterfaceDefinition {
@@ -75,14 +86,33 @@ interface InterfaceMember {
   id: string;
   label: string;
   xmlPath: string;
+  semanticPath?: string;
   metadata?: Record<string, string>;
 }
 
-export function buildAutosarModel(filePath: string, parsedXml: unknown): ParsedAutosarModel {
+interface RunnableTriggerEventDetail {
+  trigger: string;
+  type: string;
+  disabledInModes: string;
+  activationReason: string;
+  name: string;
+}
+
+export function buildAutosarModel(
+  filePath: string,
+  parsedXml: unknown,
+  options: { validation?: ArxmlValidationMetadata; validationScope?: ValidationScope } = {}
+): ParsedAutosarModel {
   const entries = Object.entries((parsedXml as Record<string, unknown>) ?? {}).filter(
     ([key]) => !key.startsWith("?")
   );
   const [rootTag, rootNode] = entries[0] ?? ["UNKNOWN", {}];
+  const validationScope = options.validationScope ?? options.validation?.scope ?? "single-file";
+  const adapter = createAutosarVersionAdapter({
+    rootNode,
+    validation: options.validation,
+    validationScope
+  });
   const entities: AutosarEntity[] = [];
   const connections: PortConnection[] = [];
   const structuredFields: StructuredField[] = [];
@@ -98,6 +128,8 @@ export function buildAutosarModel(filePath: string, parsedXml: unknown): ParsedA
 
   walkNode({
     filePath,
+    validationScope,
+    adapter,
     tagName: rootTag,
     node: rootNode,
     currentPath: `/${rootTag}`,
@@ -133,6 +165,8 @@ export function buildAutosarModel(filePath: string, parsedXml: unknown): ParsedA
 function walkNode(state: WalkState) {
   const {
     filePath,
+    validationScope,
+    adapter,
     tagName,
     node,
     currentPath,
@@ -164,14 +198,14 @@ function walkNode(state: WalkState) {
 
   const record = node as Record<string, unknown>;
   const shortName = extractShortName(record);
-  const type = classifyTag(tagName);
+  const type = adapter.classifyTag(tagName);
   const fieldCategory = type === "generic" ? tagName : type;
   const nextSemanticSegments = shortName ? [...semanticSegments, shortName] : semanticSegments;
   const semanticPath = shortName ? `/${nextSemanticSegments.join("/")}` : undefined;
   const ownerSemanticPath = resolveOwnerSemanticPath(type, semanticPath, currentOwnerSemanticPath);
-  const swcKind = type === "swc" || type === "composition" ? getSwcKind(tagName) : undefined;
-  const portKind = type === "port" ? getPortKind(tagName) : undefined;
-  const interfaceKind = type === "interface" ? getInterfaceKind(tagName) : undefined;
+  const swcKind = type === "swc" || type === "composition" ? adapter.getSwcKind(tagName) : undefined;
+  const portKind = type === "port" ? adapter.getPortKind(tagName) : undefined;
+  const interfaceKind = type === "interface" ? adapter.getInterfaceKind(tagName) : undefined;
   const currentInterfacePath = type === "interface" ? semanticPath : currentInterfaceSemanticPath;
   const nextInterfacePath = currentInterfacePath ?? currentInterfaceSemanticPath;
 
@@ -186,13 +220,23 @@ function walkNode(state: WalkState) {
       semanticPath,
       parentSemanticPath:
         semanticSegments.length > 0 ? `/${semanticSegments.join("/")}` : undefined,
+      rawTagName: tagName,
+      packagePath: semanticSegments.length > 0 ? `/${semanticSegments.join("/")}` : undefined,
+      shortNamePath: nextSemanticSegments,
+      semanticKind: type,
+      autosarRelease: adapter.context.autosarRelease,
+      autosarVersion: adapter.context.autosarVersion,
+      extractionProfile: adapter.context.profile,
+      extractionAdapterId: adapter.context.adapterId,
+      modelCompleteness: adapter.context.modelCompleteness,
+      validationScope,
       swcKind,
       portKind,
-      portDirection: getPortDirection(tagName),
+      portDirection: adapter.getPortDirection(tagName),
       mayBeUnconnected: readBooleanValue(record["MAY-BE-UNCONNECTED"]),
-      typeRef: extractTypeRef(record),
+      typeRef: adapter.extractTypeRef(record),
       interfaceKind,
-      metadata: collectMetadata(record)
+      metadata: type === "port" ? collectPortMetadata(record) : collectMetadata(record)
     });
   }
 
@@ -220,7 +264,7 @@ function walkNode(state: WalkState) {
       path: currentPath
     });
   }
-  if (PORT_TAGS.has(tagName) && !extractTypeRef(record)) {
+  if (PORT_TAGS.has(tagName) && !adapter.extractTypeRef(record)) {
     validationIssues.push({
       severity: "warning",
       message: `${shortName ?? tagName} does not reference a PortInterface.`,
@@ -253,6 +297,8 @@ function walkNode(state: WalkState) {
 
     walkNode({
       filePath,
+      validationScope,
+      adapter,
       tagName: childTag,
       node: childValue,
       currentPath: `${currentPath}/${childTag}`,
@@ -601,6 +647,7 @@ function collectInterfaceDefinitionFeature(
     id: `${interfaceSemanticPath}:${currentPath}`,
     label: shortName,
     xmlPath: currentPath,
+    semanticPath: `${interfaceSemanticPath}/${shortName}`,
     metadata: collectInterfaceMemberMetadata(tagName, record)
   };
 
@@ -653,7 +700,12 @@ function collectInterfaceMemberMetadata(tagName: string, record: Record<string, 
   }
 
   return compactMetadata({
-    TYPE: extractTypeRef(record)
+    TYPE: extractTypeRef(record),
+    "DATA-CONSTRAINTS": extractNestedReference(record, "DATA-CONSTR-REF") ?? extractNestedReference(record, "DATA-CONSTR-TREF"),
+    "SW-ADDR-METHOD-REF": extractReference(record, "SW-ADDR-METHOD-REF"),
+    "IS-QUEUED": readSimpleValue(record["IS-QUEUED"]) ?? readSimpleValue(record["QUEUE-LENGTH"]),
+    "SW-CALIBRATION-ACCESS": findNestedStringValue(record["SW-DATA-DEF-PROPS"], ["SW-CALIBRATION-ACCESS"]),
+    "HANDLE-INVALID": findNestedStringValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
   });
 }
 
@@ -680,6 +732,14 @@ function collectSwcInspectorFeature(
       const runnableName = getReferenceLeafName(runnableRef);
       const runnableEvents = (inspector.runnableEventsByName[runnableName] ??= []);
       runnableEvents.push(`${eventName} (${formatAutosarTagLabel(tagName)})`);
+      const runnableEventDetails = (inspector.runnableEventDetailsByName[runnableName] ??= []);
+      runnableEventDetails.push(collectRunnableTriggerEventDetail(tagName, record, eventName));
+    }
+  }
+  if (tagName === "PORT-API-OPTION") {
+    const portRef = extractReference(record, "PORT-REF");
+    if (portRef) {
+      inspector.portApiOptionsByPortRef[portRef] = collectPortApiOptionMetadata(record);
     }
   }
 
@@ -740,7 +800,9 @@ function getOrCreateInspector(
         interfaceTriggers: []
       },
       runnablePeriodsByName: {},
-      runnableEventsByName: {}
+      runnableEventsByName: {},
+      runnableEventDetailsByName: {},
+      portApiOptionsByPortRef: {}
     };
     inspectorsByOwner.set(ownerSemanticPath, inspector);
   }
@@ -753,9 +815,13 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
       PERIOD: undefined,
       SYMBOL: readSimpleValue(record["SYMBOL"]),
       "MIN-START-INTERVAL": readSimpleValue(record["MINIMUM-START-INTERVAL"]),
+      "SW-ADDR-METHOD-REF": extractReference(record, "SW-ADDR-METHOD-REF"),
+      "ACTIVATION-REASONS": collectRunnableActivationReasons(record),
+      "ACTIVATION-REASON-DETAILS": collectRunnableActivationReasonDetails(record),
       CONCURRENT: readSimpleValue(record["CAN-BE-INVOKED-CONCURRENTLY"]),
       DESCRIPTION: extractDescription(record),
-      "ACCESS-POINTS": collectRunnableAccessPoints(record)
+      "ACCESS-POINTS": collectRunnableAccessPoints(record),
+      "ACCESS-POINT-DETAILS": collectRunnableAccessPointDetails(record)
     });
   }
 
@@ -774,6 +840,143 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
   }
 
   return collectMetadata(record);
+}
+
+function collectPortMetadata(record: Record<string, unknown>) {
+  return compactMetadata({
+    DESCRIPTION: extractDescription(record),
+    "COMMUNICATION-SPEC-DETAILS": collectCommunicationSpecDetails(record)
+  });
+}
+
+interface CommunicationSpecDetail {
+  index: string;
+  dataElement: string;
+  comSpec: string;
+  initValue: string;
+  initValueType: string;
+  usesTxAcknowledge: string;
+  usesEndToEndProtection: string;
+  handleOutOfRange: string;
+  transmissionMode: string;
+  dataUpdatePeriod: string;
+  minimumSendInterval: string;
+  dataType?: string;
+  dataConstraints?: string;
+  addressingMethod?: string;
+  useQueuedCommunication?: string;
+  measurementCalibration?: string;
+  handleInvalid?: string;
+}
+
+function collectCommunicationSpecDetails(record: Record<string, unknown>) {
+  const details: CommunicationSpecDetail[] = [];
+  const collectFromContainer = (containerKey: string) => {
+    const container = record[containerKey];
+    if (!container || typeof container !== "object") {
+      return;
+    }
+    const containerRecord = container as Record<string, unknown>;
+    for (const [comSpecTag, comSpecValue] of Object.entries(containerRecord)) {
+      for (const comSpec of toArray(comSpecValue).filter(isRecord)) {
+        details.push({
+          index: String(details.length + 1),
+          dataElement: extractCommunicationSpecDataElement(comSpec),
+          comSpec: formatAutosarTagLabel(comSpecTag),
+          initValue: extractValueSpecificationLabel(comSpec["INIT-VALUE"]),
+          initValueType: extractValueSpecificationType(comSpec["INIT-VALUE"]),
+          usesTxAcknowledge: readSimpleValue(comSpec["USES-TX-ACKNOWLEDGE"]) ?? "-",
+          usesEndToEndProtection: readSimpleValue(comSpec["USES-END-TO-END-PROTECTION"]) ?? "-",
+          handleOutOfRange: readSimpleValue(comSpec["HANDLE-OUT-OF-RANGE"]) ?? "-",
+          transmissionMode: findNestedStringValue(comSpec["TRANSMISSION-PROPS"], ["TRANSMISSION-MODE"]) ?? "-",
+          dataUpdatePeriod: readSimpleValue(comSpec["DATA-UPDATE-PERIOD"]) ??
+            findNestedStringValue(comSpec["TRANSMISSION-PROPS"], ["DATA-UPDATE-PERIOD"]) ??
+            "-",
+          minimumSendInterval: readSimpleValue(comSpec["MINIMUM-SEND-INTERVAL"]) ??
+            findNestedStringValue(comSpec["TRANSMISSION-PROPS"], ["MINIMUM-SEND-INTERVAL"]) ??
+            "-"
+        });
+      }
+    }
+  };
+
+  collectFromContainer("PROVIDED-COM-SPECS");
+  collectFromContainer("REQUIRED-COM-SPECS");
+
+  return details.length > 0 ? JSON.stringify(details) : undefined;
+}
+
+function extractValueSpecificationType(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return "-";
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found: string = extractValueSpecificationType(entry);
+      if (found !== "-") {
+        return found;
+      }
+    }
+    return "-";
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (!key.startsWith("@_") && /VALUE|SPECIFICATION|CONSTANT/i.test(key)) {
+      return formatAutosarTagLabel(key);
+    }
+  }
+  return "-";
+}
+
+function extractCommunicationSpecDataElement(record: Record<string, unknown>) {
+  return (
+    extractNestedReference(record, "DATA-ELEMENT-REF") ??
+    extractNestedReference(record, "OPERATION-REF") ??
+    extractNestedReference(record, "MODE-GROUP-REF") ??
+    "-"
+  );
+}
+
+function collectPortApiOptionMetadata(record: Record<string, unknown>) {
+  return compactMetadata({
+    "ENABLE-INDIRECT-API": readSimpleValue(record["INDIRECT-API"]),
+    "ENABLE-API-USAGE-BY-ADDRESS": readSimpleValue(record["ENABLE-TAKE-ADDRESS"]),
+    "PORT-DEFINED-ARGUMENT-VALUES": collectPortDefinedArgumentValues(record)
+  }) ?? {};
+}
+
+interface PortDefinedArgumentValueDetail {
+  index: string;
+  name: string;
+  dataType: string;
+  value: string;
+}
+
+function collectPortDefinedArgumentValues(record: Record<string, unknown>) {
+  const details = collectNamedChildren(record["PORT-ARG-VALUES"], "PORT-DEFINED-ARGUMENT-VALUE").map(
+    (argumentValue, index) => ({
+      index: String(index + 1),
+      name: extractPortDefinedArgumentName(argumentValue),
+      dataType: extractReference(argumentValue, "VALUE-TYPE-TREF") ?? "-",
+      value: extractValueSpecificationLabel(argumentValue["VALUE"])
+    })
+  );
+
+  return details.length > 0 ? JSON.stringify(details) : undefined;
+}
+
+function extractPortDefinedArgumentName(record: Record<string, unknown>) {
+  return extractShortName(record) ?? findNestedStringValue(record["VALUE"], ["SHORT-LABEL"]) ?? "-";
+}
+
+function extractValueSpecificationLabel(value: unknown): string {
+  return (
+    findNestedStringValue(value, ["VALUE", "SHORT-LABEL", "CONSTANT-REF", "TEXT", "#text"]) ??
+    findFirstReferenceValue(value) ??
+    readSimpleValue(value) ??
+    "-"
+  );
 }
 
 function collectRunnableAccessPoints(record: Record<string, unknown>) {
@@ -806,6 +1009,281 @@ function collectRunnableAccessPoints(record: Record<string, unknown>) {
 
   visit(record, []);
   return accessPointNames.length > 0 ? Array.from(new Set(accessPointNames)).join(", ") : undefined;
+}
+
+function collectRunnableActivationReasons(record: Record<string, unknown>) {
+  const reasons = collectNamedChildren(record["ACTIVATION-REASONS"], "EXECUTABLE-ENTITY-ACTIVATION-REASON")
+    .map((activationReason) => extractShortName(activationReason))
+    .filter((name): name is string => Boolean(name));
+
+  return reasons.length > 0 ? Array.from(new Set(reasons)).join(", ") : undefined;
+}
+
+interface RunnableActivationReasonDetail {
+  bit: string;
+  name: string;
+  symbol: string;
+}
+
+function collectRunnableActivationReasonDetails(record: Record<string, unknown>) {
+  const reasons = collectNamedChildren(record["ACTIVATION-REASONS"], "EXECUTABLE-ENTITY-ACTIVATION-REASON").map(
+    (activationReason) => ({
+      bit: readSimpleValue(activationReason["BIT-POSITION"]) ?? "-",
+      name: extractShortName(activationReason) ?? "-",
+      symbol: readSimpleValue(activationReason["SYMBOL"]) ?? "-"
+    })
+  );
+
+  return reasons.length > 0 ? JSON.stringify(dedupeRunnableActivationReasonDetails(reasons)) : undefined;
+}
+
+function dedupeRunnableActivationReasonDetails(details: RunnableActivationReasonDetail[]) {
+  const seen = new Set<string>();
+  return details.filter((detail) => {
+    const key = `${detail.bit}\u0000${detail.name}\u0000${detail.symbol}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+interface RunnableAccessPointDetail {
+  target: string;
+  access: string;
+  name: string;
+}
+
+const runnableAccessContainers: Record<string, { access: string; childTags: string[] }> = {
+  "DATA-READ-ACCESSS": { access: "Read (implicit)", childTags: ["VARIABLE-ACCESS"] },
+  "DATA-WRITE-ACCESSS": { access: "Write (implicit)", childTags: ["VARIABLE-ACCESS"] },
+  "DATA-RECEIVE-POINT-BY-ARGUMENTS": { access: "Receive by argument", childTags: ["VARIABLE-ACCESS"] },
+  "DATA-RECEIVE-POINT-BY-VALUES": { access: "Receive by value", childTags: ["VARIABLE-ACCESS"] },
+  "DATA-SEND-POINTS": { access: "Write (explicit)", childTags: ["VARIABLE-ACCESS"] },
+  "PARAMETER-ACCESSS": { access: "Parameter read", childTags: ["PARAMETER-ACCESS"] },
+  "READ-LOCAL-VARIABLES": { access: "Read local variable", childTags: ["VARIABLE-ACCESS"] },
+  "WRITTEN-LOCAL-VARIABLES": { access: "Write local variable", childTags: ["VARIABLE-ACCESS"] },
+  "EXTERNAL-TRIGGERING-POINTS": { access: "External trigger", childTags: ["EXTERNAL-TRIGGERING-POINT"] },
+  "INTERNAL-TRIGGERING-POINTS": { access: "Internal trigger", childTags: ["INTERNAL-TRIGGERING-POINT"] },
+  "ASYNCHRONOUS-SERVER-CALL-RESULT-POINTS": {
+    access: "Asynchronous result",
+    childTags: ["ASYNCHRONOUS-SERVER-CALL-RESULT-POINT"]
+  }
+};
+
+function collectRunnableAccessPointDetails(record: Record<string, unknown>) {
+  const details: RunnableAccessPointDetail[] = [];
+
+  for (const [containerKey, definition] of Object.entries(runnableAccessContainers)) {
+    const container = record[containerKey];
+    if (!container) {
+      continue;
+    }
+
+    for (const childTag of definition.childTags) {
+      for (const child of collectNamedChildren(container, childTag)) {
+        details.push({
+          target: extractRunnableAccessTarget(child),
+          access: definition.access,
+          name: extractShortName(child) ?? "-"
+        });
+      }
+    }
+  }
+
+  const serverCallContainer = record["SERVER-CALL-POINTS"];
+  for (const child of collectNamedChildren(serverCallContainer, "SYNCHRONOUS-SERVER-CALL-POINT")) {
+    details.push({
+      target: extractRunnableAccessTarget(child),
+      access: formatServerCallAccess(child, "Synchronous call"),
+      name: extractShortName(child) ?? "-"
+    });
+  }
+  for (const child of collectNamedChildren(serverCallContainer, "ASYNCHRONOUS-SERVER-CALL-POINT")) {
+    details.push({
+      target: extractRunnableAccessTarget(child),
+      access: formatServerCallAccess(child, "Asynchronous call"),
+      name: extractShortName(child) ?? "-"
+    });
+  }
+
+  return details.length > 0 ? JSON.stringify(dedupeRunnableAccessPointDetails(details)) : undefined;
+}
+
+function collectNamedChildren(container: unknown, childTag: string): Record<string, unknown>[] {
+  if (!container || typeof container !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(container)) {
+    return container.flatMap((entry) => collectNamedChildren(entry, childTag));
+  }
+
+  const record = container as Record<string, unknown>;
+  return toArray(record[childTag]).filter(isRecord);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function extractRunnableAccessTarget(record: Record<string, unknown>) {
+  const preferredReferenceKeys = [
+    "TARGET-DATA-PROTOTYPE-REF",
+    "TARGET-REQUIRED-OPERATION-REF",
+    "TARGET-PROVIDED-OPERATION-REF",
+    "TARGET-TRIGGER-REF",
+    "TARGET-MODE-DECLARATION-GROUP-PROTOTYPE-REF",
+    "TARGET-PARAMETER-REF",
+    "LOCAL-VARIABLE-REF",
+    "TARGET-R-PORT-REF",
+    "TARGET-P-PORT-REF",
+    "CONTEXT-R-PORT-REF",
+    "CONTEXT-P-PORT-REF"
+  ];
+
+  for (const key of preferredReferenceKeys) {
+    const reference = extractNestedReference(record, key);
+    if (reference) {
+      return getReferenceLeafName(reference);
+    }
+  }
+
+  const firstReference = findFirstReferenceValue(record);
+  return firstReference ? getReferenceLeafName(firstReference) : "-";
+}
+
+function findFirstReferenceValue(node: unknown): string | undefined {
+  if (typeof node === "string") {
+    return node.startsWith("/") ? node : undefined;
+  }
+  if (!node || typeof node !== "object") {
+    return undefined;
+  }
+  if (Array.isArray(node)) {
+    for (const entry of node) {
+      const found = findFirstReferenceValue(entry);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  for (const value of Object.values(node as Record<string, unknown>)) {
+    const found = findFirstReferenceValue(value);
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
+}
+
+function formatServerCallAccess(record: Record<string, unknown>, fallback: string) {
+  const timeout = readSimpleValue(record["TIMEOUT"]);
+  return timeout ? `${fallback}, timeout: ${timeout} sec` : fallback;
+}
+
+function dedupeRunnableAccessPointDetails(details: RunnableAccessPointDetail[]) {
+  const seen = new Set<string>();
+  return details.filter((detail) => {
+    const key = `${detail.target}\u0000${detail.access}\u0000${detail.name}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function collectRunnableTriggerEventDetail(
+  tagName: string,
+  record: Record<string, unknown>,
+  eventName: string
+): RunnableTriggerEventDetail {
+  return {
+    trigger: extractRunnableTriggerValue(tagName, record),
+    type: formatAutosarTagLabel(tagName),
+    disabledInModes: extractDisabledModeLabels(record),
+    activationReason: extractActivationReasonLabel(record),
+    name: eventName
+  };
+}
+
+function extractRunnableTriggerValue(tagName: string, record: Record<string, unknown>) {
+  const period = readSimpleValue(record["PERIOD"]);
+  if (tagName === "TIMING-EVENT" && period) {
+    return formatSecondsAsMilliseconds(period);
+  }
+
+  const preferredReferenceKeys = [
+    "TARGET-DATA-PROTOTYPE-REF",
+    "TARGET-REQUIRED-OPERATION-REF",
+    "TARGET-PROVIDED-OPERATION-REF",
+    "TARGET-MODE-DECLARATION-REF",
+    "TARGET-MODE-DECLARATION-GROUP-PROTOTYPE-REF",
+    "TARGET-TRIGGER-REF",
+    "ASYNCHRONOUS-SERVER-CALL-POINT-REF",
+    "EVENT-SOURCE-REF"
+  ];
+
+  for (const key of preferredReferenceKeys) {
+    const reference = extractNestedReference(record, key);
+    if (reference) {
+      return getReferenceLeafName(reference);
+    }
+  }
+
+  const firstReference = findFirstReferenceValue(record);
+  return firstReference ? getReferenceLeafName(firstReference) : "-";
+}
+
+function extractDisabledModeLabels(record: Record<string, unknown>) {
+  const disabledModeRefs = record["DISABLED-MODE-IREFS"];
+  const references = findAllReferenceValues(disabledModeRefs);
+  return references.length > 0 ? references.map(getReferenceLeafName).join(", ") : "-";
+}
+
+function extractActivationReasonLabel(record: Record<string, unknown>) {
+  const reference = extractNestedReference(record, "ACTIVATION-REASON-REPRESENTATION-REF");
+  return reference ? getReferenceLeafName(reference) : "-";
+}
+
+function formatSecondsAsMilliseconds(value: string) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) {
+    return `${value} ms`;
+  }
+
+  const milliseconds = seconds * 1000;
+  return `${Number.isInteger(milliseconds) ? milliseconds : milliseconds.toFixed(3).replace(/\.?0+$/, "")} ms`;
+}
+
+function findAllReferenceValues(node: unknown): string[] {
+  if (typeof node === "string") {
+    return node.startsWith("/") ? [node] : [];
+  }
+  if (!node || typeof node !== "object") {
+    return [];
+  }
+  if (Array.isArray(node)) {
+    return node.flatMap(findAllReferenceValues);
+  }
+
+  return Object.values(node as Record<string, unknown>).flatMap(findAllReferenceValues);
+}
+
+function dedupeRunnableTriggerEventDetails(details: RunnableTriggerEventDetail[]) {
+  const seen = new Set<string>();
+  return details.filter((detail) => {
+    const key = `${detail.trigger}\u0000${detail.type}\u0000${detail.disabledInModes}\u0000${detail.activationReason}\u0000${detail.name}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function extractDescription(record: Record<string, unknown>) {
@@ -857,6 +1335,9 @@ function attachInspectorsToEntities(
       .map((entity) => [entity.semanticPath!, entity])
   );
 
+  attachPortApiOptionsToEntities(entities, inspectorsByOwner);
+  attachInterfaceMetadataToPortComSpecs(entities, interfaceDefinitionsByPath);
+
   entities.forEach((entity) => {
     if (entity.type !== "swc" && entity.type !== "composition") {
       return;
@@ -866,6 +1347,85 @@ function attachInspectorsToEntities(
     const nextInspector = inspector ?? getOrCreateInspector(entity.semanticPath ?? entity.path, inspectorsByOwner);
     attachInterfaceSections(entity, entities, entityBySemanticPath, interfaceDefinitionsByPath, nextInspector, validationIssues);
     entity.inspector = toSwcInspectorData(entity, nextInspector);
+  });
+}
+
+function attachInterfaceMetadataToPortComSpecs(
+  entities: AutosarEntity[],
+  interfaceDefinitionsByPath: Map<string, InterfaceDefinition>
+) {
+  entities.forEach((entity) => {
+    if (entity.type !== "port" || !entity.typeRef || !entity.metadata?.["COMMUNICATION-SPEC-DETAILS"]) {
+      return;
+    }
+
+    const interfaceDefinition = interfaceDefinitionsByPath.get(entity.typeRef);
+    if (!interfaceDefinition) {
+      return;
+    }
+
+    const details = parseCommunicationSpecDetails(entity.metadata["COMMUNICATION-SPEC-DETAILS"]);
+    if (details.length === 0) {
+      return;
+    }
+
+    const membersByPath = new Map<string, InterfaceMember>();
+    interfaceDefinition.dataElements.forEach((member) => {
+      if (member.semanticPath) {
+        membersByPath.set(member.semanticPath, member);
+      }
+      membersByPath.set(`${interfaceDefinition.semanticPath}/${member.label}`, member);
+      membersByPath.set(member.label, member);
+    });
+
+    const enrichedDetails = details.map((detail) => {
+      const member = membersByPath.get(detail.dataElement) ?? membersByPath.get(getReferenceLeafName(detail.dataElement));
+      return {
+        ...detail,
+        dataType: member?.metadata?.TYPE ?? "-",
+        dataConstraints: member?.metadata?.["DATA-CONSTRAINTS"] ?? "-",
+        addressingMethod: member?.metadata?.["SW-ADDR-METHOD-REF"] ?? "-",
+        useQueuedCommunication: member?.metadata?.["IS-QUEUED"] ?? "-",
+        measurementCalibration: member?.metadata?.["SW-CALIBRATION-ACCESS"] ?? "-",
+        handleInvalid: member?.metadata?.["HANDLE-INVALID"] ?? "-"
+      };
+    });
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      "COMMUNICATION-SPEC-DETAILS": JSON.stringify(enrichedDetails)
+    });
+  });
+}
+
+function parseCommunicationSpecDetails(value: string): CommunicationSpecDetail[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(isRecord).map((entry) => entry as unknown as CommunicationSpecDetail) : [];
+  } catch {
+    return [];
+  }
+}
+
+function attachPortApiOptionsToEntities(
+  entities: AutosarEntity[],
+  inspectorsByOwner: Map<string, MutableSwcInspector>
+) {
+  entities.forEach((entity) => {
+    if (entity.type !== "port" || !entity.semanticPath || !entity.parentSemanticPath) {
+      return;
+    }
+
+    const inspector = inspectorsByOwner.get(entity.parentSemanticPath);
+    const portApiOptions = inspector?.portApiOptionsByPortRef[entity.semanticPath];
+    if (!portApiOptions) {
+      return;
+    }
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      ...portApiOptions
+    });
   });
 }
 
@@ -930,11 +1490,15 @@ function toSwcInspectorData(entity: AutosarEntity, inspector: MutableSwcInspecto
 }
 
 function enrichInspectorItem(item: SwcInspectorItem, inspector: MutableSwcInspector) {
+  const triggerEventDetails = inspector.runnableEventDetailsByName[item.label];
   return {
     ...item,
     metadata: compactMetadata({
       PERIOD: inspector.runnablePeriodsByName[item.label],
       "TRIGGER-EVENTS": inspector.runnableEventsByName[item.label]?.join(", "),
+      "TRIGGER-EVENT-DETAILS": triggerEventDetails
+        ? JSON.stringify(dedupeRunnableTriggerEventDetails(triggerEventDetails))
+        : undefined,
       ...(item.metadata ?? {})
     })
   };

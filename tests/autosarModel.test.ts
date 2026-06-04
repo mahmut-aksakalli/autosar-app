@@ -70,6 +70,38 @@ test("buildAutosarModel extracts SWCs and ports", () => {
   );
 });
 
+test("buildAutosarModel annotates entities with version-aware semantic extraction metadata", () => {
+  const parsed = parser.parse(sampleXml);
+  const model = buildAutosarModel("C:/workspace/sample.arxml", parsed, {
+    validation: {
+      scope: "workspace",
+      completeness: "complete",
+      autosarRelease: "R4.4.0",
+      autosarVersion: "4.4.0",
+      schemaFile: "R4.4.0/AUTOSAR_00046.xsd",
+      namespace: "http://autosar.org/schema/r4.0",
+      validatedAt: "2026-05-22T00:00:00.000Z"
+    },
+    validationScope: "workspace"
+  });
+
+  const swc = model.entities.find((entity) => entity.shortName === "EngineControl");
+  const port = model.entities.find((entity) => entity.shortName === "StatusOut");
+
+  assert.equal(swc?.rawTagName, "APPLICATION-SW-COMPONENT-TYPE");
+  assert.equal(swc?.semanticKind, "swc");
+  assert.equal(swc?.autosarVersion, "4.4.0");
+  assert.equal(swc?.autosarRelease, "R4.4.0");
+  assert.equal(swc?.extractionProfile, "classic");
+  assert.equal(swc?.extractionAdapterId, "classic-4.4.0");
+  assert.equal(swc?.modelCompleteness, "complete");
+  assert.equal(swc?.validationScope, "workspace");
+  assert.deepEqual(swc?.shortNamePath, ["Pkg", "EngineControl"]);
+  assert.equal(swc?.packagePath, "/Pkg");
+  assert.equal(port?.semanticKind, "port");
+  assert.deepEqual(port?.shortNamePath, ["Pkg", "EngineControl", "StatusOut"]);
+});
+
 test("buildAutosarModel extracts composition instances and delegation connectors", () => {
   const compositionXml = `<?xml version="1.0" encoding="utf-8"?>
 <AUTOSAR>
@@ -133,11 +165,33 @@ test("buildAutosarModel extracts composition instances and delegation connectors
 test("buildAutosarModel extracts SWC inspector internals", () => {
   const model = buildAutosarModel("C:/workspace/example.arxml", parser.parse(sampleXmlWithBehavior));
   const swc = model.entities.find((entity) => entity.shortName === "EngineControl");
+  const statusOut = model.entities.find((entity) => entity.shortName === "StatusOut");
 
   assert.equal(swc?.inspector?.sections.find((section) => section.id === "runnables")?.items.length, 1);
+  assert.equal(statusOut?.metadata?.DESCRIPTION, "Engine status output");
+  assert.equal(statusOut?.metadata?.["ENABLE-INDIRECT-API"], "true");
+  assert.equal(statusOut?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"], "true");
+  assert.equal(statusOut?.metadata?.["COMMUNICATION-SPEC-DETAILS"]?.includes("EngineStatus"), true);
+  assert.equal(statusOut?.metadata?.["PORT-DEFINED-ARGUMENT-VALUES"]?.includes("StatusArg"), true);
   assert.equal(
     swc?.inspector?.sections.find((section) => section.id === "runnables")?.items[0]?.metadata?.PERIOD,
     "0.01"
+  );
+  assert.equal(
+    swc?.inspector?.sections.find((section) => section.id === "runnables")?.items[0]?.metadata?.["SW-ADDR-METHOD-REF"],
+    "/Pkg/MemMap/FastCode"
+  );
+  assert.equal(
+    swc?.inspector?.sections
+      .find((section) => section.id === "runnables")
+      ?.items[0]?.metadata?.["ACTIVATION-REASON-DETAILS"]?.includes('"bit":"1"'),
+    true
+  );
+  assert.equal(
+    swc?.inspector?.sections
+      .find((section) => section.id === "runnables")
+      ?.items[0]?.metadata?.["ACTIVATION-REASON-DETAILS"]?.includes('"symbol":"MainStepActivationSymbol"'),
+    true
   );
   assert.equal(
     swc?.inspector?.sections.find((section) => section.id === "perInstanceMemory")?.items[0]?.label,
@@ -234,8 +288,12 @@ test("buildAutosarModel enriches runnable details with access points and trigger
   assert.equal(runnable?.metadata?.["MIN-START-INTERVAL"], "0.02");
   assert.equal(runnable?.metadata?.["ACCESS-POINTS"]?.includes("ReadSpeedImplicit"), true);
   assert.equal(runnable?.metadata?.["ACCESS-POINTS"]?.includes("EvaluateToPublishTrigger"), true);
+  assert.equal(runnable?.metadata?.["ACCESS-POINT-DETAILS"]?.includes('"access":"Read (implicit)"'), true);
+  assert.equal(runnable?.metadata?.["ACCESS-POINT-DETAILS"]?.includes('"name":"ReadSpeedImplicit"'), true);
   assert.equal(runnable?.metadata?.["TRIGGER-EVENTS"]?.includes("EvaluateCoveragePathsEvent"), true);
   assert.equal(runnable?.metadata?.["TRIGGER-EVENTS"]?.includes("SpeedInEvent"), true);
+  assert.equal(runnable?.metadata?.["TRIGGER-EVENT-DETAILS"]?.includes('"type":"Timing Event"'), true);
+  assert.equal(runnable?.metadata?.["TRIGGER-EVENT-DETAILS"]?.includes('"name":"EvaluateCoveragePathsEvent"'), true);
 });
 
 test("buildAutosarModel preserves mayBeUnconnected and raises interface validation warnings", () => {
@@ -297,9 +355,46 @@ const sampleXmlWithBehavior = `<?xml version="1.0" encoding="utf-8"?>
       <ELEMENTS>
         <APPLICATION-SW-COMPONENT-TYPE>
           <SHORT-NAME>EngineControl</SHORT-NAME>
+          <PORTS>
+            <P-PORT-PROTOTYPE>
+              <SHORT-NAME>StatusOut</SHORT-NAME>
+              <DESC>
+                <L-2 L="EN">Engine status output</L-2>
+              </DESC>
+              <PROVIDED-COM-SPECS>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Status_I/EngineStatus</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <NUMERICAL-VALUE-SPECIFICATION>
+                      <VALUE>1</VALUE>
+                    </NUMERICAL-VALUE-SPECIFICATION>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+              </PROVIDED-COM-SPECS>
+              <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/Pkg/Interfaces/Status_I</PROVIDED-INTERFACE-TREF>
+            </P-PORT-PROTOTYPE>
+          </PORTS>
           <INTERNAL-BEHAVIORS>
             <SWC-INTERNAL-BEHAVIOR>
               <SHORT-NAME>EngineBehavior</SHORT-NAME>
+              <PORT-API-OPTIONS>
+                <PORT-API-OPTION>
+                  <PORT-REF DEST="P-PORT-PROTOTYPE">/Pkg/EngineControl/StatusOut</PORT-REF>
+                  <INDIRECT-API>true</INDIRECT-API>
+                  <ENABLE-TAKE-ADDRESS>true</ENABLE-TAKE-ADDRESS>
+                  <PORT-ARG-VALUES>
+                    <PORT-DEFINED-ARGUMENT-VALUE>
+                      <VALUE>
+                        <TEXT-VALUE-SPECIFICATION>
+                          <SHORT-LABEL>StatusArg</SHORT-LABEL>
+                          <VALUE>Enabled</VALUE>
+                        </TEXT-VALUE-SPECIFICATION>
+                      </VALUE>
+                      <VALUE-TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/Pkg/DataTypes/uint8</VALUE-TYPE-TREF>
+                    </PORT-DEFINED-ARGUMENT-VALUE>
+                  </PORT-ARG-VALUES>
+                </PORT-API-OPTION>
+              </PORT-API-OPTIONS>
               <PER-INSTANCE-MEMORYS>
                 <PER-INSTANCE-MEMORY>
                   <SHORT-NAME>PimCounter</SHORT-NAME>
@@ -310,6 +405,14 @@ const sampleXmlWithBehavior = `<?xml version="1.0" encoding="utf-8"?>
                 <RUNNABLE-ENTITY>
                   <SHORT-NAME>MainStep</SHORT-NAME>
                   <SYMBOL>MainStep_Impl</SYMBOL>
+                  <SW-ADDR-METHOD-REF DEST="SW-ADDR-METHOD">/Pkg/MemMap/FastCode</SW-ADDR-METHOD-REF>
+                  <ACTIVATION-REASONS>
+                    <EXECUTABLE-ENTITY-ACTIVATION-REASON>
+                      <SHORT-NAME>MainStepActivation</SHORT-NAME>
+                      <SYMBOL>MainStepActivationSymbol</SYMBOL>
+                      <BIT-POSITION>1</BIT-POSITION>
+                    </EXECUTABLE-ENTITY-ACTIVATION-REASON>
+                  </ACTIVATION-REASONS>
                   <CAN-BE-INVOKED-CONCURRENTLY>false</CAN-BE-INVOKED-CONCURRENTLY>
                 </RUNNABLE-ENTITY>
               </RUNNABLES>

@@ -17,10 +17,12 @@ The current app focuses on local ARXML workspace exploration and editing:
 - visualize SWCs and compositions in a dedicated tabbed model workspace
 - browse semantic AUTOSAR model nodes and open graph, port, runnable, behavior, and memory detail tabs
 - classify AUTOSAR SWCs by family, including application, parameter, service, service-proxy, sensor-actuator, ECU abstraction, complex driver, nv-block, and composition components
+- annotate semantic model entities with AUTOSAR release/version, extraction profile, XML path, `SHORT-NAME` path, owner package path, and completeness metadata
 - render `P`, `R`, and `PR` ports with interface-aware metadata
 - inspect ports and connectors and jump back into the structured editor
 - inspect SWC internals in a bottom panel, including runnables, internal variables, and interface members when available
 - validate the active ARXML file on demand for syntax, AUTOSAR namespace/schema metadata, local AUTOSAR XSD conformance, and serialization diagnostics
+- validate AUTOSAR semantic references for indexed ports, interfaces, component prototypes, and composition connectors
 
 The app also remembers the last opened workspace folder and restores it on the next launch.
 
@@ -44,6 +46,8 @@ electron/
   services/
     appStateService.ts
     arxmlDocumentService.ts
+    autosarSemanticValidationService.ts
+    autosarVersionAdapters.ts
     arxmlValidationService.ts
     autosarModel.ts
     autosarSchemaRegistry.ts
@@ -224,10 +228,12 @@ Backend services handle:
 
 - workspace indexing and file watching
 - on-demand ARXML syntax, namespace, schema, and serialization validation
+- AUTOSAR semantic reference validation for indexed SWCs, compositions, ports, interfaces, and connector endpoints
 - ARXML parsing and document loading
 - save and preview flows
 - model extraction and graph generation
 - semantic SWC/composition graph generation for the model canvas, including AUTOSAR SWC kinds, port kinds, and port-interface semantics
+- version-aware Classic AUTOSAR extraction metadata for semantic model entities
 - app state persistence
 
 Heavy parse/index work is delegated through worker threads so the renderer stays responsive.

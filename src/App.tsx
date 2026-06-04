@@ -1225,6 +1225,7 @@ export function App() {
                   activeWorkspaceTab={activeModelWorkspaceTab}
                   onOpenFile={(filePath) => handleOpenDocumentAndReveal(filePath)}
                   onJumpToPath={(filePath, xmlPath) => handleOpenDocumentAndReveal(filePath, xmlPath)}
+                  onOpenWorkspaceTab={(tab) => openModelWorkspaceTab(tab)}
                 />
               ) : activeDocument ? (
                 <div className="structured-tree">
@@ -1756,12 +1757,14 @@ function ModelTreeBranch(input: {
       >
         {hasChildren ? (
           <span
-            className={`tree-caret ${collapsed ? "collapsed" : "expanded"}`}
+            className="tree-caret-hit"
             onClick={(event) => {
               event.stopPropagation();
               onToggle(node.id);
             }}
-          />
+          >
+            <span className={`tree-caret ${collapsed ? "collapsed" : "expanded"}`} />
+          </span>
         ) : (
           <span className="structured-spacer" />
         )}
@@ -2013,7 +2016,9 @@ function FileTreeBranch(input: {
         style={{ paddingLeft: `${12 + depth * 14}px` }}
         onClick={() => onToggleFolder(node.path)}
       >
-        <span className={`tree-caret ${collapsed ? "collapsed" : "expanded"}`} />
+        <span className="tree-caret-hit">
+          <span className={`tree-caret ${collapsed ? "collapsed" : "expanded"}`} />
+        </span>
         <span className="tree-label">{node.name}</span>
       </button>
       {!collapsed &&

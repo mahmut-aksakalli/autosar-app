@@ -207,6 +207,7 @@ function toGraphPort(
     ownerId: entity.parentSemanticPath ?? entity.id,
     ownerSemanticPath: entity.parentSemanticPath,
     filePath: entity.filePath,
+    metadata: entity.metadata,
     warning:
       entity.mayBeUnconnected
         ? "Port may be intentionally left unconnected."

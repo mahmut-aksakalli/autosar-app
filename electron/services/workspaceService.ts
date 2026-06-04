@@ -11,10 +11,12 @@ import type {
   WorkspaceSnapshot
 } from "../../src/shared/contracts.js";
 import { WorkerPool } from "./workerPool.js";
+import { AutosarSemanticValidationService } from "./autosarSemanticValidationService.js";
 
 export class WorkspaceService {
   private readonly events = new EventEmitter();
   private readonly workerPool = new WorkerPool();
+  private readonly semanticValidationService = new AutosarSemanticValidationService();
   private watcher?: FSWatcher;
   private rootPath?: string;
   private validationScopeMode: ValidationScope = "single-file";
@@ -123,7 +125,12 @@ export class WorkspaceService {
       throw new Error("Workspace root path is not available.");
     }
 
-    const files: ArxmlDocumentSummary[] = documents
+    const validatedDocuments = this.semanticValidationService.validateDocuments(
+      documents,
+      this.validationScopeMode
+    );
+
+    const files: ArxmlDocumentSummary[] = validatedDocuments
       .map((document) => ({
         filePath: document.filePath,
         relativePath: this.getRelativePath(document.filePath),
@@ -139,8 +146,8 @@ export class WorkspaceService {
       rootPath: this.rootPath,
       files,
       explorerEntries: this.explorerEntries,
-      entities: documents.flatMap((document) => document.entities),
-      connections: documents.flatMap((document) => document.connections),
+      entities: validatedDocuments.flatMap((document) => document.entities),
+      connections: validatedDocuments.flatMap((document) => document.connections),
       watched: this.workspace?.watched ?? false,
       lastIndexedAt: new Date().toISOString()
     };
@@ -193,12 +200,21 @@ export class WorkspaceService {
       validationEnabled: true
     });
     document.relativePath = this.getRelativePath(document.filePath);
-    this.documentCache.set(filePath, document);
+    const indexedDocuments = [
+      ...this.getIndexedDocuments().filter((cachedDocument) => cachedDocument.filePath !== filePath),
+      document
+    ];
+    const semanticDocuments = this.semanticValidationService.validateDocuments(
+      indexedDocuments,
+      this.getValidationScope(filePath)
+    );
+    const semanticDocument = semanticDocuments.find((entry) => entry.filePath === filePath) ?? document;
+    this.documentCache.set(filePath, semanticDocument);
     if (this.rootPath) {
       this.workspace = this.buildSnapshot(this.getIndexedDocuments());
       this.emitUpdated();
     }
-    return document;
+    return semanticDocument;
   }
 
   closeDocument(filePath: string) {

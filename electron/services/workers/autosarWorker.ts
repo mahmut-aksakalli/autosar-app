@@ -43,7 +43,10 @@ async function parseDocument(
   }
 
   const parsed = parser.parse(content);
-  const model = buildAutosarModel(filePath, parsed);
+  const model = buildAutosarModel(filePath, parsed, {
+    validation: validation.metadata,
+    validationScope
+  });
   const validationIssues = validationEnabled ? [...validation.issues, ...model.validationIssues] : [];
   return {
     filePath,

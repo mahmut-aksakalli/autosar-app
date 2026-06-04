@@ -2,6 +2,13 @@ export type Severity = "info" | "warning" | "error";
 export type ValidationIssueCategory = "syntax" | "namespace" | "schema" | "serialization" | "semantic";
 export type ValidationScope = "single-file" | "workspace" | "batch";
 export type ValidationCompleteness = "complete" | "partial" | "not-validated";
+export type ReferenceResolutionStatus =
+  | "resolved-local"
+  | "resolved-workspace"
+  | "external"
+  | "unresolved"
+  | "wrong-kind"
+  | "ambiguous";
 export type SwcKind =
   | "application"
   | "composition"
@@ -35,6 +42,12 @@ export interface ValidationIssue {
   filePath?: string;
   source?: "xml-parser" | "namespace" | "xsd" | "serialization" | "autosar-model";
   schemaFile?: string;
+  semanticPath?: string;
+  relatedTargetPath?: string;
+  referenceValue?: string;
+  expectedDestination?: string;
+  referenceStatus?: ReferenceResolutionStatus;
+  validationScope?: ValidationScope;
 }
 
 export interface ArxmlValidationMetadata {
@@ -58,6 +71,16 @@ export interface AutosarEntity {
   xmlPath?: string;
   semanticPath?: string;
   parentSemanticPath?: string;
+  rawTagName?: string;
+  packagePath?: string;
+  shortNamePath?: string[];
+  semanticKind?: string;
+  autosarRelease?: string;
+  autosarVersion?: string;
+  extractionProfile?: string;
+  extractionAdapterId?: string;
+  modelCompleteness?: "complete" | "partial" | "external-context";
+  validationScope?: ValidationScope;
   swcKind?: SwcKind;
   portKind?: PortKind;
   portDirection?: PortDirection;
@@ -176,6 +199,7 @@ export interface SwcGraphPort {
   ownerSemanticPath?: string;
   filePath: string;
   warning?: string;
+  metadata?: Record<string, string>;
 }
 
 export interface SwcGraphNode {
