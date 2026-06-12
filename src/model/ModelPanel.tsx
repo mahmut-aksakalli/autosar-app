@@ -15,6 +15,7 @@ import {
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type {
   AutosarEntity,
+  PortInterfaceKind,
   SwcGraphNode,
   SwcGraphPort,
   SwcGraphResult,
@@ -38,8 +39,13 @@ interface ModelPanelProps {
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
   activeWorkspaceTab?: ModelWorkspaceTab;
-  onOpenFile: (filePath: string) => void | Promise<void>;
-  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
+  onFocusModelEntity?: (selection: {
+    entityId?: string;
+    semanticPath?: string;
+    preferredScope?: SwcGraphScope;
+    preferredNodeId?: string;
+    includeCompositionInternals?: boolean;
+  }) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
 
@@ -65,6 +71,7 @@ export interface ModelWorkspaceTab {
   focusEntityId: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  includeCompositionInternals?: boolean;
   entityId?: string;
   sectionId?: SwcInspectorSectionId;
   itemId?: string;
@@ -77,8 +84,7 @@ export function ModelPanel(props: ModelPanelProps) {
     preferredScope,
     preferredNodeId,
     activeWorkspaceTab,
-    onOpenFile,
-    onJumpToPath,
+    onFocusModelEntity,
     onOpenWorkspaceTab
   } = props;
   const [graphScope, setGraphScope] = useState<SwcGraphScope>(
@@ -131,7 +137,9 @@ export function ModelPanel(props: ModelPanelProps) {
         scope: graphScope,
         focusId: focusEntity.semanticPath ?? focusEntity.id,
         depth: 1,
-        includeCompositionInternals: graphScope === "composition" && Boolean(activeCompositionNodeId)
+        includeCompositionInternals:
+          graphScope === "composition" &&
+          (activeWorkspaceTab?.includeCompositionInternals === true || Boolean(activeCompositionNodeId))
       })
       .then((graph) => {
         if (cancelled) {
@@ -154,7 +162,7 @@ export function ModelPanel(props: ModelPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [activeCompositionNodeId, focusEntity, graphScope, preferredNodeId]);
+  }, [activeCompositionNodeId, activeWorkspaceTab?.includeCompositionInternals, focusEntity, graphScope, preferredNodeId]);
 
   const graphNodes = graphResult?.nodes ?? [];
   const graphEdges = graphResult?.edges ?? [];
@@ -202,7 +210,6 @@ export function ModelPanel(props: ModelPanelProps) {
           ...node.data,
           portConnections: portConnections[node.id] ?? {},
           highlightedPortId: node.id === activeCompositionNodeId ? activeCompositionPortId : undefined,
-          onPortDoubleClick: onJumpToPath,
           onConnectionNavigate: (nodeId: string, portId: string) => {
             setActiveCompositionNodeId(nodeId);
             setActiveCompositionPortId(portId);
@@ -216,7 +223,7 @@ export function ModelPanel(props: ModelPanelProps) {
       nodes: visibleNodes,
       edges: visibleEdges
     };
-  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, onJumpToPath, preferredNodeId]);
+  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, preferredNodeId]);
 
   const fitViewOptions = shouldIsolateCompositionNode
     ? { padding: 0.12, maxZoom: 0.95, minZoom: 0.35 }
@@ -257,27 +264,38 @@ export function ModelPanel(props: ModelPanelProps) {
   );
   const flowCanvasKey = graphResult ? `${graphResult.scope}:${graphResult.focusId}:${preferredNodeId ?? ""}` : "empty";
 
-  async function handleNodeDoubleClick(_event: React.MouseEvent, node: Node) {
+  function handleNodeClick(_event: React.MouseEvent, node: Node) {
+    const graphNode = graphNodes.find((entry) => entry.id === node.id);
+    if (!graphNode) {
+      return;
+    }
+
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId(undefined);
+  }
+
+  function handleNodeDoubleClick(_event: React.MouseEvent, node: Node) {
     const graphNode = graphNodes.find((entry) => entry.id === node.id);
     if (!graphNode) {
       return;
     }
 
     if (graphNode.kind === "port") {
-      await onJumpToPath(graphNode.filePath, graphNode.xmlPath);
       return;
     }
 
-    await onOpenFile(graphNode.filePath);
-  }
-
-  async function handleEdgeDoubleClick(_event: React.MouseEvent, edge: Edge) {
-    const graphEdge = graphEdges.find((entry) => entry.id === edge.id);
-    if (!graphEdge) {
+    const targetSemanticPath = graphNode.kind === "instance" ? graphNode.typeRef : graphNode.semanticPath;
+    if (!targetSemanticPath) {
       return;
     }
 
-    await onJumpToPath(graphEdge.filePath, graphEdge.xmlPath);
+    onFocusModelEntity?.({
+      entityId: graphNode.kind === "instance" ? undefined : graphNode.id,
+      semanticPath: targetSemanticPath,
+      preferredScope: graphNode.swcKind === "composition" || graphNode.kind === "composition" ? "composition" : "swc",
+      preferredNodeId: undefined,
+      includeCompositionInternals: false
+    });
   }
 
   const warnings = graphResult?.warnings ?? [];
@@ -323,16 +341,12 @@ export function ModelPanel(props: ModelPanelProps) {
                 nodesDraggable={false}
                 nodesConnectable={false}
                 elementsSelectable
-                onNodeClick={(_event, node) => {
-                  setSelectedNodeId(node.id);
-                  setSelectedEdgeId(undefined);
-                }}
+                onNodeClick={handleNodeClick}
+                onNodeDoubleClick={handleNodeDoubleClick}
                 onEdgeClick={(_event, edge) => {
                   setSelectedEdgeId(edge.id);
                   setSelectedNodeId(undefined);
                 }}
-                onNodeDoubleClick={handleNodeDoubleClick}
-                onEdgeDoubleClick={handleEdgeDoubleClick}
                 onNodesChange={noopNodesChange}
                 onEdgesChange={noopEdgesChange}
               >
@@ -352,7 +366,6 @@ export function ModelPanel(props: ModelPanelProps) {
             inspector={inspector}
             selectedNode={selectedGraphNode}
             selectedEdge={selectedGraphEdge}
-            onJumpToPath={onJumpToPath}
             onOpenWorkspaceTab={onOpenWorkspaceTab}
           />
         )}
@@ -368,7 +381,6 @@ function ModelSemanticTab(props: {
   inspector?: SwcInspectorData;
   selectedNode?: SwcGraphNode;
   selectedEdge?: SwcGraphResult["edges"][number];
-  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
   const {
@@ -378,7 +390,6 @@ function ModelSemanticTab(props: {
     inspector,
     selectedNode,
     selectedEdge,
-    onJumpToPath,
     onOpenWorkspaceTab
   } = props;
   const semanticInspector = inspector ?? focusEntity?.inspector;
@@ -403,25 +414,11 @@ function ModelSemanticTab(props: {
 
   if (tab.kind === "ports") {
     return (
-      <ModelTableSurface
+      <ModelPortsTableSurface
         title={tab.title}
-        emptyLabel="No ports discovered."
-        columns={[
-          { key: "label", label: "Port" },
-          { key: "direction", label: "Direction" },
-          { key: "interfaceKind", label: "Interface" },
-          { key: "interfaceRef", label: "Interface Ref" }
-        ]}
-        rows={ports.map((port) => ({
-          id: port.id,
-          label: port.label,
-          direction: port.direction,
-          interfaceKind: port.interfaceKind ?? "unknown",
-          interfaceRef: port.interfaceRef ?? "-",
-          filePath: port.filePath,
-          xmlPath: port.xmlPath
-        }))}
-        onJumpToPath={onJumpToPath}
+        ports={ports}
+        focusEntityId={focusEntity.id}
+        onOpenWorkspaceTab={onOpenWorkspaceTab}
       />
     );
   }
@@ -436,7 +433,6 @@ function ModelSemanticTab(props: {
         port={port}
         filePath={port?.filePath ?? focusEntity.filePath}
         xmlPath={port?.xmlPath ?? tab.xmlPath}
-        onJumpToPath={onJumpToPath}
       />
     );
   }
@@ -449,7 +445,6 @@ function ModelSemanticTab(props: {
         runnable={runnable}
         filePath={focusEntity.filePath}
         xmlPath={runnable?.xmlPath ?? tab.xmlPath}
-        onJumpToPath={onJumpToPath}
       />
     );
   }
@@ -491,7 +486,6 @@ function ModelSemanticTab(props: {
       emptyLabel={getEmptyLabel(tab.kind)}
       columns={getSemanticColumns(tab.kind)}
       rows={rows}
-      onJumpToPath={onJumpToPath}
     />
   );
 }
@@ -504,63 +498,129 @@ function ModelRunnablesTableSurface(props: {
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
   const { title, swcName, runnables, focusEntityId, onOpenWorkspaceTab } = props;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<{ key: RunnableTableColumnKey; direction: SortDirection }>({
+    key: "runnableName",
+    direction: "asc"
+  });
+  const rows = useMemo(
+    () =>
+      runnables.map((runnable) => ({
+        runnable,
+        swcName,
+        runnableName: runnable.label,
+        runnableSymbol: runnable.metadata?.SYMBOL ?? "-",
+        period: formatOptionalMilliseconds(runnable.metadata?.PERIOD),
+        periodSortValue: Number(runnable.metadata?.PERIOD)
+      })),
+    [runnables, swcName]
+  );
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = normalizeTableSearch(searchQuery);
+    return rows
+      .filter((row) =>
+        normalizedQuery
+          ? [row.swcName, row.runnableName, row.runnableSymbol, row.period].some((value) =>
+              normalizeTableSearch(value).includes(normalizedQuery)
+            )
+          : true
+      )
+      .sort((left, right) => compareRunnableRows(left, right, sort));
+  }, [rows, searchQuery, sort]);
+
+  const changeSort = (key: RunnableTableColumnKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
         <strong>{title}</strong>
+        <label className="model-table-search">
+          <span>Search</span>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Filter runnables"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
       </div>
       {runnables.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table model-clickable-table">
             <thead>
               <tr>
-                <th scope="col">SWC name</th>
-                <th scope="col">Runnable Name</th>
-                <th scope="col">Runnable Symbol</th>
-                <th scope="col">Period</th>
+                <SortableTableHeader
+                  label="SWC name"
+                  columnKey="swcName"
+                  sort={sort}
+                  onSort={changeSort}
+                />
+                <SortableTableHeader
+                  label="Runnable Name"
+                  columnKey="runnableName"
+                  sort={sort}
+                  onSort={changeSort}
+                />
+                <SortableTableHeader
+                  label="Runnable Symbol"
+                  columnKey="runnableSymbol"
+                  sort={sort}
+                  onSort={changeSort}
+                />
+                <SortableTableHeader
+                  label="Period"
+                  columnKey="period"
+                  sort={sort}
+                  onSort={changeSort}
+                />
               </tr>
             </thead>
             <tbody>
-              {runnables.map((runnable) => (
+              {visibleRows.map((row) => (
                 <tr
-                  key={runnable.id}
+                  key={row.runnable.id}
                   tabIndex={0}
                   role="button"
                   onClick={() =>
                     onOpenWorkspaceTab?.({
-                      id: `${focusEntityId}:runnable:${runnable.id}`,
-                      title: `Runnable: ${runnable.label}`,
+                      id: `${focusEntityId}:runnable:${row.runnable.id}`,
+                      title: `Runnable: ${row.runnable.label}`,
                       kind: "runnable",
                       focusEntityId,
                       sectionId: "runnables",
-                      itemId: runnable.id,
-                      xmlPath: runnable.xmlPath
+                      itemId: row.runnable.id,
+                      xmlPath: row.runnable.xmlPath
                     })
                   }
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
                       onOpenWorkspaceTab?.({
-                        id: `${focusEntityId}:runnable:${runnable.id}`,
-                        title: `Runnable: ${runnable.label}`,
+                        id: `${focusEntityId}:runnable:${row.runnable.id}`,
+                        title: `Runnable: ${row.runnable.label}`,
                         kind: "runnable",
                         focusEntityId,
                         sectionId: "runnables",
-                        itemId: runnable.id,
-                        xmlPath: runnable.xmlPath
+                        itemId: row.runnable.id,
+                        xmlPath: row.runnable.xmlPath
                       });
                     }
                   }}
                 >
-                  <td>{swcName}</td>
-                  <td>{runnable.label}</td>
-                  <td>{runnable.metadata?.SYMBOL ?? "-"}</td>
-                  <td>{formatOptionalMilliseconds(runnable.metadata?.PERIOD)}</td>
+                  <td>{row.swcName}</td>
+                  <td>{row.runnableName}</td>
+                  <td>{row.runnableSymbol}</td>
+                  <td>{row.period}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {visibleRows.length === 0 && <div className="model-table-filter-empty">No matching runnables.</div>}
         </div>
       ) : (
         <div className="empty-state">No runnables discovered.</div>
@@ -569,14 +629,272 @@ function ModelRunnablesTableSurface(props: {
   );
 }
 
+function ModelPortsTableSurface(props: {
+  title: string;
+  ports: SwcGraphPort[];
+  focusEntityId: string;
+  onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
+}) {
+  const { title, ports, focusEntityId, onOpenWorkspaceTab } = props;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<{ key: PortTableColumnKey; direction: SortDirection }>({
+    key: "portName",
+    direction: "asc"
+  });
+  const rows = useMemo(
+    () =>
+      ports.map((port) => ({
+        port,
+        portName: port.label,
+        direction: formatPortDirectionLabel(port.direction, port.interfaceKind),
+        isServicePort: formatBooleanMetadata(port.metadata?.["IS-SERVICE"]),
+        interfaceName: formatReferenceShortName(port.interfaceRef),
+        interfaceRef: port.interfaceRef ?? "-"
+      })),
+    [ports]
+  );
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = normalizeTableSearch(searchQuery);
+    return rows
+      .filter((row) =>
+        normalizedQuery
+          ? [row.portName, row.direction, row.isServicePort, row.interfaceName, row.interfaceRef].some((value) =>
+              normalizeTableSearch(value).includes(normalizedQuery)
+            )
+          : true
+      )
+      .sort((left, right) => comparePortRows(left, right, sort));
+  }, [rows, searchQuery, sort]);
+
+  const changeSort = (key: PortTableColumnKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
+
+  const openPortTab = (port: SwcGraphPort) => {
+    onOpenWorkspaceTab?.({
+      id: `${focusEntityId}:port:${port.id}`,
+      title: `Port: ${port.label}`,
+      kind: "port",
+      focusEntityId,
+      entityId: port.id,
+      xmlPath: port.xmlPath
+    });
+  };
+
+  return (
+    <div className="model-semantic-surface">
+      <div className="model-semantic-header">
+        <strong>{title}</strong>
+        <label className="model-table-search">
+          <span>Search</span>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Filter ports"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
+      </div>
+      {ports.length > 0 ? (
+        <div className="model-semantic-table-shell">
+          <table className="model-inspector-section-table model-semantic-table model-clickable-table">
+            <thead>
+              <tr>
+                <SortableTableHeader label="Port" columnKey="portName" sort={sort} onSort={changeSort} />
+                <SortableTableHeader label="Direction" columnKey="direction" sort={sort} onSort={changeSort} />
+                <SortableTableHeader label="Is Service Port" columnKey="isServicePort" sort={sort} onSort={changeSort} />
+                <SortableTableHeader label="Interface" columnKey="interfaceName" sort={sort} onSort={changeSort} />
+                <SortableTableHeader label="Interface Ref" columnKey="interfaceRef" sort={sort} onSort={changeSort} />
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((row) => (
+                <tr
+                  key={row.port.id}
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => openPortTab(row.port)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openPortTab(row.port);
+                    }
+                  }}
+                >
+                  <td>{row.portName}</td>
+                  <td>{row.direction}</td>
+                  <td>{row.isServicePort}</td>
+                  <td title={row.interfaceRef}>{row.interfaceName}</td>
+                  <td title={row.interfaceRef}>{row.interfaceRef}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {visibleRows.length === 0 && <div className="model-table-filter-empty">No matching ports.</div>}
+        </div>
+      ) : (
+        <div className="empty-state">No ports discovered.</div>
+      )}
+    </div>
+  );
+}
+
+type SortDirection = "asc" | "desc";
+type RunnableTableColumnKey = "swcName" | "runnableName" | "runnableSymbol" | "period";
+type PortTableColumnKey = "portName" | "direction" | "isServicePort" | "interfaceName" | "interfaceRef";
+type AccessPointTableColumnKey = "target" | "access" | "name";
+type TriggerEventTableColumnKey = "trigger" | "type" | "disabledInModes" | "activationReason" | "name";
+
+interface RunnableTableRow {
+  runnable: SwcInspectorItem;
+  swcName: string;
+  runnableName: string;
+  runnableSymbol: string;
+  period: string;
+  periodSortValue: number;
+}
+
+interface PortTableRow {
+  port: SwcGraphPort;
+  portName: string;
+  direction: string;
+  isServicePort: string;
+  interfaceName: string;
+  interfaceRef: string;
+}
+
+function SortableTableHeader<Key extends string>(props: {
+  label: string;
+  columnKey: Key;
+  sort: { key: Key; direction: SortDirection };
+  onSort: (key: Key) => void;
+}) {
+  const { label, columnKey, sort, onSort } = props;
+  const isActive = sort.key === columnKey;
+  const indicatorClass = isActive ? `is-${sort.direction}` : "is-unsorted";
+
+  return (
+    <th scope="col" aria-sort={isActive ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        className="model-sort-header-button"
+        onClick={() => onSort(columnKey)}
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
+      </button>
+    </th>
+  );
+}
+
+function SortableResizableTableHeader<Key extends string>(props: {
+  label: string;
+  columnKey: Key;
+  sort: { key: Key; direction: SortDirection };
+  onSort: (key: Key) => void;
+  onResize: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  const { label, columnKey, sort, onSort, onResize } = props;
+  const isActive = sort.key === columnKey;
+  const indicatorClass = isActive ? `is-${sort.direction}` : "is-unsorted";
+
+  return (
+    <th aria-sort={isActive ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        className="model-sort-header-button"
+        onClick={() => onSort(columnKey)}
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="model-runnable-column-resizer"
+        aria-label={`Resize ${label} column`}
+        onPointerDown={onResize}
+      />
+    </th>
+  );
+}
+
+function compareRunnableRows(
+  left: RunnableTableRow,
+  right: RunnableTableRow,
+  sort: { key: RunnableTableColumnKey; direction: SortDirection }
+) {
+  const direction = sort.direction === "asc" ? 1 : -1;
+  if (sort.key === "period") {
+    return direction * compareNumbersOrText(left.periodSortValue, right.periodSortValue, left.period, right.period);
+  }
+
+  const leftValue = left[sort.key];
+  const rightValue = right[sort.key];
+  return direction * compareTableText(leftValue, rightValue);
+}
+
+function comparePortRows(
+  left: PortTableRow,
+  right: PortTableRow,
+  sort: { key: PortTableColumnKey; direction: SortDirection }
+) {
+  const direction = sort.direction === "asc" ? 1 : -1;
+  return direction * compareTableText(left[sort.key], right[sort.key]);
+}
+
+function compareAccessPointRows(
+  left: RunnableAccessPointDetail,
+  right: RunnableAccessPointDetail,
+  sort: { key: AccessPointTableColumnKey; direction: SortDirection }
+) {
+  const direction = sort.direction === "asc" ? 1 : -1;
+  return direction * compareTableText(left[sort.key], right[sort.key]);
+}
+
+function compareTriggerEventRows(
+  left: RunnableTriggerEventDetail,
+  right: RunnableTriggerEventDetail,
+  sort: { key: TriggerEventTableColumnKey; direction: SortDirection }
+) {
+  const direction = sort.direction === "asc" ? 1 : -1;
+  return direction * compareTableText(left[sort.key], right[sort.key]);
+}
+
+function compareNumbersOrText(leftNumber: number, rightNumber: number, leftText: string, rightText: string) {
+  const leftFinite = Number.isFinite(leftNumber);
+  const rightFinite = Number.isFinite(rightNumber);
+  if (leftFinite && rightFinite) {
+    return leftNumber - rightNumber;
+  }
+  if (leftFinite) {
+    return -1;
+  }
+  if (rightFinite) {
+    return 1;
+  }
+  return compareTableText(leftText, rightText);
+}
+
+function compareTableText(left: string, right: string) {
+  return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+}
+
+function normalizeTableSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function ModelTableSurface(props: {
   title: string;
   emptyLabel: string;
   columns: Array<{ key: string; label: string }>;
   rows: Array<Record<string, string | undefined>>;
-  onJumpToPath?: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }) {
-  const { title, emptyLabel, columns, rows, onJumpToPath } = props;
+  const { title, emptyLabel, columns, rows } = props;
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
@@ -592,7 +910,6 @@ function ModelTableSurface(props: {
                     {column.label}
                   </th>
                 ))}
-                {onJumpToPath && <th scope="col">Source</th>}
               </tr>
             </thead>
             <tbody>
@@ -601,21 +918,6 @@ function ModelTableSurface(props: {
                   {columns.map((column) => (
                     <td key={column.key}>{row[column.key] || "-"}</td>
                   ))}
-                  {onJumpToPath && (
-                    <td>
-                      {row.filePath ? (
-                        <button
-                          type="button"
-                          className="model-source-button"
-                          onClick={() => void onJumpToPath(row.filePath!, row.xmlPath)}
-                        >
-                          Open
-                        </button>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  )}
                 </tr>
               ))}
             </tbody>
@@ -633,18 +935,12 @@ function ModelKeyValueSurface(props: {
   rows: Array<[string, string]>;
   filePath?: string;
   xmlPath?: string;
-  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }) {
-  const { title, rows, filePath, xmlPath, onJumpToPath } = props;
+  const { title, rows } = props;
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
         <strong>{title}</strong>
-        {filePath && (
-          <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
-            Open Source
-          </button>
-        )}
       </div>
       <div className="model-semantic-kv">
         {rows.map(([label, value]) => (
@@ -663,9 +959,8 @@ function ModelRunnableSurface(props: {
   runnable?: SwcInspectorItem;
   filePath?: string;
   xmlPath?: string;
-  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }) {
-  const { title, runnable, filePath, xmlPath, onJumpToPath } = props;
+  const { title, runnable } = props;
   const concurrent = readBooleanMetadata(runnable?.metadata?.CONCURRENT);
   const activationReasonDetails = parseRunnableActivationReasonDetails(
     runnable?.metadata?.["ACTIVATION-REASON-DETAILS"]
@@ -679,11 +974,6 @@ function ModelRunnableSurface(props: {
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
         <strong>{title}</strong>
-        {filePath && (
-          <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
-            Open Source
-          </button>
-        )}
       </div>
       <div className="model-runnable-detail">
         <div className="model-semantic-kv model-runnable-fields">
@@ -727,21 +1017,21 @@ function ModelPortSurface(props: {
   port?: SwcGraphPort;
   filePath?: string;
   xmlPath?: string;
-  onJumpToPath: (filePath: string, xmlPath?: string) => void | Promise<void>;
 }) {
-  const { title, port, filePath, xmlPath, onJumpToPath } = props;
+  const { title, port } = props;
   const argumentValues = parsePortDefinedArgumentValues(port?.metadata?.["PORT-DEFINED-ARGUMENT-VALUES"]);
   const communicationSpecs = parseCommunicationSpecDetails(port?.metadata?.["COMMUNICATION-SPEC-DETAILS"]);
+  const interfaceMemberDetails = parseInterfaceMemberDetails(port?.metadata?.["INTERFACE-MEMBER-DETAILS"]);
+  const displayedSpecs = communicationSpecs.length > 0 ? communicationSpecs : interfaceMemberDetails;
+  const specsTitle = communicationSpecs.length > 0 ? "Communication Specs" : "Interface Members";
+  const interfaceKind = port?.interfaceKind ?? "unknown";
+  const directionOptions = getPortDirectionOptions(interfaceKind);
+  const directionLabel = formatPortDirectionLabel(port?.direction, interfaceKind);
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
         <strong>{title}</strong>
-        {filePath && (
-          <button type="button" onClick={() => void onJumpToPath(filePath, xmlPath)}>
-            Open Source
-          </button>
-        )}
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
@@ -754,21 +1044,22 @@ function ModelPortSurface(props: {
             <strong>{formatReferenceShortName(port?.interfaceRef)}</strong>
           </div>
           <div>
+            <span>Port Interface Type</span>
+            <strong>{formatPortInterfaceKindLabel(interfaceKind)}</strong>
+          </div>
+          <div>
             <span>Direction</span>
-            <strong className="model-port-direction-options">
-              <label>
-                <input type="checkbox" checked={port?.direction === "provided"} disabled readOnly />
-                Sender
-              </label>
-              <label>
-                <input type="checkbox" checked={port?.direction === "required"} disabled readOnly />
-                Receiver
-              </label>
-              <label>
-                <input type="checkbox" checked={port?.direction === "provided-required"} disabled readOnly />
-                Sender/Receiver
-              </label>
+            <strong>
+              <select value={directionLabel} disabled>
+                {directionOptions.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </select>
             </strong>
+          </div>
+          <div>
+            <span>Is Service Port</span>
+            <strong>{formatBooleanMetadata(port?.metadata?.["IS-SERVICE"])}</strong>
           </div>
           <div>
             <span>Description</span>
@@ -777,7 +1068,7 @@ function ModelPortSurface(props: {
         </div>
 
         <ModelPortApiOptionsSection port={port} argumentValues={argumentValues} />
-        <ModelCommunicationSpecsSection rows={communicationSpecs} />
+        <ModelCommunicationSpecsSection rows={displayedSpecs} interfaceKind={interfaceKind} title={specsTitle} />
       </div>
     </div>
   );
@@ -792,6 +1083,143 @@ function formatReferenceShortName(value: string | undefined): string {
   return parts.at(-1) ?? value;
 }
 
+function formatPortDirectionLabel(direction: SwcGraphPort["direction"] | undefined, interfaceKind?: PortInterfaceKind) {
+  if (interfaceKind === "client-server") {
+    if (direction === "provided") {
+      return "Server";
+    }
+    if (direction === "required") {
+      return "Client";
+    }
+    return "Client/Server";
+  }
+  if (interfaceKind === "parameter") {
+    if (direction === "provided") {
+      return "Parameter Provider";
+    }
+    if (direction === "required") {
+      return "Parameter Consumer";
+    }
+    return "Parameter Provider/Consumer";
+  }
+  if (interfaceKind === "mode-switch") {
+    if (direction === "provided") {
+      return "Mode Manager";
+    }
+    if (direction === "required") {
+      return "Mode User";
+    }
+    return "Mode Manager/User";
+  }
+  if (interfaceKind === "trigger") {
+    if (direction === "provided") {
+      return "Trigger Provider";
+    }
+    if (direction === "required") {
+      return "Trigger Consumer";
+    }
+    return "Trigger Provider/Consumer";
+  }
+  if (interfaceKind === "nv-data") {
+    if (direction === "provided") {
+      return "Nv Data Provider";
+    }
+    if (direction === "required") {
+      return "Nv Data Consumer";
+    }
+    return "Nv Data Provider/Consumer";
+  }
+  if (direction === "provided") {
+    return "Sender";
+  }
+  if (direction === "required") {
+    return "Receiver";
+  }
+  return "Sender/Receiver";
+}
+
+function getPortDirectionOptions(interfaceKind: PortInterfaceKind) {
+  if (interfaceKind === "client-server") {
+    return ["Server", "Client", "Client/Server"];
+  }
+  if (interfaceKind === "parameter") {
+    return ["Parameter Provider", "Parameter Consumer", "Parameter Provider/Consumer"];
+  }
+  if (interfaceKind === "mode-switch") {
+    return ["Mode Manager", "Mode User", "Mode Manager/User"];
+  }
+  if (interfaceKind === "trigger") {
+    return ["Trigger Provider", "Trigger Consumer", "Trigger Provider/Consumer"];
+  }
+  if (interfaceKind === "nv-data") {
+    return ["Nv Data Provider", "Nv Data Consumer", "Nv Data Provider/Consumer"];
+  }
+  return ["Sender", "Receiver", "Sender/Receiver"];
+}
+
+function formatPortInterfaceKindLabel(interfaceKind: PortInterfaceKind | undefined) {
+  if (interfaceKind === "sender-receiver") {
+    return "SenderReceiverInterface";
+  }
+  if (interfaceKind === "client-server") {
+    return "ClientServerInterface";
+  }
+  if (interfaceKind === "mode-switch") {
+    return "ModeSwitchInterface";
+  }
+  if (interfaceKind === "nv-data") {
+    return "NvDataInterface";
+  }
+  if (interfaceKind === "parameter") {
+    return "ParameterInterface";
+  }
+  if (interfaceKind === "trigger") {
+    return "TriggerInterface";
+  }
+  return "Unknown";
+}
+
+function getCommunicationSpecItemLabel(interfaceKind: PortInterfaceKind) {
+  if (interfaceKind === "client-server") {
+    return "Operation";
+  }
+  if (interfaceKind === "parameter") {
+    return "Parameter";
+  }
+  if (interfaceKind === "nv-data") {
+    return "Nv Data";
+  }
+  if (interfaceKind === "mode-switch") {
+    return "Mode Group";
+  }
+  if (interfaceKind === "trigger") {
+    return "Trigger";
+  }
+  return "Data Element";
+}
+
+function formatCommunicationSpecDirectionLabel(direction: string) {
+  if (direction === "client") {
+    return "Client";
+  }
+  if (direction === "server") {
+    return "Server";
+  }
+  if (direction === "parameter") {
+    return "Parameter";
+  }
+  if (direction === "nvData") {
+    return "Nv Data";
+  }
+  if (direction === "mode") {
+    return "Mode";
+  }
+  if (direction === "trigger") {
+    return "Trigger";
+  }
+  return "Generic";
+}
+
 interface PortDefinedArgumentValueDetail {
   index: string;
   name: string;
@@ -803,14 +1231,26 @@ interface CommunicationSpecDetail {
   index: string;
   dataElement: string;
   comSpec: string;
+  comSpecDirection: string;
   initValue: string;
   initValueType: string;
   usesTxAcknowledge: string;
+  transmissionAcknowledgeTimeout: string;
   usesEndToEndProtection: string;
   handleOutOfRange: string;
   transmissionMode: string;
   dataUpdatePeriod: string;
   minimumSendInterval: string;
+  aliveTimeout: string;
+  enableUpdate: string;
+  handleNeverReceived: string;
+  usesEndToEndProtectionErrorHandling: string;
+  timeoutSubstitutionValue: string;
+  timeoutSubstitutionValueType: string;
+  handleTimeoutType: string;
+  rxFilter: string;
+  handleDataStatus: string;
+  queueLength: string;
   dataType: string;
   dataConstraints: string;
   addressingMethod: string;
@@ -862,6 +1302,17 @@ function ModelPortApiOptionsSection(props: {
                 />
               </strong>
             </div>
+            <div>
+              <span>Transformation Error Handling</span>
+              <strong>
+                <input
+                  type="checkbox"
+                  checked={readTransformationErrorHandlingMetadata(port?.metadata?.["TRANSFORMATION-ERROR-HANDLING"])}
+                  disabled
+                  readOnly
+                />
+              </strong>
+            </div>
           </div>
           <ModelPortDefinedArgumentTable rows={argumentValues} />
         </>
@@ -870,8 +1321,12 @@ function ModelPortApiOptionsSection(props: {
   );
 }
 
-function ModelCommunicationSpecsSection(props: { rows: CommunicationSpecDetail[] }) {
-  const { rows } = props;
+function ModelCommunicationSpecsSection(props: {
+  rows: CommunicationSpecDetail[];
+  interfaceKind: PortInterfaceKind;
+  title?: string;
+}) {
+  const { rows, interfaceKind, title = "Communication Specs" } = props;
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -883,10 +1338,10 @@ function ModelCommunicationSpecsSection(props: { rows: CommunicationSpecDetail[]
         onClick={() => setIsExpanded((current) => !current)}
       >
         <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>Communication Specs</span>
+        <span>{title}</span>
         <span className="model-list-section-count">{rows.length}</span>
       </button>
-      {isExpanded && <ModelCommunicationSpecsTable rows={rows} embedded />}
+      {isExpanded && <ModelCommunicationSpecsTable rows={rows} interfaceKind={interfaceKind} embedded />}
     </section>
   );
 }
@@ -926,26 +1381,67 @@ function ModelPortDefinedArgumentTable(props: { rows: PortDefinedArgumentValueDe
   );
 }
 
-function ModelCommunicationSpecsTable(props: { rows: CommunicationSpecDetail[]; embedded?: boolean }) {
-  const { rows, embedded } = props;
+function ModelCommunicationSpecsTable(props: {
+  rows: CommunicationSpecDetail[];
+  interfaceKind: PortInterfaceKind;
+  embedded?: boolean;
+}) {
+  const { rows, interfaceKind, embedded } = props;
+  const itemLabel = getCommunicationSpecItemLabel(interfaceKind);
+  const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
+    rows[0] ? getCommunicationSpecRowKey(rows[0]) : undefined
+  );
+  const selectedRow = rows.find((row) => getCommunicationSpecRowKey(row) === selectedKey) ?? rows[0];
+
   return (
     <section className={embedded ? "model-port-comspec-table-section" : "model-list-section model-port-comspec-section"}>
       {!embedded && <h3>Communication Specs</h3>}
       {rows.length > 0 ? (
-        <div className="model-runnable-table-scroll">
-          <table className="model-runnable-table">
-            <thead>
-              <tr>
-                <th style={{ width: "70px" }}>Index</th>
-                <th>Data element</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <ModelCommunicationSpecRow key={`${row.index}:${row.dataElement}:${row.comSpec}:${row.initValue}`} row={row} />
-              ))}
-            </tbody>
-          </table>
+        <div className="model-comspec-master-detail">
+          <div className="model-runnable-table-scroll model-comspec-table-wrap">
+            <table className="model-runnable-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "70px" }}>Index</th>
+                  <th>{itemLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const rowKey = getCommunicationSpecRowKey(row);
+                  const isSelected = selectedRow ? rowKey === getCommunicationSpecRowKey(selectedRow) : false;
+                  return (
+                    <tr key={rowKey} className={isSelected ? "is-selected" : undefined}>
+                      <td title={row.index}>{row.index}</td>
+                      <td title={row.dataElement}>
+                        <button
+                          type="button"
+                          className="model-table-cell-button"
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedKey(rowKey)}
+                        >
+                          {formatReferenceShortName(row.dataElement)}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <aside className="model-comspec-detail-panel" aria-label={`${itemLabel} details`}>
+            {selectedRow ? (
+              <>
+                <div className="model-comspec-detail-heading">
+                  <span>{itemLabel}</span>
+                  <strong title={selectedRow.dataElement}>{formatReferenceShortName(selectedRow.dataElement)}</strong>
+                </div>
+                <ModelCommunicationSpecDetails row={selectedRow} itemLabel={itemLabel} />
+              </>
+            ) : (
+              <div className="model-list-empty">Select a communication spec.</div>
+            )}
+          </aside>
         </div>
       ) : (
         <div className="model-list-empty">No communication specs discovered.</div>
@@ -954,42 +1450,15 @@ function ModelCommunicationSpecsTable(props: { rows: CommunicationSpecDetail[]; 
   );
 }
 
-function ModelCommunicationSpecRow(props: { row: CommunicationSpecDetail }) {
-  const { row } = props;
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <>
-      <tr className="model-expandable-table-row">
-        <td title={row.index}>{row.index}</td>
-        <td title={row.dataElement}>
-          <button
-            type="button"
-            className="model-inline-expand-button"
-            aria-expanded={isExpanded}
-            onClick={() => setIsExpanded((current) => !current)}
-          >
-            <span className="model-list-section-chevron" aria-hidden="true" />
-            <span>{formatReferenceShortName(row.dataElement)}</span>
-          </button>
-        </td>
-      </tr>
-      {isExpanded && (
-        <tr className="model-communication-spec-detail-row">
-          <td colSpan={2}>
-            <ModelCommunicationSpecDetails row={row} />
-          </td>
-        </tr>
-      )}
-    </>
-  );
+function getCommunicationSpecRowKey(row: CommunicationSpecDetail) {
+  return `${row.index}:${row.dataElement}:${row.comSpec}:${row.initValue}`;
 }
 
-function ModelCommunicationSpecDetails(props: { row: CommunicationSpecDetail }) {
-  const { row } = props;
+function ModelCommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLabel: string }) {
+  const { row, itemLabel } = props;
   return (
     <div className="model-communication-spec-details">
-      <ModelCommunicationSpecSubsection title="Interface Properties" defaultOpen>
+      <ModelCommunicationSpecSubsection title={`${itemLabel} Properties`} defaultOpen>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Data Type</span>
@@ -1011,90 +1480,196 @@ function ModelCommunicationSpecDetails(props: { row: CommunicationSpecDetail }) 
           </div>
           <div>
             <span>Measurement&amp;Calibration</span>
-            <strong className="model-port-direction-options">
-              <label>
-                <input type="checkbox" checked={isMeasurementCalibrationMode(row.measurementCalibration, "read")} disabled readOnly />
-                Read
-              </label>
-              <label>
-                <input type="checkbox" checked={isMeasurementCalibrationMode(row.measurementCalibration, "write")} disabled readOnly />
-                Write
-              </label>
-              <label>
-                <input type="checkbox" checked={isMeasurementCalibrationMode(row.measurementCalibration, "readwrite")} disabled readOnly />
-                ReadWrite
-              </label>
+            <strong>
+              <select value={formatMeasurementCalibrationOption(row.measurementCalibration)} disabled>
+                <option>Not Accessible</option>
+                <option>Read</option>
+                <option>Write</option>
+                <option>ReadWrite</option>
+              </select>
             </strong>
           </div>
           <div>
             <span>Handle invalid</span>
-            <strong className="model-port-direction-options">
-              {["Keep", "Replace", "None"].map((mode) => (
-                <label key={mode}>
-                  <input type="checkbox" checked={isSelectedOption(row.handleInvalid, mode)} disabled readOnly />
-                  {mode}
-                </label>
-              ))}
+            <strong>
+              <select value={formatHandleInvalidOption(row.handleInvalid)} disabled>
+                <option>Keep</option>
+                <option>Replace</option>
+                <option>None</option>
+              </select>
             </strong>
           </div>
         </div>
       </ModelCommunicationSpecSubsection>
 
-      <ModelCommunicationSpecSubsection title="Sender ComSpec" defaultOpen>
+      {row.comSpecDirection === "sender" && <ModelSenderComSpecDetails row={row} />}
+      {row.comSpecDirection === "receiver" && <ModelReceiverComSpecDetails row={row} />}
+      {row.comSpecDirection !== "sender" && row.comSpecDirection !== "receiver" && (
+        <ModelGenericComSpecDetails row={row} />
+      )}
+    </div>
+  );
+}
+
+function ModelSenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
+  const { row } = props;
+  return (
+    <ModelCommunicationSpecSubsection title="Sender ComSpec" defaultOpen>
+      <div className="model-semantic-kv model-port-fields">
+        <div>
+          <span>Init Value</span>
+          <strong className="model-inline-value-with-select">
+            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+              {initValueTypeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+            <span title={row.initValue}>{formatInitValueDisplay(row.initValue, row.initValueType)}</span>
+          </strong>
+        </div>
+        <div className="model-semantic-kv-three">
+          <span>Uses Tx Acknowledge</span>
+          <strong>
+            <input type="checkbox" checked={readBooleanMetadata(row.usesTxAcknowledge) === true} disabled readOnly />
+          </strong>
+          <strong className="model-inline-value-with-label">
+            <small>Timeout (ms)</small>
+            {formatOptionalMilliseconds(row.transmissionAcknowledgeTimeout)}
+          </strong>
+        </div>
+        <div>
+          <span>Uses End-to-End Protection</span>
+          <strong>
+            <input type="checkbox" checked={readBooleanMetadata(row.usesEndToEndProtection) === true} disabled readOnly />
+          </strong>
+        </div>
+        <div>
+          <span>Handle Out of Range</span>
+          <strong>
+            <select value={formatHandleOutOfRangeOption(row.handleOutOfRange)} disabled>
+              {handleOutOfRangeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </strong>
+        </div>
+      </div>
+      <section className="model-port-argument-section">
+        <h3>Use Transmission Props</h3>
         <div className="model-semantic-kv model-port-fields">
           <div>
-            <span>Init Value</span>
-            <strong className="model-inline-value-with-select">
-              <span>{row.initValue}</span>
-              <select value={row.initValueType} disabled>
-                <option>{row.initValueType}</option>
+            <span>Transmission Mode</span>
+            <strong>
+              <select value={formatTransmissionModeOption(row.transmissionMode)} disabled>
+                {transmissionModeOptions.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
             </strong>
           </div>
           <div>
-            <span>Uses Tx Acknowledge</span>
-            <strong>
-              <input type="checkbox" checked={readBooleanMetadata(row.usesTxAcknowledge) === true} disabled readOnly />
-            </strong>
+            <span>Data Update Period</span>
+            <strong>{formatOptionalMilliseconds(row.dataUpdatePeriod)}</strong>
           </div>
           <div>
-            <span>Uses End-to-End Protection</span>
-            <strong>
-              <input type="checkbox" checked={readBooleanMetadata(row.usesEndToEndProtection) === true} disabled readOnly />
-            </strong>
-          </div>
-          <div>
-            <span>Handle Out of Range</span>
-            <strong>
-              <select value={row.handleOutOfRange} disabled>
-                <option>{row.handleOutOfRange}</option>
-              </select>
-            </strong>
+            <span>Minimum Send Interval</span>
+            <strong>{formatOptionalMilliseconds(row.minimumSendInterval)}</strong>
           </div>
         </div>
-        <section className="model-port-argument-section">
-          <h3>Use Transmission Props</h3>
-          <div className="model-semantic-kv model-port-fields">
-            <div>
-              <span>Transmission Mode</span>
-              <strong>
-                <select value={row.transmissionMode} disabled>
-                  <option>{row.transmissionMode}</option>
-                </select>
-              </strong>
-            </div>
-            <div>
-              <span>Data Update Period</span>
-              <strong>{formatOptionalMilliseconds(row.dataUpdatePeriod)}</strong>
-            </div>
-            <div>
-              <span>Minimum Send Interval</span>
-              <strong>{formatOptionalMilliseconds(row.minimumSendInterval)}</strong>
-            </div>
-          </div>
-        </section>
-      </ModelCommunicationSpecSubsection>
-    </div>
+      </section>
+    </ModelCommunicationSpecSubsection>
+  );
+}
+
+function ModelReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
+  const { row } = props;
+  return (
+    <ModelCommunicationSpecSubsection title="Receiver ComSpec" defaultOpen>
+      <div className="model-semantic-kv model-port-fields">
+        <div>
+          <span>Init Value</span>
+          <strong className="model-inline-value-with-select">
+            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+              {initValueTypeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+            <span title={row.initValue}>{formatInitValueDisplay(row.initValue, row.initValueType)}</span>
+          </strong>
+        </div>
+        <div>
+          <span>Rx Filter</span>
+          <strong>
+            <select value={formatRxFilterOption(row.rxFilter)} disabled>
+              {getRxFilterOptions(row.rxFilter).map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </strong>
+        </div>
+        <div>
+          <span>Uses End-to-End Protection</span>
+          <strong>
+            <input type="checkbox" checked={readBooleanMetadata(row.usesEndToEndProtection) === true} disabled readOnly />
+          </strong>
+        </div>
+        <div>
+          <span>Handle Never Received</span>
+          <strong>
+            <input type="checkbox" checked={readEnabledMetadata(row.handleNeverReceived)} disabled readOnly />
+          </strong>
+        </div>
+        <div>
+          <span>Enable Update</span>
+          <strong>
+            <input type="checkbox" checked={readBooleanMetadata(row.enableUpdate) === true} disabled readOnly />
+          </strong>
+        </div>
+        <div>
+          <span>Alive Timeout</span>
+          <strong>{formatOptionalMilliseconds(row.aliveTimeout)}</strong>
+        </div>
+        <div>
+          <span>Queue Length</span>
+          <strong>{row.queueLength}</strong>
+        </div>
+        <div>
+          <span>Handle Out Of Range</span>
+          <strong>
+            <select value={formatHandleOutOfRangeOption(row.handleOutOfRange)} disabled>
+              {handleOutOfRangeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </strong>
+        </div>
+      </div>
+    </ModelCommunicationSpecSubsection>
+  );
+}
+
+function ModelGenericComSpecDetails(props: { row: CommunicationSpecDetail }) {
+  const { row } = props;
+  return (
+    <ModelCommunicationSpecSubsection title={`${formatCommunicationSpecDirectionLabel(row.comSpecDirection)} ComSpec`} defaultOpen>
+      <div className="model-semantic-kv model-port-fields">
+        <div>
+          <span>Init Value</span>
+          <strong className="model-inline-value-with-select">
+            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+              {initValueTypeOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+            <span title={row.initValue}>{formatInitValueDisplay(row.initValue, row.initValueType)}</span>
+          </strong>
+        </div>
+        <div>
+          <span>Queue Length</span>
+          <strong>{row.queueLength}</strong>
+        </div>
+      </div>
+    </ModelCommunicationSpecSubsection>
   );
 }
 
@@ -1176,6 +1751,11 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
   const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([280, 180, 260]);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<{ key: AccessPointTableColumnKey; direction: SortDirection }>({
+    key: "target",
+    direction: "asc"
+  });
   const rows =
     details.length > 0
       ? details
@@ -1184,7 +1764,24 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
           access: "-",
           name: item
         }));
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = normalizeTableSearch(searchQuery);
+    return rows
+      .filter((row) =>
+        normalizedQuery
+          ? [row.target, row.access, row.name].some((value) => normalizeTableSearch(value).includes(normalizedQuery))
+          : true
+      )
+      .sort((left, right) => compareAccessPointRows(left, right, sort));
+  }, [rows, searchQuery, sort]);
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+
+  const changeSort = (key: AccessPointTableColumnKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
 
   const startColumnResize = (event: ReactPointerEvent<HTMLButtonElement>, columnIndex: number) => {
     event.preventDefault();
@@ -1209,16 +1806,27 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
 
   return (
     <section className="model-list-section model-access-points-section">
-      <button
-        type="button"
-        className="model-list-section-toggle"
-        aria-expanded={isExpanded}
-        onClick={() => setIsExpanded((current) => !current)}
-      >
-        <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>Access Points</span>
-        <span className="model-list-section-count">{rows.length}</span>
-      </button>
+      <div className="model-list-section-header">
+        <button
+          type="button"
+          className="model-list-section-toggle"
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((current) => !current)}
+        >
+          <span className="model-list-section-chevron" aria-hidden="true" />
+          <span>Access Points</span>
+          <span className="model-list-section-count">{visibleRows.length}</span>
+        </button>
+        <label className="model-table-search model-list-table-search">
+          <span>Search</span>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Filter access points"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
+      </div>
       {isExpanded && rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table
@@ -1232,21 +1840,24 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
             </colgroup>
             <thead>
               <tr>
-                {["DEP / Operation / Trigger", "Access", "Name"].map((label, index) => (
-                  <th key={label}>
-                    <span>{label}</span>
-                    <button
-                      type="button"
-                      className="model-runnable-column-resizer"
-                      aria-label={`Resize ${label} column`}
-                      onPointerDown={(event) => startColumnResize(event, index)}
-                    />
-                  </th>
+                {[
+                  { label: "DEP / Operation / Trigger", key: "target" as const },
+                  { label: "Access", key: "access" as const },
+                  { label: "Name", key: "name" as const }
+                ].map((column, index) => (
+                  <SortableResizableTableHeader
+                    key={column.key}
+                    label={column.label}
+                    columnKey={column.key}
+                    sort={sort}
+                    onSort={changeSort}
+                    onResize={(event) => startColumnResize(event, index)}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {visibleRows.map((row, index) => (
                 <tr key={`${row.name}:${row.access}:${row.target}:${index}`}>
                   <td title={row.target}>{row.target}</td>
                   <td title={row.access}>{row.access}</td>
@@ -1255,6 +1866,7 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
               ))}
             </tbody>
           </table>
+          {visibleRows.length === 0 && <div className="model-table-filter-empty">No matching access points.</div>}
         </div>
       ) : isExpanded ? (
         <div className="model-list-empty">No items discovered.</div>
@@ -1267,6 +1879,11 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
   const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([220, 180, 180, 180, 240]);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<{ key: TriggerEventTableColumnKey; direction: SortDirection }>({
+    key: "trigger",
+    direction: "asc"
+  });
   const rows =
     details.length > 0
       ? details
@@ -1277,7 +1894,26 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
           activationReason: "-",
           name: item
         }));
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = normalizeTableSearch(searchQuery);
+    return rows
+      .filter((row) =>
+        normalizedQuery
+          ? [row.trigger, row.type, row.disabledInModes, row.activationReason, row.name].some((value) =>
+              normalizeTableSearch(value).includes(normalizedQuery)
+            )
+          : true
+      )
+      .sort((left, right) => compareTriggerEventRows(left, right, sort));
+  }, [rows, searchQuery, sort]);
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+
+  const changeSort = (key: TriggerEventTableColumnKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
 
   const startColumnResize = (event: ReactPointerEvent<HTMLButtonElement>, columnIndex: number) => {
     event.preventDefault();
@@ -1302,16 +1938,27 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
 
   return (
     <section className="model-list-section model-trigger-events-section">
-      <button
-        type="button"
-        className="model-list-section-toggle"
-        aria-expanded={isExpanded}
-        onClick={() => setIsExpanded((current) => !current)}
-      >
-        <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>Trigger Events</span>
-        <span className="model-list-section-count">{rows.length}</span>
-      </button>
+      <div className="model-list-section-header">
+        <button
+          type="button"
+          className="model-list-section-toggle"
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((current) => !current)}
+        >
+          <span className="model-list-section-chevron" aria-hidden="true" />
+          <span>Trigger Events</span>
+          <span className="model-list-section-count">{visibleRows.length}</span>
+        </button>
+        <label className="model-table-search model-list-table-search">
+          <span>Search</span>
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="Filter trigger events"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </label>
+      </div>
       {isExpanded && rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table
@@ -1325,21 +1972,26 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
             </colgroup>
             <thead>
               <tr>
-                {["Trigger", "Type", "Disable in modes", "Activation Reason", "Name"].map((label, index) => (
-                  <th key={label}>
-                    <span>{label}</span>
-                    <button
-                      type="button"
-                      className="model-runnable-column-resizer"
-                      aria-label={`Resize ${label} column`}
-                      onPointerDown={(event) => startColumnResize(event, index)}
-                    />
-                  </th>
+                {[
+                  { label: "Trigger", key: "trigger" as const },
+                  { label: "Type", key: "type" as const },
+                  { label: "Disable in modes", key: "disabledInModes" as const },
+                  { label: "Activation Reason", key: "activationReason" as const },
+                  { label: "Name", key: "name" as const }
+                ].map((column, index) => (
+                  <SortableResizableTableHeader
+                    key={column.key}
+                    label={column.label}
+                    columnKey={column.key}
+                    sort={sort}
+                    onSort={changeSort}
+                    onResize={(event) => startColumnResize(event, index)}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {visibleRows.map((row, index) => (
                 <tr key={`${row.name}:${row.type}:${row.trigger}:${index}`}>
                   <td title={row.trigger}>{row.trigger}</td>
                   <td title={row.type}>{row.type}</td>
@@ -1350,6 +2002,7 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
               ))}
             </tbody>
           </table>
+          {visibleRows.length === 0 && <div className="model-table-filter-empty">No matching trigger events.</div>}
         </div>
       ) : isExpanded ? (
         <div className="model-list-empty">No items discovered.</div>
@@ -1442,14 +2095,28 @@ function parseCommunicationSpecDetails(value: string | undefined): Communication
           index: stringifyAccessPointCell(record.index),
           dataElement: stringifyAccessPointCell(record.dataElement),
           comSpec: stringifyAccessPointCell(record.comSpec),
+          comSpecDirection: parseCommunicationSpecDirection(record.comSpecDirection, record.comSpec),
           initValue: stringifyAccessPointCell(record.initValue),
           initValueType: stringifyAccessPointCell(record.initValueType),
           usesTxAcknowledge: stringifyAccessPointCell(record.usesTxAcknowledge),
+          transmissionAcknowledgeTimeout: stringifyAccessPointCell(record.transmissionAcknowledgeTimeout),
           usesEndToEndProtection: stringifyAccessPointCell(record.usesEndToEndProtection),
           handleOutOfRange: stringifyAccessPointCell(record.handleOutOfRange),
           transmissionMode: stringifyAccessPointCell(record.transmissionMode),
           dataUpdatePeriod: stringifyAccessPointCell(record.dataUpdatePeriod),
           minimumSendInterval: stringifyAccessPointCell(record.minimumSendInterval),
+          aliveTimeout: stringifyAccessPointCell(record.aliveTimeout),
+          enableUpdate: stringifyAccessPointCell(record.enableUpdate),
+          handleNeverReceived: stringifyAccessPointCell(record.handleNeverReceived),
+          usesEndToEndProtectionErrorHandling: stringifyAccessPointCell(
+            record.usesEndToEndProtectionErrorHandling
+          ),
+          timeoutSubstitutionValue: stringifyAccessPointCell(record.timeoutSubstitutionValue),
+          timeoutSubstitutionValueType: stringifyAccessPointCell(record.timeoutSubstitutionValueType),
+          handleTimeoutType: stringifyAccessPointCell(record.handleTimeoutType),
+          rxFilter: stringifyAccessPointCell(record.rxFilter),
+          handleDataStatus: stringifyAccessPointCell(record.handleDataStatus),
+          queueLength: stringifyAccessPointCell(record.queueLength),
           dataType: stringifyAccessPointCell(record.dataType),
           dataConstraints: stringifyAccessPointCell(record.dataConstraints),
           addressingMethod: stringifyAccessPointCell(record.addressingMethod),
@@ -1464,19 +2131,291 @@ function parseCommunicationSpecDetails(value: string | undefined): Communication
   }
 }
 
-function isMeasurementCalibrationMode(value: string, mode: "read" | "write" | "readwrite") {
-  const normalized = value.toLowerCase().replace(/[^a-z]/g, "");
-  if (mode === "readwrite") {
-    return normalized.includes("readwrite");
+function parseInterfaceMemberDetails(value: string | undefined): CommunicationSpecDetail[] {
+  if (!value) {
+    return [];
   }
-  if (mode === "read") {
-    return normalized === "read" || normalized.includes("readonly");
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.flatMap((entry, index) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return [];
+      }
+      const record = entry as Record<string, unknown>;
+      const metadata = record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata)
+        ? (record.metadata as Record<string, unknown>)
+        : {};
+      const semanticPath = stringifyAccessPointCell(record.semanticPath);
+      const label = stringifyAccessPointCell(record.label);
+      return [
+        {
+          index: String(index + 1),
+          dataElement: semanticPath !== "-" ? semanticPath : label,
+          comSpec: stringifyAccessPointCell(record.kind),
+          comSpecDirection: parseCommunicationSpecDirection(record.kind, record.kind),
+          initValue: stringifyAccessPointCell(metadata["INITIAL-VALUE"] ?? metadata["INIT-VALUE"]),
+          initValueType: stringifyAccessPointCell(metadata["INITIAL-VALUE-TYPE"] ?? metadata["INIT-VALUE-TYPE"]),
+          usesTxAcknowledge: "-",
+          transmissionAcknowledgeTimeout: "-",
+          usesEndToEndProtection: "-",
+          handleOutOfRange: "-",
+          transmissionMode: "-",
+          dataUpdatePeriod: "-",
+          minimumSendInterval: "-",
+          aliveTimeout: "-",
+          enableUpdate: "-",
+          handleNeverReceived: "-",
+          usesEndToEndProtectionErrorHandling: "-",
+          timeoutSubstitutionValue: "-",
+          timeoutSubstitutionValueType: "-",
+          handleTimeoutType: "-",
+          rxFilter: "-",
+          handleDataStatus: "-",
+          queueLength: "-",
+          dataType: stringifyAccessPointCell(metadata.TYPE),
+          dataConstraints: stringifyAccessPointCell(metadata["DATA-CONSTRAINTS"]),
+          addressingMethod: stringifyAccessPointCell(metadata["SW-ADDR-METHOD-REF"]),
+          useQueuedCommunication: stringifyAccessPointCell(metadata["IS-QUEUED"]),
+          measurementCalibration: stringifyAccessPointCell(metadata["SW-CALIBRATION-ACCESS"]),
+          handleInvalid: stringifyAccessPointCell(metadata["HANDLE-INVALID"])
+        }
+      ];
+    });
+  } catch {
+    return [];
   }
-  return normalized === "write" || normalized.includes("writeonly");
 }
 
-function isSelectedOption(value: string, option: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "") === option.toLowerCase().replace(/[^a-z0-9]/g, "");
+function parseCommunicationSpecDirection(direction: unknown, comSpec: unknown) {
+  const rawDirection = stringifyAccessPointCell(direction).toLowerCase();
+  if (
+    rawDirection === "sender" ||
+    rawDirection === "receiver" ||
+    rawDirection === "client" ||
+    rawDirection === "server" ||
+    rawDirection === "parameter" ||
+    rawDirection === "mode" ||
+    rawDirection === "trigger" ||
+    rawDirection === "nvdata"
+  ) {
+    return rawDirection === "nvdata" ? "nvData" : rawDirection;
+  }
+
+  const rawComSpec = stringifyAccessPointCell(comSpec).toLowerCase();
+  if (rawComSpec.includes("receiver")) {
+    return "receiver";
+  }
+  if (rawComSpec.includes("sender")) {
+    return "sender";
+  }
+  if (rawComSpec.includes("client")) {
+    return "client";
+  }
+  if (rawComSpec.includes("server")) {
+    return "server";
+  }
+  if (rawComSpec.includes("parameter")) {
+    return "parameter";
+  }
+  if (rawComSpec.includes("nvdata") || rawComSpec.includes("nv data")) {
+    return "nvData";
+  }
+  if (rawComSpec.includes("mode")) {
+    return "mode";
+  }
+  if (rawComSpec.includes("trigger")) {
+    return "trigger";
+  }
+  return "unknown";
+}
+
+function formatMeasurementCalibrationOption(value: string) {
+  const normalized = normalizeAutosarEnumToken(value);
+  if (!normalized || normalized === "notaccessible" || normalized === "none" || normalized === "false") {
+    return "Not Accessible";
+  }
+
+  if (normalized === "readwrite" || (normalized.includes("read") && normalized.includes("write"))) {
+    return "ReadWrite";
+  }
+  if (normalized === "write" || normalized === "writeonly") {
+    return "Write";
+  }
+  return "Read";
+}
+
+function formatHandleInvalidOption(value: string) {
+  const normalizedValue = normalizeAutosarEnumToken(value);
+  if (!normalizedValue || normalizedValue === "none" || normalizedValue === "false" || normalizedValue === "noaction") {
+    return "None";
+  }
+  if (normalizedValue.startsWith("replace")) {
+    return "Replace";
+  }
+  if (normalizedValue.startsWith("keep")) {
+    return "Keep";
+  }
+  return "None";
+}
+
+const initValueTypeOptions = [
+  "None",
+  "Numerical",
+  "Text",
+  "Boolean",
+  "Constant Reference",
+  "Array",
+  "Record",
+  "Application Value",
+  "Not Available"
+];
+
+const handleOutOfRangeOptions = ["None", "Ignore", "Saturate", "Wrap", "Replace", "Invalidate"];
+
+const transmissionModeOptions = [
+  "None",
+  "Cyclic",
+  "On Change",
+  "On Write",
+  "Triggered",
+  "Triggered On Change",
+  "Triggered On Change Without Repetition",
+  "Triggered Without Repetition"
+];
+
+const rxFilterOptions = [
+  "None",
+  "ALWAYS",
+  "NEVER",
+  "MASKED-NEW-DIFFERS-X",
+  "MASKED-NEW-DIFFERS-MASKED-OLD",
+  "MASKED-NEW-EQUALS-X",
+  "MASKED-NEW-EQUALS-MASKED-OLD",
+  "NEW-IS-WITHIN",
+  "NEW-IS-OUTSIDE",
+  "ONE-EVERY-N"
+];
+
+function getRxFilterOptions(value: string) {
+  const option = formatRxFilterOption(value);
+  return rxFilterOptions.includes(option) ? rxFilterOptions : [...rxFilterOptions, option];
+}
+
+function formatRxFilterOption(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "-") {
+    return "None";
+  }
+
+  const labeledMatch = trimmed.match(/(?:^|,\s*)Data Filter Type:\s*([^,]+)/i);
+  return (labeledMatch?.[1] ?? trimmed).trim();
+}
+
+function formatInitValueTypeOption(value: string) {
+  const normalized = normalizeAutosarEnumToken(value);
+  if (!normalized || normalized === "none" || normalized === "notset") {
+    return "None";
+  }
+  if (normalized.includes("numerical")) {
+    return "Numerical";
+  }
+  if (normalized.includes("text")) {
+    return "Text";
+  }
+  if (normalized.includes("boolean")) {
+    return "Boolean";
+  }
+  if (normalized.includes("constant")) {
+    return "Constant Reference";
+  }
+  if (normalized.includes("array")) {
+    return "Array";
+  }
+  if (normalized.includes("record")) {
+    return "Record";
+  }
+  if (normalized.includes("application")) {
+    return "Application Value";
+  }
+  if (normalized.includes("notavailable")) {
+    return "Not Available";
+  }
+  return "None";
+}
+
+function formatInitValueDisplay(value: string, type: string) {
+  const normalizedType = normalizeAutosarEnumToken(type);
+  const shouldTruncate =
+    normalizedType.includes("constant") ||
+    normalizedType.includes("array") ||
+    normalizedType.includes("record");
+
+  if (!shouldTruncate || value.length <= 100) {
+    return value;
+  }
+
+  return `${value.slice(0, 100)}...`;
+}
+
+function formatHandleOutOfRangeOption(value: string) {
+  const normalized = normalizeAutosarEnumToken(value);
+  if (!normalized || normalized === "none" || normalized === "false" || normalized === "notset") {
+    return "None";
+  }
+  if (normalized.includes("ignore")) {
+    return "Ignore";
+  }
+  if (normalized.includes("saturate")) {
+    return "Saturate";
+  }
+  if (normalized.includes("wrap")) {
+    return "Wrap";
+  }
+  if (normalized.includes("replace")) {
+    return "Replace";
+  }
+  if (normalized.includes("invalidate") || normalized.includes("invalid")) {
+    return "Invalidate";
+  }
+  return "None";
+}
+
+function formatTransmissionModeOption(value: string) {
+  const normalized = normalizeAutosarEnumToken(value);
+  if (!normalized || normalized === "none" || normalized === "false" || normalized === "notset") {
+    return "None";
+  }
+  if (normalized.includes("triggeredonchangewithoutrepetition")) {
+    return "Triggered On Change Without Repetition";
+  }
+  if (normalized.includes("triggeredwithoutrepetition")) {
+    return "Triggered Without Repetition";
+  }
+  if (normalized.includes("triggeredonchange")) {
+    return "Triggered On Change";
+  }
+  if (normalized.includes("triggered")) {
+    return "Triggered";
+  }
+  if (normalized.includes("onchange")) {
+    return "On Change";
+  }
+  if (normalized.includes("onwrite")) {
+    return "On Write";
+  }
+  if (normalized.includes("cyclic")) {
+    return "Cyclic";
+  }
+  return "None";
+}
+
+function normalizeAutosarEnumToken(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function parseRunnableActivationReasonDetails(value: string | undefined): RunnableActivationReasonDetail[] {
@@ -1668,6 +2607,33 @@ function readBooleanMetadata(value: string | undefined) {
   return undefined;
 }
 
+function formatBooleanMetadata(value: string | undefined) {
+  return readBooleanMetadata(value) === true ? "true" : "false";
+}
+
+function readEnabledMetadata(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized !== "" && normalized !== "-" && normalized !== "false" && normalized !== "none" && normalized !== "no";
+}
+
+function readTransformationErrorHandlingMetadata(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized !== "" &&
+    normalized !== "-" &&
+    normalized !== "false" &&
+    normalized !== "none" &&
+    normalized !== "no" &&
+    normalized !== "no-transformer-error-handling"
+  );
+}
+
 function splitMetadataList(value: string | undefined) {
   return value
     ? value
@@ -1824,7 +2790,7 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
   const rightRailWidth = getPortRailWidth(providedPorts);
 
   return (
-    <div className={`autosar-node autosar-node-${data.kind}`}>
+    <div className={`autosar-node autosar-node-${data.kind} nopan`}>
       {isPortCard ? (
         <div className="autosar-port-symbol">
           <div className="autosar-node-header autosar-node-header-port">
@@ -1839,7 +2805,6 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
             exposeBothHandles
             side={data.ports[0]?.direction === "provided" ? "right" : "left"}
             highlightedPortId={data.highlightedPortId}
-            onPortDoubleClick={data.onPortDoubleClick}
             onConnectionNavigate={data.onConnectionNavigate}
           />
         </div>
@@ -1852,7 +2817,6 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
               side="left"
               railWidth={leftRailWidth}
               highlightedPortId={data.highlightedPortId}
-              onPortDoubleClick={data.onPortDoubleClick}
               onConnectionNavigate={data.onConnectionNavigate}
             />
           </div>
@@ -1880,7 +2844,6 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
               side="right"
               railWidth={rightRailWidth}
               highlightedPortId={data.highlightedPortId}
-              onPortDoubleClick={data.onPortDoubleClick}
               onConnectionNavigate={data.onConnectionNavigate}
             />
           </div>
@@ -1898,7 +2861,6 @@ function PortList(props: {
   side?: "left" | "right" | "center";
   railWidth?: number;
   highlightedPortId?: string;
-  onPortDoubleClick?: FlowNodeData["onPortDoubleClick"];
   onConnectionNavigate?: FlowNodeData["onConnectionNavigate"];
 }) {
   const {
@@ -1909,7 +2871,6 @@ function PortList(props: {
     side = "left",
     railWidth,
     highlightedPortId,
-    onPortDoubleClick,
     onConnectionNavigate
   } = props;
 
@@ -1929,9 +2890,7 @@ function PortList(props: {
             const primaryConnection = portConnections?.[port.id]?.[0];
             if (primaryConnection) {
               onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
-              return;
             }
-            void onPortDoubleClick?.(port.filePath, port.xmlPath);
           }}
           style={
             railWidth && side !== "center"
@@ -1962,6 +2921,10 @@ function PortList(props: {
                     <span
                       key={`${connection.componentName}:${connection.portName}:${index}`}
                       className={`autosar-port-connection-label ${port.id === highlightedPortId ? "is-highlighted-target" : ""}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onConnectionNavigate?.(connection.targetNodeId, connection.targetPortId);
+                      }}
                       onDoubleClick={(event) => {
                         event.stopPropagation();
                         onConnectionNavigate?.(connection.targetNodeId, connection.targetPortId);
@@ -2153,7 +3116,7 @@ function buildPortConnectionLabels(
       const sourceLabels = (labelsByNode[sourceNode.id] ??= {});
       const sourceConnections = (sourceLabels[sourcePort.id] ??= []);
       sourceConnections.push({
-        componentName: String(targetNode.metadata?.TYPE ?? targetNode.label),
+        componentName: targetNode.label,
         portName: targetPort.label,
         targetNodeId: targetNode.id,
         targetPortId: targetPort.id
@@ -2162,7 +3125,7 @@ function buildPortConnectionLabels(
       const targetLabels = (labelsByNode[targetNode.id] ??= {});
       const targetConnections = (targetLabels[targetPort.id] ??= []);
       targetConnections.push({
-        componentName: String(sourceNode.metadata?.TYPE ?? sourceNode.label),
+        componentName: sourceNode.label,
         portName: sourcePort.label,
         targetNodeId: sourceNode.id,
         targetPortId: sourcePort.id

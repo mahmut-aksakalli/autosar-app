@@ -21,6 +21,14 @@ const api = {
 
     ipcRenderer.on("workspace:updated", wrapped);
     return () => ipcRenderer.off("workspace:updated", wrapped);
+  },
+  onToggleBottomPanel: (listener) => {
+    const wrapped = () => {
+      listener();
+    };
+
+    ipcRenderer.on("view:toggleBottomPanel", wrapped);
+    return () => ipcRenderer.off("view:toggleBottomPanel", wrapped);
   }
 };
 

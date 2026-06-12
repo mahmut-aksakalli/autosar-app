@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -130,6 +130,7 @@ function createWindow() {
     }
   });
   const smokeReport = createSmokeReport();
+  createApplicationMenu(mainWindow);
 
   let smokeCompleted = false;
 
@@ -190,6 +191,59 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.resolve(__dirname, "..", "..", "dist", "index.html"));
   }
+}
+
+function createApplicationMenu(mainWindow: BrowserWindow) {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: "File",
+      submenu: [{ role: "quit" }]
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" }
+      ]
+    },
+    {
+      label: "View",
+      submenu: [
+        {
+          label: "Toggle Bottom Panel",
+          accelerator: "Ctrl+Shift+D",
+          click: () => {
+            mainWindow.webContents.send("view:toggleBottomPanel");
+          }
+        },
+        { type: "separator" },
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" }
+      ]
+    },
+    {
+      label: "Window",
+      submenu: [{ role: "minimize" }, { role: "close" }]
+    },
+    {
+      label: "Help",
+      submenu: [{ role: "about" }]
+    }
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 app.whenReady().then(async () => {

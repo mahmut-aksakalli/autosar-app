@@ -8,10 +8,13 @@ import type {
   ExplorerEntry,
   OpenWorkspaceResult,
   ValidationScope,
+  WorkspaceProjectInfo,
   WorkspaceSnapshot
 } from "../../src/shared/contracts.js";
 import { WorkerPool } from "./workerPool.js";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService.js";
+import { discoverVectorProject, type VectorProjectDiscovery } from "./vectorProjectService.js";
+import { enrichPortCommunicationSpecsFromEntities } from "./autosarModel.js";
 
 export class WorkspaceService {
   private readonly events = new EventEmitter();
@@ -24,24 +27,58 @@ export class WorkspaceService {
   private workspace?: WorkspaceSnapshot;
   private documentCache = new Map<string, ArxmlDocumentData>();
   private explorerEntries: ExplorerEntry[] = [];
+  private project?: WorkspaceProjectInfo;
+  private vectorProjectInputPaths = new Set<string>();
+  private workspaceGeneration = 0;
 
   async openWorkspace(rootPath: string): Promise<OpenWorkspaceResult> {
+    const generation = this.workspaceGeneration + 1;
+    this.workspaceGeneration = generation;
     this.rootPath = rootPath;
-    this.validationScopeMode = "workspace";
+    this.validationScopeMode = "single-file";
     this.documentCache.clear();
     this.explorerEntries = await collectExplorerEntries(rootPath);
+    const vectorProject = await discoverVectorProject(rootPath, this.explorerEntries);
+    this.project = vectorProject?.project ?? {
+      kind: "folder",
+      displayName: path.basename(rootPath),
+      metadataFiles: [],
+      inputFiles: [],
+      indexedInBackground: false,
+      indexingStatus: "idle"
+    };
+    this.vectorProjectInputPaths = new Set(vectorProject?.projectInputFilePaths ?? []);
+    this.validationScopeMode = vectorProject ? "workspace" : "single-file";
     this.watchTargets = [path.join(rootPath, "**/*.arxml")];
     this.workspace = this.buildSnapshot([]);
     await this.startWatching();
+    if (vectorProject) {
+      void this.indexVectorProjectInBackground(vectorProject, generation);
+    }
     return {
       workspace: this.workspace
     };
   }
 
   async openFile(filePath: string): Promise<OpenWorkspaceResult> {
+    this.workspaceGeneration += 1;
     this.rootPath = path.dirname(filePath);
     this.validationScopeMode = "single-file";
     this.documentCache.clear();
+    this.project = {
+      kind: "single-file",
+      displayName: path.basename(filePath),
+      metadataFiles: [],
+      inputFiles: [
+        {
+          filePath,
+          relativePath: path.basename(filePath)
+        }
+      ],
+      indexedInBackground: false,
+      indexingStatus: "idle"
+    };
+    this.vectorProjectInputPaths.clear();
     this.explorerEntries = [
       {
         name: path.basename(filePath),
@@ -120,6 +157,12 @@ export class WorkspaceService {
     this.events.on("updated", listener);
   }
 
+  async dispose() {
+    await this.watcher?.close();
+    this.watcher = undefined;
+    this.events.removeAllListeners();
+  }
+
   private buildSnapshot(documents: ArxmlDocumentData[]): WorkspaceSnapshot {
     if (!this.rootPath) {
       throw new Error("Workspace root path is not available.");
@@ -129,6 +172,7 @@ export class WorkspaceService {
       documents,
       this.validationScopeMode
     );
+    enrichPortCommunicationSpecsFromEntities(validatedDocuments.flatMap((document) => document.entities));
 
     const files: ArxmlDocumentSummary[] = validatedDocuments
       .map((document) => ({
@@ -144,6 +188,8 @@ export class WorkspaceService {
 
     return {
       rootPath: this.rootPath,
+      workspaceKind: this.project?.kind ?? (this.validationScopeMode === "workspace" ? "vector-davinci" : "folder"),
+      project: this.project,
       files,
       explorerEntries: this.explorerEntries,
       entities: validatedDocuments.flatMap((document) => document.entities),
@@ -189,6 +235,30 @@ export class WorkspaceService {
 
   private getIndexedDocuments() {
     return Array.from(this.documentCache.values());
+  }
+
+  private async indexVectorProjectInBackground(
+    vectorProject: VectorProjectDiscovery,
+    generation: number
+  ) {
+    const documents = await parseDocumentsConcurrently(
+      vectorProject.projectInputFilePaths,
+      (filePath) => this.parseDocument(filePath),
+      4
+    );
+    if (generation !== this.workspaceGeneration || !this.rootPath) {
+      return;
+    }
+
+    documents.forEach((document) => {
+      this.documentCache.set(document.filePath, document);
+    });
+    this.project = {
+      ...vectorProject.project,
+      indexingStatus: "complete"
+    };
+    this.workspace = this.buildSnapshot(this.getIndexedDocuments());
+    this.emitUpdated();
   }
 
   async validateDocument(filePath: string, content: string) {
@@ -244,6 +314,9 @@ export class WorkspaceService {
 
     this.watcher.on("change", async (filePath) => {
       try {
+        if (!this.shouldParseChangedFile(filePath)) {
+          return;
+        }
         const document = await this.parseDocument(filePath);
         this.updateDocument(document);
       } catch {
@@ -262,6 +335,41 @@ export class WorkspaceService {
       this.events.emit("updated", this.workspace);
     }
   }
+
+  private shouldParseChangedFile(filePath: string) {
+    if (this.validationScopeMode === "workspace") {
+      return this.vectorProjectInputPaths.has(filePath);
+    }
+    return this.documentCache.has(filePath);
+  }
+}
+
+async function parseDocumentsConcurrently(
+  filePaths: string[],
+  parse: (filePath: string) => Promise<ArxmlDocumentData>,
+  concurrency: number
+) {
+  const documents: ArxmlDocumentData[] = [];
+  let nextIndex = 0;
+  const workerCount = Math.min(concurrency, filePaths.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < filePaths.length) {
+        const filePath = filePaths[nextIndex];
+        nextIndex += 1;
+        if (!filePath) {
+          continue;
+        }
+        const document = await parse(filePath).catch(() => undefined);
+        if (document) {
+          documents.push(document);
+        }
+      }
+    })
+  );
+
+  return documents;
 }
 
 async function collectExplorerEntries(rootPath: string, currentPath = rootPath): Promise<ExplorerEntry[]> {

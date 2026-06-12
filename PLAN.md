@@ -76,6 +76,10 @@ References:
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
 - Scope: single-file and workspace model/reference resolution plus AUTOSAR semantic validation rules for the currently supported Classic Platform model surface.
 - [x] 5.1 Build one AUTOSAR model index implementation that can be populated from either a single ARXML file or a full workspace.
+  - [x] Detect Vector DaVinci project metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg` when opening folders.
+  - [x] Seed full-workspace semantic indexing from Vector project metadata-referenced ARXML inputs, with fallback to all ARXML files when metadata references cannot be resolved.
+  - [x] Show an editor-view loading warning when Model mode is opened while Vector workspace indexing is still running.
+  - [x] Show parsed/indexed ARXML documents in a Model-mode bottom panel using the validation-panel layout.
 - [x] 5.2 Add version-aware semantic extractor interfaces that convert generic XML nodes into app-level AUTOSAR entities instead of binding the renderer to XSD-generated XML shapes.
 - [x] 5.3 Implement a shared Classic AUTOSAR extractor foundation for common `4.x` structures, then isolate version-specific differences behind adapters selected from namespace/schema metadata.
 - [ ] 5.4 Add focused extractors for SWCs, ports, interfaces, compositions, component prototypes, connectors, runnables, events, memory, calibration data, ECU mappings, and hardware references as each feature becomes supported.
@@ -114,6 +118,8 @@ References:
 - Sections: `3.3 Composition`, `3.3.2 SwComponentPrototype`, `3.3.3 Connectors`, `3.4 Port Interface`, `4.2.2 Sender Receiver Communication`, `4.2.3 Client Server Communication`, `4.2.4 External Trigger Event Communication`, `4.2.5 Communication of Modes`, `4.2.6 Parameter Communication`
 - Constraints: `constr_1032`, `constr_1036`, `constr_1069` to `constr_1084`
 - [x] 6.1 Update the `Model` explorer tree to group components by SWC family.
+  - [x] Highlight root and SWC-family parent rows in the Model explorer with persistent background colors for better scanability.
+  - [x] Default-open Software Compositions and Software Components while keeping SWC family groups folded.
 - [x] 6.2 Replace the bottom SWC inspector panel with a tabbed model workspace in the main canvas area.
   - [x] Keep `File` mode explorer unchanged for physical workspace browsing.
   - [x] Turn `Model` mode explorer into a semantic AUTOSAR browser with tree nodes for SWCs, compositions, and later ECU/system entities.
@@ -130,9 +136,31 @@ References:
   - [x] Add a richer port detail surface with direction checkboxes, port API options, port-defined argument values, and communication specs.
   - [x] Trim the port detail surface to requested fields and make Port API Options and Communication Specs collapsible sections.
   - [x] Expand Communication Specs data elements into collapsible detail rows with interface properties, sender com spec fields, init value typing, invalid/out-of-range handling, and transmission timing values in ms.
+  - [x] Split Communication Specs detail rendering so sender fields appear only for sender ComSpecs and receiver fields appear only for receiver ComSpecs.
+  - [x] Add port interface type, interface-aware direction labels, generic ComSpec targets, transformation props, and receiver filter/status/queue fields to port details.
+  - [x] Remove `Transformation ComSpec Props` from sender, receiver, and generic ComSpec detail panels.
+  - [x] Derive `Use queued communication` from `QUEUED-*` and `NONQUEUED-*` ComSpec tag names before falling back to interface metadata.
+  - [x] Derive `Uses Tx Acknowledge` from standard `TRANSMISSION-ACKNOWLEDGE` and show its timeout with ms units on the sender ComSpec row.
+  - [x] Render SR receiver Rx Filter as a compact dropdown value without nested summary labels.
+  - [x] Order receiver ComSpec details as init value, filter, protection, receiver handling, timing, queue, and out-of-range rows.
+  - [x] Parse ComSpec init values for constant references, application values, arrays, and records using AUTOSAR value specification tags.
+  - [x] Resolve ComSpec constant init values across indexed ARXML files and render array/application values as compact value lists.
+  - [x] Include `Not Accessible` in the Measurement & Calibration dropdown for missing/empty or `SW-CALIBRATION-ACCESS=NOT-ACCESSIBLE`.
+  - [x] Refresh runnable and port detail surfaces from green-tinted styling to the app's light blue design palette.
+  - [x] Show Port API Option `ERROR-HANDLING` as a Transformation Error Handling checkbox on port details.
+  - [x] Show Communication Specs as a left-side two-column table with a right-side detail panel for the selected data element, operation, parameter, mode group, or trigger.
+  - [x] Add `Is Service Port` to the Ports table and port details, backed by direct port or referenced PortInterface `IS-SERVICE` metadata with a false fallback.
+  - [x] Parse port interface type from interface TREF `DEST` and show Parameter, NvData, Mode, and Trigger interface members in port details when ComSpecs are not present.
+  - [x] Use distinct Model explorer port icons for SenderReceiver, ClientServer, Parameter, NvData, ModeSwitch, and Trigger interface types.
+  - [x] Make the Ports tab a clickable Port/Direction/Interface table that opens the selected port detail tab and uses Sender/Receiver terminology.
   - [x] Make the Runnables tab a clickable SWC/Name/Symbol/Period-in-ms table that opens the selected runnable detail tab.
+  - [x] Add search and sortable columns to the Ports and Runnables tables without breaking row click-through navigation.
+  - [x] Add search and sortable columns to runnable detail Trigger Events and Access Points tables while preserving collapsible sections and resizable columns.
 - [x] 6.4 Render a selected software composition as its own focused graph node with composition ports, without expanding child SWCs inside the composition.
 - [x] 6.5 Preserve composition-instance selection so clicking an individual SWC under a composition opens the focused component graph with its connections.
+  - [x] Keep AUTOSAR model canvas navigation inside Model mode instead of jumping to ARXML source.
+  - [x] Route composition graph-node clicks to inner composition visualization and route non-composition SWC clicks to the focused SWC graph with model explorer highlighting.
+  - [x] Scroll the Model explorer to the highlighted SWC/composition after graph navigation expands the relevant tree groups.
 - [x] 6.6 Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.
 - [x] 6.7 Add family-specific icons or glyphs for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
 - [x] 6.8 Add tests for mixed compositions containing application, parameter, service, sensor-actuator, and nv-block components.
@@ -205,7 +233,7 @@ References:
 ### Step 11 - Quality and usability hardening
 References:
 - Cross-cutting step covering the compatibility and mapping constraints in [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf) and [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
-- [ ] 11.1 Keep all new parsing, validation, and graph building off the renderer thread.
+- [x] 11.1 Keep all new parsing, validation, and graph building off the renderer thread.
 - [ ] 11.2 Add incremental indexing paths so larger multi-ECU workspaces remain responsive.
 - [ ] 11.3 Improve warning messages with exact ARXML path and entity context.
 - [ ] 11.4 Add sample-workspace fixtures that cover SWC-only, composition, ECU, and whole-system scenarios.
@@ -215,6 +243,7 @@ References:
 - [ ] 11.4.d Add Playwright-based Electron validation flows that open the example AUTOSAR workspace and verify model rendering, inspectors, navigation, and AUTOSAR-specific node and port coverage.
 - [ ] 11.5 Review `README.md` so supported AUTOSAR element coverage is documented clearly.
 - [ ] 11.6 Keep `PLAN.md` as the source of truth and update completed boxes after each implementation task.
+- [x] 11.7 Close open bottom panels when the user interacts with the Explorer panel, and expose the parsed-documents panel through the View menu.
 
 ## Important Interfaces and Public Surface
 - `WorkspaceService`: open folder, watch files, maintain workspace snapshot, rebuild on external change.

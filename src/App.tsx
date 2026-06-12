@@ -101,6 +101,7 @@ export function App() {
   const [searchPending, setSearchPending] = useState(false);
   const [selectedSearchResult, setSelectedSearchResult] = useState<SelectedSearchResult>(undefined);
   const [validationPanelFilePath, setValidationPanelFilePath] = useState<string>();
+  const [parsedDocumentsPanelOpen, setParsedDocumentsPanelOpen] = useState(false);
   const [pendingStructuredScrollPath, setPendingStructuredScrollPath] = useState<string>();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(300);
@@ -112,7 +113,9 @@ export function App() {
   const [modelWorkspaceTabs, setModelWorkspaceTabs] = useState<ModelWorkspaceTab[]>([]);
   const [activeModelWorkspaceTabId, setActiveModelWorkspaceTabId] = useState<string>();
   const [collapsedModelPaths, setCollapsedModelPaths] = useState<Record<string, true>>({});
+  const [pendingModelTreeScrollNodeId, setPendingModelTreeScrollNodeId] = useState<string>();
   const initializedModelTreeKeyRef = useRef<string | undefined>(undefined);
+  const autoOpenedParsedDocumentsPanelKeyRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     void window.autosarApi.getWorkspaceState().then((snapshot) => {
@@ -123,6 +126,12 @@ export function App() {
     });
     return window.autosarApi.onWorkspaceUpdated((snapshot) => {
       setWorkspace(snapshot);
+    });
+  }, []);
+
+  useEffect(() => {
+    return window.autosarApi.onToggleBottomPanel(() => {
+      setParsedDocumentsPanelOpen((current) => !current);
     });
   }, []);
 
@@ -138,6 +147,11 @@ export function App() {
   const activeValidationPanelIssues = activeValidationIssues.filter(
     (issue) => issue.severity === "error" || issue.severity === "warning"
   );
+  const shouldShowParsedDocumentsPanel =
+    navigationMode === "model" &&
+    parsedDocumentsPanelOpen &&
+    Boolean(workspace) &&
+    ((workspace?.files.length ?? 0) > 0 || isWorkspaceIndexing(workspace));
 
   useEffect(() => {
     if (!activeFilePath) {
@@ -192,6 +206,10 @@ export function App() {
       .sort((left, right) => left.shortName.localeCompare(right.shortName));
   }, [workspace]);
   const modelTree = useMemo(() => buildModelTree(workspace), [workspace]);
+  const modelEntityIds = useMemo(
+    () => new Set(modelEntities.map((entity) => entity.id)),
+    [modelEntities]
+  );
   const selectedModelFocusEntity = useMemo(
     () =>
       modelEntities.find((entity) => entity.id === modelFocusEntityId) ??
@@ -199,8 +217,10 @@ export function App() {
     [modelEntities, modelFocusEntityId]
   );
   const activeModelWorkspaceTab = useMemo(
-    () => modelWorkspaceTabs.find((tab) => tab.id === activeModelWorkspaceTabId) ?? modelWorkspaceTabs[0],
-    [activeModelWorkspaceTabId, modelWorkspaceTabs]
+    () =>
+      modelWorkspaceTabs.find((tab) => tab.id === activeModelWorkspaceTabId && modelEntityIds.has(tab.focusEntityId)) ??
+      modelWorkspaceTabs.find((tab) => modelEntityIds.has(tab.focusEntityId)),
+    [activeModelWorkspaceTabId, modelEntityIds, modelWorkspaceTabs]
   );
   const activeModelFocusEntity = useMemo(
     () =>
@@ -208,6 +228,13 @@ export function App() {
       selectedModelFocusEntity,
     [activeModelWorkspaceTab?.focusEntityId, modelEntities, selectedModelFocusEntity]
   );
+  const effectiveModelPreferredScope =
+    activeModelWorkspaceTab?.preferredScope ??
+    (activeModelFocusEntity?.type === "composition" ? "composition" : "swc");
+  const isModelWorkspaceLoading =
+    workspace?.project?.kind === "vector-davinci" &&
+    workspace.project.indexedInBackground &&
+    workspace.project.indexingStatus === "loading";
 
   const openDocumentList = useMemo(() => Object.values(openDocuments), [openDocuments]);
   const fileTree = useMemo(() => buildFileTree(workspace), [workspace]);
@@ -404,11 +431,26 @@ export function App() {
 
   useEffect(() => {
     if (!modelEntities.some((entity) => entity.id === modelFocusEntityId)) {
-      setModelFocusEntityId(modelEntities[0]?.id);
-      setModelPreferredScope("swc");
+      const nextFocusEntity = modelEntities[0];
+      setModelFocusEntityId(nextFocusEntity?.id);
+      setModelPreferredScope(nextFocusEntity?.type === "composition" ? "composition" : "swc");
       setModelPreferredNodeId(undefined);
     }
   }, [modelEntities, modelFocusEntityId]);
+
+  useEffect(() => {
+    setModelWorkspaceTabs((current) => {
+      const next = current.filter((tab) => modelEntityIds.has(tab.focusEntityId));
+      return next.length === current.length ? current : next;
+    });
+    setActiveModelWorkspaceTabId((current) => {
+      if (!current) {
+        return current;
+      }
+      const activeTab = modelWorkspaceTabs.find((tab) => tab.id === current);
+      return activeTab && modelEntityIds.has(activeTab.focusEntityId) ? current : undefined;
+    });
+  }, [modelEntityIds, modelWorkspaceTabs]);
 
   useEffect(() => {
     if (!selectedModelFocusEntity) {
@@ -448,6 +490,28 @@ export function App() {
     initializedModelTreeKeyRef.current = workspaceKey;
     setCollapsedModelPaths(collectDefaultCollapsedModelPaths(modelTree));
   }, [modelTree, workspace]);
+
+  useEffect(() => {
+    if (!pendingModelTreeScrollNodeId || navigationMode !== "model") {
+      return;
+    }
+
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(getModelTreeDomId(pendingModelTreeScrollNodeId));
+      if (!cancelled && target) {
+        target.scrollIntoView({
+          block: "nearest"
+        });
+        setPendingModelTreeScrollNodeId(undefined);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [collapsedModelPaths, modelTree, navigationMode, pendingModelTreeScrollNodeId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -521,11 +585,37 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!workspace) {
+      autoOpenedParsedDocumentsPanelKeyRef.current = undefined;
+      setParsedDocumentsPanelOpen(false);
+      return;
+    }
+
+    if (navigationMode !== "model") {
+      return;
+    }
+
+    const workspaceModelKey = `${workspace.rootPath}:${workspace.workspaceKind ?? "folder"}`;
+    if (autoOpenedParsedDocumentsPanelKeyRef.current === workspaceModelKey) {
+      return;
+    }
+
+    autoOpenedParsedDocumentsPanelKeyRef.current = workspaceModelKey;
+    setParsedDocumentsPanelOpen(true);
+  }, [navigationMode, workspace]);
+
+  function closeBottomPanels() {
+    setValidationPanelFilePath(undefined);
+    setParsedDocumentsPanelOpen(false);
+  }
+
   async function handleOpenWorkspace() {
     const result = await window.autosarApi.openWorkspace();
     if (!result) {
       return;
     }
+    autoOpenedParsedDocumentsPanelKeyRef.current = undefined;
     setWorkspace(result.workspace);
     setStatus(`Opened workspace ${getWorkspaceLabel(result.workspace)}.`);
     setCollapsedExplorerPaths(collectCollapsedFolderPaths(result.workspace));
@@ -543,6 +633,7 @@ export function App() {
     }
 
     if (result.workspace) {
+      autoOpenedParsedDocumentsPanelKeyRef.current = undefined;
       setWorkspace(result.workspace);
       setStatus(`Opened ${openedDocument.relativePath}.`);
       if (!workspace) {
@@ -576,25 +667,6 @@ export function App() {
     initializedStructuredFilePathRef.current = undefined;
     setActiveStructuredFieldPath(undefined);
     setStatus(`Opened ${document.relativePath}.`);
-  }
-
-  async function handleOpenDocumentAndReveal(filePath: string, xmlPath?: string) {
-    if (!openDocuments[filePath]) {
-      await handleOpenDocument(filePath);
-    } else {
-      setActiveFilePath(filePath);
-      initializedStructuredFilePathRef.current = undefined;
-      setActiveStructuredFieldPath(undefined);
-    }
-
-    setNavigationMode("file");
-
-    if (xmlPath) {
-      setActiveJumpPath(xmlPath);
-      setStatus(`Jumped to ${xmlPath}.`);
-    } else {
-      setActiveJumpPath(undefined);
-    }
   }
 
   async function handleSaveDocument() {
@@ -895,6 +967,54 @@ export function App() {
     setActiveModelWorkspaceTabId(nextTab.id);
   }
 
+  function focusModelEntityFromGraph(selection: {
+    entityId?: string;
+    semanticPath?: string;
+    preferredScope?: SwcGraphScope;
+    preferredNodeId?: string;
+    includeCompositionInternals?: boolean;
+  }) {
+    const targetEntity = modelEntities.find(
+      (entity) =>
+        entity.id === selection.entityId ||
+        entity.semanticPath === selection.semanticPath ||
+        entity.shortName === selection.semanticPath
+    );
+    if (!targetEntity) {
+      return;
+    }
+
+    const preferredScope =
+      selection.preferredScope ?? (targetEntity.type === "composition" ? "composition" : "swc");
+    const tab = makeModelTab(targetEntity, "graph", "Graph", {
+      preferredScope,
+      preferredNodeId: selection.preferredNodeId,
+      includeCompositionInternals: selection.includeCompositionInternals
+    });
+
+    setModelFocusEntityId(targetEntity.id);
+    setModelPreferredScope(preferredScope);
+    setModelPreferredNodeId(selection.preferredNodeId);
+    openModelWorkspaceTab(tab);
+    revealModelTreeSelection(tab.id, targetEntity.id);
+  }
+
+  function revealModelTreeSelection(tabId: string, focusEntityId: string) {
+    const target = findModelTreeSelectionTarget(modelTree, tabId, focusEntityId);
+    if (!target) {
+      return;
+    }
+
+    setCollapsedModelPaths((current) => {
+      const next = { ...current };
+      target.ancestorIds.forEach((ancestorId) => {
+        delete next[ancestorId];
+      });
+      return next;
+    });
+    setPendingModelTreeScrollNodeId(target.nodeId);
+  }
+
   function activateModelWorkspaceTab(tab: ModelWorkspaceTab) {
     setActiveModelWorkspaceTabId(tab.id);
     setModelFocusEntityId(tab.focusEntityId);
@@ -949,7 +1069,7 @@ export function App() {
         </nav>
 
         <main className="layout" style={{ gridTemplateColumns: `${sidebarWidth}px 6px minmax(0, 1fr)` }}>
-          <aside className="panel explorer">
+          <aside className="panel explorer" onClickCapture={closeBottomPanels}>
             <div className="panel-header">
               <div>
                 <span className="panel-eyebrow">
@@ -1217,14 +1337,23 @@ export function App() {
                   ))}
             </div>
             <div className="editor-view">
-              {navigationMode === "model" ? (
+              {navigationMode === "model" && isModelWorkspaceLoading ? (
+                <div className="workspace-loading-state" role="status" aria-live="polite">
+                  <div className="workspace-loading-card">
+                    <strong>Workspace model is still loading</strong>
+                    <span>
+                      The Vector DaVinci project is being indexed in the background. Model view will populate when
+                      AUTOSAR project inputs finish loading.
+                    </span>
+                  </div>
+                </div>
+              ) : navigationMode === "model" ? (
                 <ModelPanel
                   focusEntity={activeModelFocusEntity}
-                  preferredScope={activeModelWorkspaceTab?.preferredScope ?? modelPreferredScope}
+                  preferredScope={effectiveModelPreferredScope}
                   preferredNodeId={activeModelWorkspaceTab?.preferredNodeId ?? modelPreferredNodeId}
                   activeWorkspaceTab={activeModelWorkspaceTab}
-                  onOpenFile={(filePath) => handleOpenDocumentAndReveal(filePath)}
-                  onJumpToPath={(filePath, xmlPath) => handleOpenDocumentAndReveal(filePath, xmlPath)}
+                  onFocusModelEntity={focusModelEntityFromGraph}
                   onOpenWorkspaceTab={(tab) => openModelWorkspaceTab(tab)}
                 />
               ) : activeDocument ? (
@@ -1261,6 +1390,14 @@ export function App() {
                   document={activeDocument}
                   issues={activeValidationPanelIssues}
                   onClose={() => setValidationPanelFilePath(undefined)}
+                />
+              </div>
+            )}
+            {shouldShowParsedDocumentsPanel && workspace && (
+              <div className="validation-bottom-panel">
+                <ParsedDocumentsPanel
+                  workspace={workspace}
+                  onClose={() => setParsedDocumentsPanelOpen(false)}
                 />
               </div>
             )}
@@ -1313,6 +1450,62 @@ function ValidationPanel(input: { document: ArxmlDocumentData; issues: Validatio
   );
 }
 
+function ParsedDocumentsPanel(input: { workspace: WorkspaceSnapshot; onClose: () => void }) {
+  const { workspace, onClose } = input;
+  const parsedDocuments = workspace.files;
+  const issueCount = parsedDocuments.reduce((total, document) => total + document.validationIssues.length, 0);
+  const entityCount = parsedDocuments.reduce((total, document) => total + document.entityCount, 0);
+  const statusLabel = isWorkspaceIndexing(workspace) ? "Indexing" : "Parsed";
+  const componentCountsByFile = getComponentCountsByFile(workspace);
+
+  return (
+    <div className="validation-panel parsed-documents-panel">
+      <div className="validation-panel-header">
+        <span>Parsed Documents</span>
+        <strong>{statusLabel} {parsedDocuments.length} ARXML document{parsedDocuments.length === 1 ? "" : "s"}</strong>
+        <em>{entityCount} model entities{issueCount > 0 ? ` / ${issueCount} issue${issueCount === 1 ? "" : "s"}` : ""}</em>
+        <button type="button" className="validation-panel-close" onClick={onClose} aria-label="Close parsed documents">
+          ×
+        </button>
+      </div>
+      {parsedDocuments.length > 0 ? (
+        <div className="parsed-document-table-shell">
+          <table className="parsed-document-table">
+            <thead>
+              <tr>
+                <th scope="col">ARXML relative path</th>
+                <th scope="col">SWC count</th>
+                <th scope="col">Runnable count</th>
+                <th scope="col">Validation status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parsedDocuments.map((document) => {
+                const counts = componentCountsByFile.get(document.filePath) ?? {
+                  swcCount: 0,
+                  runnableCount: 0
+                };
+                return (
+                  <tr key={document.filePath}>
+                    <td>{document.relativePath}</td>
+                    <td>{counts.swcCount}</td>
+                    <td>{counts.runnableCount}</td>
+                    <td>{formatParsedDocumentStatus(document)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="parsed-document-empty">
+          Workspace indexing is running. Parsed ARXML documents will appear here as the semantic model is built.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatValidationContext(document: ArxmlDocumentData) {
   const parts = [
     document.validation.scope,
@@ -1320,6 +1513,61 @@ function formatValidationContext(document: ArxmlDocumentData) {
     document.validation.schemaFile
   ].filter(Boolean);
   return parts.join(" / ");
+}
+
+function formatParsedDocumentStatus(document: WorkspaceSnapshot["files"][number]) {
+  const issues = document.validationIssues.length;
+  const release = document.validation.autosarRelease ?? document.validation.autosarVersion;
+  if (document.validation.completeness === "not-validated") {
+    return [
+      "not validated",
+      release,
+      issues > 0 ? `${issues} model warning${issues === 1 ? "" : "s"}` : undefined
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  return [
+    document.validation.completeness,
+    release,
+    issues > 0 ? `${issues} issue${issues === 1 ? "" : "s"}` : "no issues"
+  ]
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function getComponentCountsByFile(workspace: WorkspaceSnapshot) {
+  const counts = new Map<string, { swcCount: number; runnableCount: number }>();
+  workspace.files.forEach((document) => {
+    counts.set(document.filePath, {
+      swcCount: 0,
+      runnableCount: 0
+    });
+  });
+
+  workspace.entities.forEach((entity) => {
+    if (entity.type !== "swc" && entity.type !== "composition") {
+      return;
+    }
+
+    const current = counts.get(entity.filePath) ?? {
+      swcCount: 0,
+      runnableCount: 0
+    };
+    const runnableCount =
+      entity.inspector?.sections.find((section) => section.id === "runnables")?.items.length ?? 0;
+    counts.set(entity.filePath, {
+      swcCount: current.swcCount + 1,
+      runnableCount: current.runnableCount + runnableCount
+    });
+  });
+
+  return counts;
+}
+
+function isWorkspaceIndexing(workspace: WorkspaceSnapshot | null) {
+  return workspace?.project?.indexedInBackground === true && workspace.project.indexingStatus === "loading";
 }
 
 function updateXmlValueAtPath(content: string, xmlPath: string, nextValue: string) {
@@ -1409,14 +1657,29 @@ function formatModelWorkspaceIcon(kind: ModelWorkspaceTab["kind"]) {
   }
 }
 
-function formatPortIcon(direction: AutosarEntity["portDirection"]) {
-  switch (direction) {
+function formatPortIcon(port: Pick<AutosarEntity, "interfaceKind" | "portDirection">) {
+  switch (port.interfaceKind) {
+    case "sender-receiver":
+      return "SR";
+    case "client-server":
+      return "CS";
+    case "parameter":
+      return "Pa";
+    case "nv-data":
+      return "Nv";
+    case "mode-switch":
+      return "Mo";
+    case "trigger":
+      return "Tr";
+  }
+
+  switch (port.portDirection) {
     case "provided":
-      return ">";
+      return "Po";
     case "required":
-      return "<";
+      return "Ro";
     case "provided-required":
-      return "<>";
+      return "PR";
     default:
       return "P";
   }
@@ -1553,7 +1816,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
         .map(([label, children]) => ({
           id: `software-components:${label}`,
           label,
-          icon: "F",
+          icon: "folder",
           selectable: false,
           children
         }))
@@ -1595,7 +1858,7 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
         .map((port) => ({
           id: `${swc.id}:port:${port.id}`,
           label: port.shortName,
-          icon: formatPortIcon(port.portDirection),
+          icon: formatPortIcon(port),
           focusEntityId: swc.id,
           preferredScope: "swc" as const,
           selectable: true,
@@ -1638,13 +1901,16 @@ function makeModelTab(
   options: Partial<ModelWorkspaceTab> = {}
 ): ModelWorkspaceTab {
   return {
-    id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}`,
+    id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}${
+      options.includeCompositionInternals ? ":internals" : ""
+    }`,
     title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
     pinned: options.pinned,
     kind,
     focusEntityId: entity.id,
     preferredScope: options.preferredScope,
     preferredNodeId: options.preferredNodeId,
+    includeCompositionInternals: options.includeCompositionInternals,
     entityId: options.entityId,
     sectionId: options.sectionId,
     itemId: options.itemId,
@@ -1682,8 +1948,10 @@ function collectDefaultCollapsedModelPaths(nodes: ModelTreeNode[]): Record<strin
     const isSwcWorkspaceRoot = node.children?.length && node.workspaceTab?.kind === "graph";
     const isSwcDetailGroup =
       node.children?.length && node.workspaceTab && defaultCollapsedKinds.has(node.workspaceTab.kind);
+    const isSoftwareComponentFamilyGroup =
+      node.children?.length && node.id.startsWith("software-components:");
 
-    if (isSwcWorkspaceRoot || isSwcDetailGroup) {
+    if (isSwcWorkspaceRoot || isSwcDetailGroup || isSoftwareComponentFamilyGroup) {
       collapsed[node.id] = true;
     }
 
@@ -1692,6 +1960,37 @@ function collectDefaultCollapsedModelPaths(nodes: ModelTreeNode[]): Record<strin
 
   nodes.forEach(visit);
   return collapsed;
+}
+
+function findModelTreeSelectionTarget(
+  nodes: ModelTreeNode[],
+  selectedWorkspaceTabId: string,
+  selectedFocusEntityId: string,
+  ancestors: string[] = []
+): { nodeId: string; ancestorIds: string[] } | undefined {
+  for (const node of nodes) {
+    const matchesSelection =
+      node.workspaceTab?.id === selectedWorkspaceTabId ||
+      (node.selectable && node.focusEntityId === selectedFocusEntityId && node.workspaceTab?.kind === "graph");
+    if (matchesSelection) {
+      return {
+        nodeId: node.id,
+        ancestorIds: ancestors
+      };
+    }
+
+    const childMatch = findModelTreeSelectionTarget(
+      node.children ?? [],
+      selectedWorkspaceTabId,
+      selectedFocusEntityId,
+      [...ancestors, node.id]
+    );
+    if (childMatch) {
+      return childMatch;
+    }
+  }
+
+  return undefined;
 }
 
 function ModelTreeBranch(input: {
@@ -1717,20 +2016,38 @@ function ModelTreeBranch(input: {
     onPin
   } = input;
   const hasChildren = Boolean(node.children?.length);
+  const isModelGroupHeader = hasChildren && !node.selectable;
+  const isEcuCompositionNode = node.label === "ECU_Composition";
   const collapsed = hasChildren ? Boolean(collapsedModelPaths[node.id]) : false;
   const selected =
     node.selectable &&
     (node.workspaceTab
-      ? node.workspaceTab.id === selectedWorkspaceTabId
+      ? node.workspaceTab.id === selectedWorkspaceTabId ||
+        (node.workspaceTab.kind === "graph" &&
+          node.focusEntityId === selectedEntityId &&
+          !node.preferredNodeId)
       : node.focusEntityId === selectedEntityId &&
         Boolean(node.preferredNodeId) &&
         node.preferredNodeId === selectedNodeId);
+  const modelTreeRowClassName = [
+    "tree-row",
+    "model-tree-row",
+    hasChildren ? "tree-folder" : "tree-file",
+    isModelGroupHeader ? "model-tree-group-header" : "",
+    isModelGroupHeader && depth === 0 ? "model-tree-root-group" : "",
+    isModelGroupHeader && depth > 0 ? "model-tree-family-group" : "",
+    isEcuCompositionNode ? "model-tree-ecu-composition" : "",
+    selected ? "selected" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="tree-group">
       <button
+        id={getModelTreeDomId(node.id)}
         type="button"
-        className={`tree-row ${hasChildren ? "tree-folder" : "tree-file"} ${selected ? "selected" : ""}`}
+        className={modelTreeRowClassName}
         style={{ paddingLeft: `${10 + depth * 20}px` }}
         onClick={() =>
           node.selectable
@@ -2571,4 +2888,8 @@ function isReferenceValue(value: string) {
 
 function getStructuredDomId(path: string) {
   return `structured-${encodeURIComponent(path)}`;
+}
+
+function getModelTreeDomId(nodeId: string) {
+  return `model-tree-${encodeURIComponent(nodeId)}`;
 }

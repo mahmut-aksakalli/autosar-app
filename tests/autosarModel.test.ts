@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { XMLParser } from "fast-xml-parser";
-import { buildAutosarModel } from "../electron/services/autosarModel.js";
+import {
+  buildAutosarModel,
+  enrichPortCommunicationSpecsFromEntities,
+  enrichPortInterfaceMetadataFromEntities
+} from "../electron/services/autosarModel.js";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -166,12 +170,43 @@ test("buildAutosarModel extracts SWC inspector internals", () => {
   const model = buildAutosarModel("C:/workspace/example.arxml", parser.parse(sampleXmlWithBehavior));
   const swc = model.entities.find((entity) => entity.shortName === "EngineControl");
   const statusOut = model.entities.find((entity) => entity.shortName === "StatusOut");
+  const statusIn = model.entities.find((entity) => entity.shortName === "StatusIn");
 
   assert.equal(swc?.inspector?.sections.find((section) => section.id === "runnables")?.items.length, 1);
   assert.equal(statusOut?.metadata?.DESCRIPTION, "Engine status output");
+  assert.equal(statusOut?.metadata?.["IS-SERVICE"], "true");
   assert.equal(statusOut?.metadata?.["ENABLE-INDIRECT-API"], "true");
   assert.equal(statusOut?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"], "true");
+  assert.equal(statusOut?.metadata?.["TRANSFORMATION-ERROR-HANDLING"], "TRANSFORMER-ERROR-HANDLING");
   assert.equal(statusOut?.metadata?.["COMMUNICATION-SPEC-DETAILS"]?.includes("EngineStatus"), true);
+  const communicationSpecDetails = JSON.parse(statusOut?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]") as Array<
+    Record<string, string>
+  >;
+  assert.equal(communicationSpecDetails[0]?.dataType, "/Pkg/DataTypes/uint8");
+  assert.equal(communicationSpecDetails[0]?.dataConstraints, "/Pkg/DataConstraints/StatusConstraint");
+  assert.equal(communicationSpecDetails[0]?.addressingMethod, "/Pkg/MemMap/FastData");
+  assert.equal(communicationSpecDetails[0]?.useQueuedCommunication, "false");
+  assert.equal(communicationSpecDetails[0]?.measurementCalibration, "READ-WRITE");
+  assert.equal(communicationSpecDetails[0]?.handleInvalid, "KEEP");
+  assert.equal(communicationSpecDetails[0]?.comSpecDirection, "sender");
+  assert.equal(communicationSpecDetails[0]?.usesTxAcknowledge, "true");
+  assert.equal(communicationSpecDetails[0]?.transmissionAcknowledgeTimeout, "0.01");
+  const receiverCommunicationSpecDetails = JSON.parse(
+    statusIn?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]"
+  ) as Array<Record<string, string>>;
+  assert.equal(receiverCommunicationSpecDetails[0]?.comSpecDirection, "receiver");
+  assert.equal(receiverCommunicationSpecDetails[0]?.useQueuedCommunication, "false");
+  assert.equal(receiverCommunicationSpecDetails[0]?.aliveTimeout, "0.02");
+  assert.equal(receiverCommunicationSpecDetails[0]?.enableUpdate, "true");
+  assert.equal(receiverCommunicationSpecDetails[0]?.handleNeverReceived, "REPLACE");
+  assert.equal(receiverCommunicationSpecDetails[0]?.usesEndToEndProtection, "true");
+  assert.equal(receiverCommunicationSpecDetails[0]?.usesEndToEndProtectionErrorHandling, "true");
+  assert.equal(receiverCommunicationSpecDetails[0]?.timeoutSubstitutionValueType, "Numerical Value Specification");
+  assert.equal(receiverCommunicationSpecDetails[0]?.timeoutSubstitutionValue, "0");
+  assert.equal(receiverCommunicationSpecDetails[0]?.handleTimeoutType, "REPLACE");
+  assert.equal(receiverCommunicationSpecDetails[0]?.handleDataStatus, "true");
+  assert.equal(receiverCommunicationSpecDetails[0]?.queueLength, "4");
+  assert.equal(receiverCommunicationSpecDetails[0]?.rxFilter.includes("ALWAYS"), true);
   assert.equal(statusOut?.metadata?.["PORT-DEFINED-ARGUMENT-VALUES"]?.includes("StatusArg"), true);
   assert.equal(
     swc?.inspector?.sections.find((section) => section.id === "runnables")?.items[0]?.metadata?.PERIOD,
@@ -209,6 +244,358 @@ test("buildAutosarModel extracts SWC inspector internals", () => {
     swc?.inspector?.sections.find((section) => section.id === "interRunnableVariables")?.items[0]?.label,
     "SharedState"
   );
+});
+
+test("buildAutosarModel formats complex ComSpec init value specifications", () => {
+  const parsed = parser.parse(`<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>Pkg</SHORT-NAME>
+      <ELEMENTS>
+        <APPLICATION-SW-COMPONENT-TYPE>
+          <SHORT-NAME>InitValueSwc</SHORT-NAME>
+          <PORTS>
+            <P-PORT-PROTOTYPE>
+              <SHORT-NAME>ConstantOut</SHORT-NAME>
+              <PROVIDED-COM-SPECS>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Init_I/ConstantValue</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <CONSTANT-REFERENCE>
+                      <CONSTANT-REF DEST="CONSTANT-SPECIFICATION">/Pkg/Constants/CConstantValue</CONSTANT-REF>
+                    </CONSTANT-REFERENCE>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Init_I/ApplicationValue</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <APPLICATION-VALUE-SPECIFICATION>
+                      <CATEGORY>VALUE</CATEGORY>
+                      <SW-VALUE-CONT>
+                        <SW-VALUES>
+                          <V>7</V>
+                          <V>8</V>
+                        </SW-VALUES>
+                      </SW-VALUE-CONT>
+                    </APPLICATION-VALUE-SPECIFICATION>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Init_I/ArrayValue</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <ARRAY-VALUE-SPECIFICATION>
+                      <ELEMENTS>
+                        <NUMERICAL-VALUE-SPECIFICATION>
+                          <VALUE>1</VALUE>
+                        </NUMERICAL-VALUE-SPECIFICATION>
+                        <TEXT-VALUE-SPECIFICATION>
+                          <VALUE>Ready</VALUE>
+                        </TEXT-VALUE-SPECIFICATION>
+                      </ELEMENTS>
+                    </ARRAY-VALUE-SPECIFICATION>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Init_I/RecordValue</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <RECORD-VALUE-SPECIFICATION>
+                      <FIELDS>
+                        <NUMERICAL-VALUE-SPECIFICATION>
+                          <SHORT-LABEL>Offset</SHORT-LABEL>
+                          <VALUE>10</VALUE>
+                        </NUMERICAL-VALUE-SPECIFICATION>
+                        <TEXT-VALUE-SPECIFICATION>
+                          <SHORT-LABEL>State</SHORT-LABEL>
+                          <VALUE>On</VALUE>
+                        </TEXT-VALUE-SPECIFICATION>
+                      </FIELDS>
+                    </RECORD-VALUE-SPECIFICATION>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+              </PROVIDED-COM-SPECS>
+              <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/Pkg/Interfaces/Init_I</PROVIDED-INTERFACE-TREF>
+            </P-PORT-PROTOTYPE>
+          </PORTS>
+        </APPLICATION-SW-COMPONENT-TYPE>
+      </ELEMENTS>
+      <AR-PACKAGES>
+        <AR-PACKAGE>
+          <SHORT-NAME>Constants</SHORT-NAME>
+          <ELEMENTS>
+            <CONSTANT-SPECIFICATION>
+              <SHORT-NAME>CConstantValue</SHORT-NAME>
+              <VALUE-SPEC>
+                <TEXT-VALUE-SPECIFICATION>
+                  <VALUE>ResolvedConstant</VALUE>
+                </TEXT-VALUE-SPECIFICATION>
+              </VALUE-SPEC>
+            </CONSTANT-SPECIFICATION>
+          </ELEMENTS>
+        </AR-PACKAGE>
+        <AR-PACKAGE>
+          <SHORT-NAME>Interfaces</SHORT-NAME>
+          <ELEMENTS>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>Init_I</SHORT-NAME>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE><SHORT-NAME>ConstantValue</SHORT-NAME></VARIABLE-DATA-PROTOTYPE>
+                <VARIABLE-DATA-PROTOTYPE><SHORT-NAME>ApplicationValue</SHORT-NAME></VARIABLE-DATA-PROTOTYPE>
+                <VARIABLE-DATA-PROTOTYPE><SHORT-NAME>ArrayValue</SHORT-NAME></VARIABLE-DATA-PROTOTYPE>
+                <VARIABLE-DATA-PROTOTYPE><SHORT-NAME>RecordValue</SHORT-NAME></VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+      </AR-PACKAGES>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`);
+  const model = buildAutosarModel("C:/workspace/init-values.arxml", parsed);
+  const port = model.entities.find((entity) => entity.shortName === "ConstantOut");
+  const details = JSON.parse(port?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]") as Array<{
+    dataElement: string;
+    initValue: string;
+  }>;
+  const byElement = new Map(details.map((detail) => [detail.dataElement, detail.initValue]));
+
+  assert.equal(byElement.get("/Pkg/Interfaces/Init_I/ConstantValue"), "ResolvedConstant");
+  assert.equal(byElement.get("/Pkg/Interfaces/Init_I/ApplicationValue"), "7,8");
+  assert.equal(byElement.get("/Pkg/Interfaces/Init_I/ArrayValue"), "[1,Ready]");
+  assert.equal(byElement.get("/Pkg/Interfaces/Init_I/RecordValue"), "{Offset: 10, State: On}");
+});
+
+test("workspace enrichment resolves ComSpec constant init values across files", () => {
+  const swcXml = `<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>Pkg</SHORT-NAME>
+      <ELEMENTS>
+        <APPLICATION-SW-COMPONENT-TYPE>
+          <SHORT-NAME>ConstantConsumer</SHORT-NAME>
+          <PORTS>
+            <P-PORT-PROTOTYPE>
+              <SHORT-NAME>CalibrationOut</SHORT-NAME>
+              <PROVIDED-COM-SPECS>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Calibration_I/CalibrationValue</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <CONSTANT-REFERENCE>
+                      <CONSTANT-REF DEST="CONSTANT-SPECIFICATION">/DataTypes/FrunkManagement/Constants/CFrunkCalibrationData</CONSTANT-REF>
+                    </CONSTANT-REFERENCE>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+              </PROVIDED-COM-SPECS>
+              <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/Pkg/Interfaces/Calibration_I</PROVIDED-INTERFACE-TREF>
+            </P-PORT-PROTOTYPE>
+          </PORTS>
+        </APPLICATION-SW-COMPONENT-TYPE>
+      </ELEMENTS>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`;
+  const constantXml = `<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>DataTypes</SHORT-NAME>
+      <AR-PACKAGES>
+        <AR-PACKAGE>
+          <SHORT-NAME>FrunkManagement</SHORT-NAME>
+          <AR-PACKAGES>
+            <AR-PACKAGE>
+              <SHORT-NAME>Constants</SHORT-NAME>
+              <ELEMENTS>
+                <CONSTANT-SPECIFICATION>
+                  <SHORT-NAME>CFrunkCalibrationData</SHORT-NAME>
+                  <VALUE-SPEC>
+                    <ARRAY-VALUE-SPECIFICATION>
+                      <ELEMENTS>
+                        <NUMERICAL-VALUE-SPECIFICATION><VALUE>0</VALUE></NUMERICAL-VALUE-SPECIFICATION>
+                        <NUMERICAL-VALUE-SPECIFICATION><VALUE>1</VALUE></NUMERICAL-VALUE-SPECIFICATION>
+                        <NUMERICAL-VALUE-SPECIFICATION><VALUE>2</VALUE></NUMERICAL-VALUE-SPECIFICATION>
+                      </ELEMENTS>
+                    </ARRAY-VALUE-SPECIFICATION>
+                  </VALUE-SPEC>
+                </CONSTANT-SPECIFICATION>
+              </ELEMENTS>
+            </AR-PACKAGE>
+          </AR-PACKAGES>
+        </AR-PACKAGE>
+      </AR-PACKAGES>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`;
+
+  const swcModel = buildAutosarModel("C:/workspace/swc.arxml", parser.parse(swcXml));
+  const constantModel = buildAutosarModel("C:/workspace/constants.arxml", parser.parse(constantXml));
+  const entities = [...swcModel.entities, ...constantModel.entities];
+  enrichPortCommunicationSpecsFromEntities(entities);
+
+  const port = entities.find((entity) => entity.shortName === "CalibrationOut");
+  const details = JSON.parse(port?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]") as Array<Record<string, string>>;
+
+  assert.equal(constantModel.entities.find((entity) => entity.shortName === "CFrunkCalibrationData")?.type, "constant");
+  assert.equal(details[0]?.initValue, "[0,1,2]");
+});
+
+test("workspace enrichment resolves communication spec interface properties across files by direct refs", () => {
+  const swcXml = `<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>Pkg</SHORT-NAME>
+      <ELEMENTS>
+        <APPLICATION-SW-COMPONENT-TYPE>
+          <SHORT-NAME>ActiveAeroSwc</SHORT-NAME>
+          <PORTS>
+            <P-PORT-PROTOTYPE>
+              <SHORT-NAME>AeroOut</SHORT-NAME>
+              <PROVIDED-COM-SPECS>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/PortInterfaces/ActiveAero/PiIaActiveAero/DeAnimationReq</DATA-ELEMENT-REF>
+                </NONQUEUED-SENDER-COM-SPEC>
+              </PROVIDED-COM-SPECS>
+              <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/PortInterfaces/ActiveAero/PiIaActiveAero</PROVIDED-INTERFACE-TREF>
+            </P-PORT-PROTOTYPE>
+          </PORTS>
+        </APPLICATION-SW-COMPONENT-TYPE>
+      </ELEMENTS>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`;
+  const interfaceXml = `<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>PortInterfaces</SHORT-NAME>
+      <AR-PACKAGES>
+        <AR-PACKAGE>
+          <SHORT-NAME>ActiveAero</SHORT-NAME>
+          <ELEMENTS>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>PiIaActiveAero</SHORT-NAME>
+              <IS-SERVICE>true</IS-SERVICE>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>DeAnimationReq</SHORT-NAME>
+                  <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/DataTypes/Boolean</TYPE-TREF>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <SW-CALIBRATION-ACCESS>READ-WRITE</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+      </AR-PACKAGES>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`;
+
+  const swcModel = buildAutosarModel("C:/workspace/swc.arxml", parser.parse(swcXml));
+  const interfaceModel = buildAutosarModel("C:/workspace/interface.arxml", parser.parse(interfaceXml));
+  const entities = [...swcModel.entities, ...interfaceModel.entities];
+  enrichPortInterfaceMetadataFromEntities(entities);
+  enrichPortCommunicationSpecsFromEntities(entities);
+
+  const port = entities.find((entity) => entity.shortName === "AeroOut");
+  const communicationSpecDetails = JSON.parse(port?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]") as Array<
+    Record<string, string>
+  >;
+
+  assert.equal(communicationSpecDetails[0]?.dataType, "/DataTypes/Boolean");
+  assert.equal(communicationSpecDetails[0]?.measurementCalibration, "READ-WRITE");
+  assert.equal(port?.metadata?.["IS-SERVICE"], "true");
+});
+
+test("buildAutosarModel enriches parameter, nv-data, mode, and trigger port details from interfaces", () => {
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<AUTOSAR>
+  <AR-PACKAGES>
+    <AR-PACKAGE>
+      <SHORT-NAME>Pkg</SHORT-NAME>
+      <ELEMENTS>
+        <PARAMETER-INTERFACE>
+          <SHORT-NAME>Param_I</SHORT-NAME>
+          <PARAMETERS>
+            <PARAMETER-DATA-PROTOTYPE>
+              <SHORT-NAME>Gain</SHORT-NAME>
+              <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/Pkg/Types/uint16</TYPE-TREF>
+            </PARAMETER-DATA-PROTOTYPE>
+          </PARAMETERS>
+        </PARAMETER-INTERFACE>
+        <NV-DATA-INTERFACE>
+          <SHORT-NAME>Nv_I</SHORT-NAME>
+          <IS-SERVICE>true</IS-SERVICE>
+          <NV-DATAS>
+            <VARIABLE-DATA-PROTOTYPE>
+              <SHORT-NAME>StoredCounter</SHORT-NAME>
+              <TYPE-TREF DEST="APPLICATION-PRIMITIVE-DATA-TYPE">/Pkg/Types/uint32</TYPE-TREF>
+            </VARIABLE-DATA-PROTOTYPE>
+          </NV-DATAS>
+        </NV-DATA-INTERFACE>
+        <MODE-SWITCH-INTERFACE>
+          <SHORT-NAME>Mode_I</SHORT-NAME>
+          <MODE-GROUP>
+            <SHORT-NAME>PowerMode</SHORT-NAME>
+            <TYPE-TREF DEST="MODE-DECLARATION-GROUP">/Pkg/Modes/PowerModeGroup</TYPE-TREF>
+          </MODE-GROUP>
+        </MODE-SWITCH-INTERFACE>
+        <TRIGGER-INTERFACE>
+          <SHORT-NAME>Trigger_I</SHORT-NAME>
+          <TRIGGERS>
+            <TRIGGER>
+              <SHORT-NAME>Wakeup</SHORT-NAME>
+            </TRIGGER>
+          </TRIGGERS>
+        </TRIGGER-INTERFACE>
+        <APPLICATION-SW-COMPONENT-TYPE>
+          <SHORT-NAME>App</SHORT-NAME>
+          <PORTS>
+            <R-PORT-PROTOTYPE>
+              <SHORT-NAME>ParamIn</SHORT-NAME>
+              <REQUIRED-INTERFACE-TREF DEST="PARAMETER-INTERFACE">/Pkg/Param_I</REQUIRED-INTERFACE-TREF>
+            </R-PORT-PROTOTYPE>
+            <PR-PORT-PROTOTYPE>
+              <SHORT-NAME>NvMirror</SHORT-NAME>
+              <PROVIDED-REQUIRED-INTERFACE-TREF DEST="NV-DATA-INTERFACE">/Pkg/Nv_I</PROVIDED-REQUIRED-INTERFACE-TREF>
+            </PR-PORT-PROTOTYPE>
+            <R-PORT-PROTOTYPE>
+              <SHORT-NAME>ModeIn</SHORT-NAME>
+              <REQUIRED-INTERFACE-TREF DEST="MODE-SWITCH-INTERFACE">/Pkg/Mode_I</REQUIRED-INTERFACE-TREF>
+            </R-PORT-PROTOTYPE>
+            <P-PORT-PROTOTYPE>
+              <SHORT-NAME>TriggerOut</SHORT-NAME>
+              <PROVIDED-INTERFACE-TREF DEST="TRIGGER-INTERFACE">/Pkg/Trigger_I</PROVIDED-INTERFACE-TREF>
+            </P-PORT-PROTOTYPE>
+          </PORTS>
+        </APPLICATION-SW-COMPONENT-TYPE>
+      </ELEMENTS>
+    </AR-PACKAGE>
+  </AR-PACKAGES>
+</AUTOSAR>`;
+
+  const model = buildAutosarModel("C:/workspace/non-sr.arxml", parser.parse(xml));
+  const paramPort = model.entities.find((entity) => entity.shortName === "ParamIn");
+  const nvPort = model.entities.find((entity) => entity.shortName === "NvMirror");
+  const modePort = model.entities.find((entity) => entity.shortName === "ModeIn");
+  const triggerPort = model.entities.find((entity) => entity.shortName === "TriggerOut");
+
+  assert.equal(paramPort?.interfaceKind, "parameter");
+  assert.equal(nvPort?.interfaceKind, "nv-data");
+  assert.equal(modePort?.interfaceKind, "mode-switch");
+  assert.equal(triggerPort?.interfaceKind, "trigger");
+  assert.equal(nvPort?.metadata?.["IS-SERVICE"], "true");
+  assert.equal(paramPort?.metadata?.["INTERFACE-MEMBER-DETAILS"]?.includes('"kind":"parameter"'), true);
+  assert.equal(nvPort?.metadata?.["INTERFACE-MEMBER-DETAILS"]?.includes('"kind":"nvData"'), true);
+  assert.equal(modePort?.metadata?.["INTERFACE-MEMBER-DETAILS"]?.includes('"kind":"modeGroup"'), true);
+  assert.equal(triggerPort?.metadata?.["INTERFACE-MEMBER-DETAILS"]?.includes('"kind":"trigger"'), true);
 });
 
 test("buildAutosarModel classifies AUTOSAR SWC families, ports, and interfaces from the standards fixture", () => {
@@ -369,10 +756,45 @@ const sampleXmlWithBehavior = `<?xml version="1.0" encoding="utf-8"?>
                       <VALUE>1</VALUE>
                     </NUMERICAL-VALUE-SPECIFICATION>
                   </INIT-VALUE>
+                  <TRANSMISSION-ACKNOWLEDGE>
+                    <TIMEOUT>0.01</TIMEOUT>
+                  </TRANSMISSION-ACKNOWLEDGE>
                 </NONQUEUED-SENDER-COM-SPEC>
               </PROVIDED-COM-SPECS>
               <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/Pkg/Interfaces/Status_I</PROVIDED-INTERFACE-TREF>
             </P-PORT-PROTOTYPE>
+            <R-PORT-PROTOTYPE>
+              <SHORT-NAME>StatusIn</SHORT-NAME>
+              <REQUIRED-COM-SPECS>
+                <NONQUEUED-RECEIVER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">/Pkg/Interfaces/Status_I/EngineStatus</DATA-ELEMENT-REF>
+                  <ALIVE-TIMEOUT>0.02</ALIVE-TIMEOUT>
+                  <ENABLE-UPDATE>true</ENABLE-UPDATE>
+                  <HANDLE-NEVER-RECEIVED>REPLACE</HANDLE-NEVER-RECEIVED>
+                  <HANDLE-DATA-STATUS>true</HANDLE-DATA-STATUS>
+                  <QUEUE-LENGTH>4</QUEUE-LENGTH>
+                  <FILTER>
+                    <DATA-FILTER>
+                      <DATA-FILTER-TYPE>ALWAYS</DATA-FILTER-TYPE>
+                    </DATA-FILTER>
+                  </FILTER>
+                  <USES-END-TO-END-PROTECTION>true</USES-END-TO-END-PROTECTION>
+                  <USES-END-TO-END-PROTECTION-ERROR-HANDLING>true</USES-END-TO-END-PROTECTION-ERROR-HANDLING>
+                  <TRANSFORMATION-COM-SPEC-PROPS>
+                    <TRANSFORMATION-I-SIGNAL-PROP>
+                      <TRANSFORMER-REF DEST="DATA-TRANSFORMATION">/Pkg/Transformers/StatusTransformer</TRANSFORMER-REF>
+                    </TRANSFORMATION-I-SIGNAL-PROP>
+                  </TRANSFORMATION-COM-SPEC-PROPS>
+                  <TIMEOUT-SUBSTITUTION-VALUE>
+                    <NUMERICAL-VALUE-SPECIFICATION>
+                      <VALUE>0</VALUE>
+                    </NUMERICAL-VALUE-SPECIFICATION>
+                  </TIMEOUT-SUBSTITUTION-VALUE>
+                  <HANDLE-TIMEOUT-TYPE>REPLACE</HANDLE-TIMEOUT-TYPE>
+                </NONQUEUED-RECEIVER-COM-SPEC>
+              </REQUIRED-COM-SPECS>
+              <REQUIRED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">/Pkg/Interfaces/Status_I</REQUIRED-INTERFACE-TREF>
+            </R-PORT-PROTOTYPE>
           </PORTS>
           <INTERNAL-BEHAVIORS>
             <SWC-INTERNAL-BEHAVIOR>
@@ -382,6 +804,7 @@ const sampleXmlWithBehavior = `<?xml version="1.0" encoding="utf-8"?>
                   <PORT-REF DEST="P-PORT-PROTOTYPE">/Pkg/EngineControl/StatusOut</PORT-REF>
                   <INDIRECT-API>true</INDIRECT-API>
                   <ENABLE-TAKE-ADDRESS>true</ENABLE-TAKE-ADDRESS>
+                  <ERROR-HANDLING>TRANSFORMER-ERROR-HANDLING</ERROR-HANDLING>
                   <PORT-ARG-VALUES>
                     <PORT-DEFINED-ARGUMENT-VALUE>
                       <VALUE>
@@ -442,6 +865,36 @@ const sampleXmlWithBehavior = `<?xml version="1.0" encoding="utf-8"?>
           </INTERNAL-BEHAVIORS>
         </APPLICATION-SW-COMPONENT-TYPE>
       </ELEMENTS>
+      <AR-PACKAGES>
+        <AR-PACKAGE>
+          <SHORT-NAME>Interfaces</SHORT-NAME>
+          <ELEMENTS>
+            <SENDER-RECEIVER-INTERFACE>
+              <SHORT-NAME>Status_I</SHORT-NAME>
+              <IS-SERVICE>true</IS-SERVICE>
+              <DATA-ELEMENTS>
+                <VARIABLE-DATA-PROTOTYPE>
+                  <SHORT-NAME>EngineStatus</SHORT-NAME>
+                  <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/Pkg/DataTypes/uint8</TYPE-TREF>
+                  <IS-QUEUED>false</IS-QUEUED>
+                  <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/Pkg/DataTypes/WrongNestedType</TYPE-TREF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/Pkg/DataConstraints/StatusConstraint</DATA-CONSTR-REF>
+                        <SW-ADDR-METHOD-REF DEST="SW-ADDR-METHOD">/Pkg/MemMap/FastData</SW-ADDR-METHOD-REF>
+                        <SW-CALIBRATION-ACCESS>READ-WRITE</SW-CALIBRATION-ACCESS>
+                        <HANDLE-INVALID>KEEP</HANDLE-INVALID>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </VARIABLE-DATA-PROTOTYPE>
+              </DATA-ELEMENTS>
+            </SENDER-RECEIVER-INTERFACE>
+          </ELEMENTS>
+        </AR-PACKAGE>
+      </AR-PACKAGES>
     </AR-PACKAGE>
   </AR-PACKAGES>
 </AUTOSAR>`;

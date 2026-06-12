@@ -24,6 +24,13 @@ const api: AutosarApi = {
     };
     ipcRenderer.on("workspace:updated", wrapped);
     return () => ipcRenderer.off("workspace:updated", wrapped);
+  },
+  onToggleBottomPanel: (listener: () => void) => {
+    const wrapped = () => {
+      listener();
+    };
+    ipcRenderer.on("view:toggleBottomPanel", wrapped);
+    return () => ipcRenderer.off("view:toggleBottomPanel", wrapped);
   }
 };
 

@@ -60,6 +60,7 @@ interface WalkState {
   validationIssues: ValidationIssue[];
   inspectorsByOwner: Map<string, MutableSwcInspector>;
   interfaceDefinitionsByPath: Map<string, InterfaceDefinition>;
+  constantValueSpecsByPath: Map<string, unknown>;
 }
 
 interface MutableSwcInspector {
@@ -85,7 +86,15 @@ interface InterfaceDefinition {
 interface InterfaceMember {
   id: string;
   label: string;
+  kind: string;
   xmlPath: string;
+  semanticPath?: string;
+  metadata?: Record<string, string>;
+}
+
+interface SerializedInterfaceMember {
+  label: string;
+  kind?: string;
   semanticPath?: string;
   metadata?: Record<string, string>;
 }
@@ -119,6 +128,7 @@ export function buildAutosarModel(
   const validationIssues: ValidationIssue[] = [];
   const inspectorsByOwner = new Map<string, MutableSwcInspector>();
   const interfaceDefinitionsByPath = new Map<string, InterfaceDefinition>();
+  const constantValueSpecsByPath = new Map<string, unknown>();
 
   const shortName = findFirstShortName(rootNode) ?? path.basename(filePath);
   structuredFields.push(
@@ -139,9 +149,13 @@ export function buildAutosarModel(
     structuredFields,
     validationIssues,
     inspectorsByOwner,
-    interfaceDefinitionsByPath
+    interfaceDefinitionsByPath,
+    constantValueSpecsByPath
   });
 
+  resolvePortComSpecValueReferences(entities, constantValueSpecsByPath);
+  attachInterfaceDefinitionMetadataToEntities(entities, interfaceDefinitionsByPath);
+  enrichPortInterfaceMetadataFromEntities(entities);
   attachInspectorsToEntities(entities, inspectorsByOwner, interfaceDefinitionsByPath, validationIssues);
 
   if (entities.length === 0) {
@@ -178,7 +192,8 @@ function walkNode(state: WalkState) {
     structuredFields,
     validationIssues,
     inspectorsByOwner,
-    interfaceDefinitionsByPath
+    interfaceDefinitionsByPath,
+    constantValueSpecsByPath
   } = state;
 
   if (Array.isArray(node)) {
@@ -205,7 +220,12 @@ function walkNode(state: WalkState) {
   const ownerSemanticPath = resolveOwnerSemanticPath(type, semanticPath, currentOwnerSemanticPath);
   const swcKind = type === "swc" || type === "composition" ? adapter.getSwcKind(tagName) : undefined;
   const portKind = type === "port" ? adapter.getPortKind(tagName) : undefined;
-  const interfaceKind = type === "interface" ? adapter.getInterfaceKind(tagName) : undefined;
+  const interfaceKind =
+    type === "interface"
+      ? adapter.getInterfaceKind(tagName)
+      : type === "port"
+        ? extractPortInterfaceKind(record)
+        : undefined;
   const currentInterfacePath = type === "interface" ? semanticPath : currentInterfaceSemanticPath;
   const nextInterfacePath = currentInterfacePath ?? currentInterfaceSemanticPath;
 
@@ -236,7 +256,12 @@ function walkNode(state: WalkState) {
       mayBeUnconnected: readBooleanValue(record["MAY-BE-UNCONNECTED"]),
       typeRef: adapter.extractTypeRef(record),
       interfaceKind,
-      metadata: type === "port" ? collectPortMetadata(record) : collectMetadata(record)
+      metadata:
+        type === "port"
+          ? collectPortMetadata(record)
+          : type === "constant"
+            ? collectConstantMetadata(record)
+            : collectMetadata(record)
     });
   }
 
@@ -251,6 +276,9 @@ function walkNode(state: WalkState) {
       modeGroups: [],
       triggers: []
     });
+  }
+  if (tagName === "CONSTANT-SPECIFICATION" && semanticPath) {
+    constantValueSpecsByPath.set(semanticPath, record["VALUE-SPEC"]);
   }
 
   collectStructuredFields(record, currentPath, fieldCategory, structuredFields);
@@ -310,7 +338,8 @@ function walkNode(state: WalkState) {
       structuredFields,
       validationIssues,
       inspectorsByOwner,
-      interfaceDefinitionsByPath
+      interfaceDefinitionsByPath,
+      constantValueSpecsByPath
     });
   }
 }
@@ -333,6 +362,9 @@ function classifyTag(tagName: string): EntityType {
   }
   if (INTERFACE_TAGS.has(tagName)) {
     return "interface";
+  }
+  if (tagName === "CONSTANT-SPECIFICATION") {
+    return "constant";
   }
   return "generic";
 }
@@ -529,6 +561,23 @@ function extractTypeRef(record: Record<string, unknown>) {
   );
 }
 
+function extractPortInterfaceKind(record: Record<string, unknown>): PortInterfaceKind | undefined {
+  const destination =
+    extractReferenceDestination(record, "PROVIDED-INTERFACE-TREF") ??
+    extractReferenceDestination(record, "REQUIRED-INTERFACE-TREF") ??
+    extractReferenceDestination(record, "PROVIDED-REQUIRED-INTERFACE-TREF");
+
+  return destination ? getInterfaceKind(destination) : undefined;
+}
+
+function extractReferenceDestination(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  if (isRecord(value) && typeof value["@_DEST"] === "string") {
+    return value["@_DEST"];
+  }
+  return undefined;
+}
+
 function extractReference(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   if (!value || typeof value !== "object") {
@@ -608,8 +657,12 @@ function collectMetadata(record: Record<string, unknown>) {
   for (const [key, value] of Object.entries(record)) {
     if (typeof value === "string") {
       metadata[key] = value;
+    } else if (typeof value === "number" || typeof value === "boolean") {
+      metadata[key] = String(value);
     } else if (Array.isArray(value) && typeof value[0] === "string") {
       metadata[key] = value[0];
+    } else if (Array.isArray(value) && (typeof value[0] === "number" || typeof value[0] === "boolean")) {
+      metadata[key] = String(value[0]);
     }
   }
   return Object.keys(metadata).length > 0 ? metadata : undefined;
@@ -646,6 +699,7 @@ function collectInterfaceDefinitionFeature(
   const item: InterfaceMember = {
     id: `${interfaceSemanticPath}:${currentPath}`,
     label: shortName,
+    kind: getInterfaceMemberKind(definition.kind, tagName),
     xmlPath: currentPath,
     semanticPath: `${interfaceSemanticPath}/${shortName}`,
     metadata: collectInterfaceMemberMetadata(tagName, record)
@@ -676,6 +730,28 @@ function collectInterfaceDefinitionFeature(
   }
 }
 
+function getInterfaceMemberKind(interfaceKind: PortInterfaceKind, tagName: string) {
+  if (tagName === "CLIENT-SERVER-OPERATION") {
+    return "operation";
+  }
+  if (tagName === "APPLICATION-ERROR") {
+    return "applicationError";
+  }
+  if (tagName === "PARAMETER-DATA-PROTOTYPE") {
+    return "parameter";
+  }
+  if (tagName === "MODE-DECLARATION-GROUP-PROTOTYPE" || tagName === "MODE-GROUP") {
+    return "modeGroup";
+  }
+  if (tagName === "TRIGGER") {
+    return "trigger";
+  }
+  if (interfaceKind === "nv-data") {
+    return "nvData";
+  }
+  return "dataElement";
+}
+
 function collectInterfaceMemberMetadata(tagName: string, record: Record<string, unknown>) {
   if (tagName === "CLIENT-SERVER-OPERATION") {
     const argumentNames = toRecordArray(record["ARGUMENTS"])
@@ -699,14 +775,175 @@ function collectInterfaceMemberMetadata(tagName: string, record: Record<string, 
     });
   }
 
+  if (tagName === "VARIABLE-DATA-PROTOTYPE") {
+    return compactMetadata({
+      TYPE: extractVariableDataPrototypeTypeRef(record),
+      "DATA-CONSTRAINTS": extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]),
+      "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+      "IS-QUEUED": extractSwDataDefPropsValue(record, ["IS-QUEUED", "QUEUE-LENGTH"]),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsOnlyValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
+    });
+  }
   return compactMetadata({
-    TYPE: extractTypeRef(record),
-    "DATA-CONSTRAINTS": extractNestedReference(record, "DATA-CONSTR-REF") ?? extractNestedReference(record, "DATA-CONSTR-TREF"),
-    "SW-ADDR-METHOD-REF": extractReference(record, "SW-ADDR-METHOD-REF"),
-    "IS-QUEUED": readSimpleValue(record["IS-QUEUED"]) ?? readSimpleValue(record["QUEUE-LENGTH"]),
-    "SW-CALIBRATION-ACCESS": findNestedStringValue(record["SW-DATA-DEF-PROPS"], ["SW-CALIBRATION-ACCESS"]),
-    "HANDLE-INVALID": findNestedStringValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
+    TYPE: extractTypeRef(record) ?? extractNestedReference(record["SW-DATA-DEF-PROPS"], "TYPE-TREF"),
+    "DATA-CONSTRAINTS": extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]),
+    "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+    "IS-QUEUED": extractSwDataDefPropsValue(record, ["IS-QUEUED", "QUEUE-LENGTH"]),
+    "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+    "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
   });
+}
+
+export function enrichPortCommunicationSpecsFromEntities(entities: AutosarEntity[]) {
+  resolvePortComSpecValueReferences(entities, buildConstantValueSpecIndexFromEntities(entities));
+  const interfaceMembersByRef = buildInterfaceMemberIndexFromEntities(entities);
+
+  entities.forEach((entity) => {
+    if (entity.type !== "port" || !entity.typeRef || !entity.metadata?.["COMMUNICATION-SPEC-DETAILS"]) {
+      return;
+    }
+
+    const interfaceRef = entity.typeRef;
+    const details = parseCommunicationSpecDetails(entity.metadata["COMMUNICATION-SPEC-DETAILS"]);
+    if (details.length === 0) {
+      return;
+    }
+
+    const enrichedDetails = details.map((detail) =>
+      enrichCommunicationSpecDetail(detail, interfaceMembersByRef, interfaceRef)
+    );
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      "COMMUNICATION-SPEC-DETAILS": JSON.stringify(enrichedDetails)
+    });
+  });
+}
+
+export function enrichPortInterfaceMetadataFromEntities(entities: AutosarEntity[]) {
+  const interfaceEntities = entities.filter((entity) => entity.type === "interface" && entity.semanticPath);
+
+  entities.forEach((entity) => {
+    if (entity.type !== "port" || !entity.typeRef) {
+      return;
+    }
+
+    const interfaceEntity = resolveInterfaceEntity(interfaceEntities, entity.typeRef);
+    const isService = interfaceEntity?.metadata?.["IS-SERVICE"];
+    const interfaceMembers = interfaceEntity?.metadata?.["INTERFACE-DATA-ELEMENT-DETAILS"];
+    if (!isService && !interfaceMembers) {
+      return;
+    }
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      "IS-SERVICE": entity.metadata?.["IS-SERVICE"] ?? isService,
+      "INTERFACE-MEMBER-DETAILS": entity.metadata?.["INTERFACE-MEMBER-DETAILS"] ?? interfaceMembers
+    });
+  });
+}
+
+function resolveInterfaceEntity(interfaceEntities: AutosarEntity[], typeRef: string) {
+  const exact = interfaceEntities.find((entity) => entity.semanticPath === typeRef);
+  if (exact) {
+    return exact;
+  }
+
+  const suffixMatches = interfaceEntities.filter(
+    (entity) => entity.semanticPath && referencesSameAutosarPath(typeRef, entity.semanticPath)
+  );
+  return suffixMatches.length === 1 ? suffixMatches[0] : undefined;
+}
+
+function extractVariableDataPrototypeTypeRef(record: Record<string, unknown>) {
+  return extractDirectReference(record["TYPE-TREF"]);
+}
+
+function extractDirectReference(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value.startsWith("/") ? value : undefined;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return Object.values(value as Record<string, unknown>).find(
+    (entry): entry is string => typeof entry === "string" && entry.startsWith("/")
+  );
+}
+
+function extractSwDataDefPropsReference(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const fromProps = extractNestedReference(record["SW-DATA-DEF-PROPS"], key);
+    if (fromProps) {
+      return fromProps;
+    }
+    const fromRecord = extractNestedReference(record, key);
+    if (fromRecord) {
+      return fromRecord;
+    }
+  }
+  return undefined;
+}
+
+function extractSwDataDefPropsOnlyValue(record: Record<string, unknown>, keys: string[]) {
+  return findNestedStringValueByKey(record["SW-DATA-DEF-PROPS"], keys);
+}
+
+function extractSwDataDefPropsValue(record: Record<string, unknown>, keys: string[]) {
+  const fromProps = findNestedStringValueByKey(record["SW-DATA-DEF-PROPS"], keys);
+  if (fromProps) {
+    return fromProps;
+  }
+
+  for (const key of keys) {
+    const simpleValue = readSimpleValue(record[key]);
+    if (simpleValue) {
+      return simpleValue;
+    }
+  }
+
+  return findNestedStringValueByKey(record, keys);
+}
+
+function findNestedStringValueByKey(node: unknown, keys: string[]): string | undefined {
+  if (!node || typeof node !== "object") {
+    return undefined;
+  }
+  if (Array.isArray(node)) {
+    for (const entry of node) {
+      const found = findNestedStringValueByKey(entry, keys);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  const record = node as Record<string, unknown>;
+  for (const key of keys) {
+    if (!(key in record)) {
+      continue;
+    }
+    const directValue = readSimpleValue(record[key]);
+    if (directValue) {
+      return directValue;
+    }
+    const nestedValue = findNestedStringValueByKey(record[key], keys);
+    if (nestedValue) {
+      return nestedValue;
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    const found = findNestedStringValueByKey(value, keys);
+    if (found) {
+      return found;
+    }
+  }
+
+  return undefined;
 }
 
 function collectSwcInspectorFeature(
@@ -845,7 +1082,16 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
 function collectPortMetadata(record: Record<string, unknown>) {
   return compactMetadata({
     DESCRIPTION: extractDescription(record),
+    "IS-SERVICE": readSimpleValue(record["IS-SERVICE"]),
     "COMMUNICATION-SPEC-DETAILS": collectCommunicationSpecDetails(record)
+  });
+}
+
+function collectConstantMetadata(record: Record<string, unknown>) {
+  return compactMetadata({
+    "VALUE-SPEC": extractValueSpecificationLabel(record["VALUE-SPEC"]),
+    "VALUE-SPEC-TYPE": extractValueSpecificationType(record["VALUE-SPEC"]),
+    "VALUE-SPEC-REF": extractValueSpecificationReference(record["VALUE-SPEC"])
   });
 }
 
@@ -853,14 +1099,28 @@ interface CommunicationSpecDetail {
   index: string;
   dataElement: string;
   comSpec: string;
+  comSpecDirection: string;
   initValue: string;
   initValueType: string;
+  initValueRef?: string;
   usesTxAcknowledge: string;
+  transmissionAcknowledgeTimeout: string;
   usesEndToEndProtection: string;
   handleOutOfRange: string;
   transmissionMode: string;
   dataUpdatePeriod: string;
   minimumSendInterval: string;
+  aliveTimeout: string;
+  enableUpdate: string;
+  handleNeverReceived: string;
+  usesEndToEndProtectionErrorHandling: string;
+  timeoutSubstitutionValue: string;
+  timeoutSubstitutionValueType: string;
+  timeoutSubstitutionValueRef?: string;
+  handleTimeoutType: string;
+  rxFilter: string;
+  handleDataStatus: string;
+  queueLength: string;
   dataType?: string;
   dataConstraints?: string;
   addressingMethod?: string;
@@ -883,9 +1143,13 @@ function collectCommunicationSpecDetails(record: Record<string, unknown>) {
           index: String(details.length + 1),
           dataElement: extractCommunicationSpecDataElement(comSpec),
           comSpec: formatAutosarTagLabel(comSpecTag),
+          comSpecDirection: getCommunicationSpecDirection(comSpecTag),
           initValue: extractValueSpecificationLabel(comSpec["INIT-VALUE"]),
           initValueType: extractValueSpecificationType(comSpec["INIT-VALUE"]),
-          usesTxAcknowledge: readSimpleValue(comSpec["USES-TX-ACKNOWLEDGE"]) ?? "-",
+          initValueRef: extractValueSpecificationReference(comSpec["INIT-VALUE"]),
+          usesTxAcknowledge: comSpec["TRANSMISSION-ACKNOWLEDGE"] ? "true" : readSimpleValue(comSpec["USES-TX-ACKNOWLEDGE"]) ?? "-",
+          transmissionAcknowledgeTimeout:
+            extractTransmissionAcknowledgeTimeout(comSpec["TRANSMISSION-ACKNOWLEDGE"]) ?? "-",
           usesEndToEndProtection: readSimpleValue(comSpec["USES-END-TO-END-PROTECTION"]) ?? "-",
           handleOutOfRange: readSimpleValue(comSpec["HANDLE-OUT-OF-RANGE"]) ?? "-",
           transmissionMode: findNestedStringValue(comSpec["TRANSMISSION-PROPS"], ["TRANSMISSION-MODE"]) ?? "-",
@@ -894,7 +1158,20 @@ function collectCommunicationSpecDetails(record: Record<string, unknown>) {
             "-",
           minimumSendInterval: readSimpleValue(comSpec["MINIMUM-SEND-INTERVAL"]) ??
             findNestedStringValue(comSpec["TRANSMISSION-PROPS"], ["MINIMUM-SEND-INTERVAL"]) ??
-            "-"
+            "-",
+          aliveTimeout: readSimpleValue(comSpec["ALIVE-TIMEOUT"]) ?? "-",
+          enableUpdate: readSimpleValue(comSpec["ENABLE-UPDATE"]) ?? "-",
+          handleNeverReceived: readSimpleValue(comSpec["HANDLE-NEVER-RECEIVED"]) ?? "-",
+          usesEndToEndProtectionErrorHandling:
+            readSimpleValue(comSpec["USES-END-TO-END-PROTECTION-ERROR-HANDLING"]) ?? "-",
+          timeoutSubstitutionValue: extractValueSpecificationLabel(comSpec["TIMEOUT-SUBSTITUTION-VALUE"]),
+          timeoutSubstitutionValueType: extractValueSpecificationType(comSpec["TIMEOUT-SUBSTITUTION-VALUE"]),
+          timeoutSubstitutionValueRef: extractValueSpecificationReference(comSpec["TIMEOUT-SUBSTITUTION-VALUE"]),
+          handleTimeoutType: readSimpleValue(comSpec["HANDLE-TIMEOUT-TYPE"]) ?? "-",
+          rxFilter: summarizeAutosarValue(comSpec["FILTER"]) ?? "-",
+          handleDataStatus: readSimpleValue(comSpec["HANDLE-DATA-STATUS"]) ?? "-",
+          queueLength: readSimpleValue(comSpec["QUEUE-LENGTH"]) ?? "-",
+          useQueuedCommunication: getCommunicationSpecQueuedState(comSpecTag)
         });
       }
     }
@@ -905,6 +1182,63 @@ function collectCommunicationSpecDetails(record: Record<string, unknown>) {
 
   return details.length > 0 ? JSON.stringify(details) : undefined;
 }
+
+function getCommunicationSpecDirection(comSpecTag: string) {
+  if (/RECEIVER/i.test(comSpecTag)) {
+    return "receiver";
+  }
+  if (/SENDER/i.test(comSpecTag)) {
+    return "sender";
+  }
+  if (/CLIENT/i.test(comSpecTag)) {
+    return "client";
+  }
+  if (/SERVER/i.test(comSpecTag)) {
+    return "server";
+  }
+  if (/PARAMETER/i.test(comSpecTag)) {
+    return "parameter";
+  }
+  if (/MODE/i.test(comSpecTag)) {
+    return "mode";
+  }
+  if (/TRIGGER/i.test(comSpecTag)) {
+    return "trigger";
+  }
+  return "unknown";
+}
+
+function getCommunicationSpecQueuedState(comSpecTag: string) {
+  if (/NONQUEUED/i.test(comSpecTag)) {
+    return "false";
+  }
+  if (/QUEUED/i.test(comSpecTag)) {
+    return "true";
+  }
+  return undefined;
+}
+
+function extractTransmissionAcknowledgeTimeout(value: unknown) {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  return readSimpleValue(value["TIMEOUT"]);
+}
+
+const VALUE_SPECIFICATION_TAGS = new Set([
+  "APPLICATION-ASSOC-MAP-VALUE-SPECIFICATION",
+  "APPLICATION-RULE-BASED-VALUE-SPECIFICATION",
+  "APPLICATION-VALUE-SPECIFICATION",
+  "ARRAY-VALUE-SPECIFICATION",
+  "COMPOSITE-RULE-BASED-VALUE-SPECIFICATION",
+  "CONSTANT-REFERENCE",
+  "NOT-AVAILABLE-VALUE-SPECIFICATION",
+  "NUMERICAL-RULE-BASED-VALUE-SPECIFICATION",
+  "NUMERICAL-VALUE-SPECIFICATION",
+  "RECORD-VALUE-SPECIFICATION",
+  "REFERENCE-VALUE-SPECIFICATION",
+  "TEXT-VALUE-SPECIFICATION"
+]);
 
 function extractValueSpecificationType(value: unknown): string {
   if (!value || typeof value !== "object") {
@@ -929,19 +1263,66 @@ function extractValueSpecificationType(value: unknown): string {
   return "-";
 }
 
+function extractValueSpecificationReference(value: unknown): string | undefined {
+  const specification = findValueSpecification(value);
+  if (!specification || specification.tag !== "CONSTANT-REFERENCE") {
+    return undefined;
+  }
+  return extractNestedReference(specification.value, "CONSTANT-REF");
+}
+
 function extractCommunicationSpecDataElement(record: Record<string, unknown>) {
   return (
     extractNestedReference(record, "DATA-ELEMENT-REF") ??
     extractNestedReference(record, "OPERATION-REF") ??
+    extractNestedReference(record, "PARAMETER-REF") ??
     extractNestedReference(record, "MODE-GROUP-REF") ??
+    extractNestedReference(record, "TRIGGER-REF") ??
+    extractNestedReference(record, "VARIABLE-REF") ??
     "-"
   );
+}
+
+function summarizeAutosarValue(value: unknown): string | undefined {
+  const simpleValue = readSimpleValue(value);
+  if (simpleValue) {
+    return simpleValue;
+  }
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    const summaries = value.map(summarizeAutosarValue).filter((entry): entry is string => Boolean(entry));
+    return summaries.length > 0 ? summaries.join(", ") : undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const references = Object.entries(record)
+    .filter(([key]) => key.endsWith("-REF") || key.endsWith("-TREF") || key.endsWith("-IREF"))
+    .map(([key, entry]) => {
+      const ref = extractNestedReference({ [key]: entry }, key);
+      return ref ? `${formatAutosarTagLabel(key)}: ${getReferenceLeafName(ref)}` : undefined;
+    })
+    .filter((entry): entry is string => Boolean(entry));
+  if (references.length > 0) {
+    return references.join(", ");
+  }
+
+  const values = Object.entries(record)
+    .filter(([key]) => !key.startsWith("@_"))
+    .map(([key, entry]) => {
+      const nested = summarizeAutosarValue(entry);
+      return nested ? `${formatAutosarTagLabel(key)}: ${nested}` : undefined;
+    })
+    .filter((entry): entry is string => Boolean(entry));
+  return values.length > 0 ? values.slice(0, 4).join(", ") : undefined;
 }
 
 function collectPortApiOptionMetadata(record: Record<string, unknown>) {
   return compactMetadata({
     "ENABLE-INDIRECT-API": readSimpleValue(record["INDIRECT-API"]),
     "ENABLE-API-USAGE-BY-ADDRESS": readSimpleValue(record["ENABLE-TAKE-ADDRESS"]),
+    "TRANSFORMATION-ERROR-HANDLING": readSimpleValue(record["ERROR-HANDLING"]),
     "PORT-DEFINED-ARGUMENT-VALUES": collectPortDefinedArgumentValues(record)
   }) ?? {};
 }
@@ -970,13 +1351,189 @@ function extractPortDefinedArgumentName(record: Record<string, unknown>) {
   return extractShortName(record) ?? findNestedStringValue(record["VALUE"], ["SHORT-LABEL"]) ?? "-";
 }
 
-function extractValueSpecificationLabel(value: unknown): string {
-  return (
-    findNestedStringValue(value, ["VALUE", "SHORT-LABEL", "CONSTANT-REF", "TEXT", "#text"]) ??
-    findFirstReferenceValue(value) ??
-    readSimpleValue(value) ??
-    "-"
-  );
+function extractValueSpecificationLabel(
+  value: unknown,
+  resolveConstantReference?: (reference: string, visited: Set<string>) => string | undefined,
+  visited = new Set<string>()
+): string {
+  const label = formatValueSpecification(value, resolveConstantReference, visited);
+  return label ?? "-";
+}
+
+function formatValueSpecification(
+  value: unknown,
+  resolveConstantReference: ((reference: string, visited: Set<string>) => string | undefined) | undefined,
+  visited: Set<string>
+): string | undefined {
+  const specification = findValueSpecification(value);
+  if (!specification) {
+    return readSimpleValue(value) ?? findNestedStringValue(value, ["VALUE", "TEXT", "#text"]);
+  }
+
+  const record = isRecord(specification.value) ? specification.value : undefined;
+  switch (specification.tag) {
+    case "NUMERICAL-VALUE-SPECIFICATION":
+    case "NUMERICAL-RULE-BASED-VALUE-SPECIFICATION":
+    case "TEXT-VALUE-SPECIFICATION":
+      return record ? readSimpleValue(record["VALUE"]) ?? readSimpleValue(record["TEXT"]) : readSimpleValue(specification.value);
+    case "CONSTANT-REFERENCE": {
+      const reference = record ? extractNestedReference(record, "CONSTANT-REF") : undefined;
+      if (!reference) {
+        return undefined;
+      }
+      return resolveConstantReference?.(reference, visited) ?? reference;
+    }
+    case "REFERENCE-VALUE-SPECIFICATION": {
+      const reference = record ? extractNestedReference(record, "REFERENCE-VALUE-REF") : undefined;
+      return reference ? getReferenceLeafName(reference) : undefined;
+    }
+    case "NOT-AVAILABLE-VALUE-SPECIFICATION":
+      return "Not Available";
+    case "APPLICATION-VALUE-SPECIFICATION":
+      return record ? formatApplicationValueSpecification(record, resolveConstantReference, visited) : undefined;
+    case "ARRAY-VALUE-SPECIFICATION":
+      return record ? formatCompositeValueSpecification(record["ELEMENTS"], "array", resolveConstantReference, visited) : undefined;
+    case "RECORD-VALUE-SPECIFICATION":
+      return record ? formatCompositeValueSpecification(record["FIELDS"], "record", resolveConstantReference, visited) : undefined;
+    case "APPLICATION-ASSOC-MAP-VALUE-SPECIFICATION":
+    case "APPLICATION-RULE-BASED-VALUE-SPECIFICATION":
+    case "COMPOSITE-RULE-BASED-VALUE-SPECIFICATION":
+      return summarizeAutosarValue(specification.value);
+    default:
+      return undefined;
+  }
+}
+
+function findValueSpecification(value: unknown): { tag: string; value: unknown } | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = findValueSpecification(entry);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const [key, entry] of Object.entries(record)) {
+    if (VALUE_SPECIFICATION_TAGS.has(key)) {
+      const firstEntry = Array.isArray(entry) ? entry[0] : entry;
+      return { tag: key, value: firstEntry };
+    }
+  }
+
+  for (const entry of Object.values(record)) {
+    const found = findValueSpecification(entry);
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
+}
+
+function formatApplicationValueSpecification(
+  record: Record<string, unknown>,
+  resolveConstantReference: ((reference: string, visited: Set<string>) => string | undefined) | undefined,
+  visited: Set<string>
+) {
+  const values = formatSwValueCont(record["SW-VALUE-CONT"]);
+  if (values) {
+    return values;
+  }
+
+  const axisValues = formatSwValueCont(record["SW-AXIS-CONTS"]);
+  if (axisValues) {
+    return axisValues;
+  }
+
+  return formatValueSpecification(record["VALUE"], resolveConstantReference, visited);
+}
+
+function formatCompositeValueSpecification(
+  container: unknown,
+  kind: "array" | "record",
+  resolveConstantReference: ((reference: string, visited: Set<string>) => string | undefined) | undefined,
+  visited: Set<string>
+) {
+  const entries = collectValueSpecificationEntries(container).map((entry) => {
+    const label = isRecord(entry.value) ? readSimpleValue(entry.value["SHORT-LABEL"]) : undefined;
+    const value = formatValueSpecification({ [entry.tag]: entry.value }, resolveConstantReference, visited) ?? "-";
+    return kind === "record" && label ? `${label}: ${value}` : value;
+  });
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return kind === "array" ? `[${entries.join(",")}]` : `{${entries.join(", ")}}`;
+}
+
+function collectValueSpecificationEntries(value: unknown): Array<{ tag: string; value: unknown }> {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectValueSpecificationEntries);
+  }
+
+  const record = value as Record<string, unknown>;
+  return Object.entries(record).flatMap(([key, entry]) => {
+    if (VALUE_SPECIFICATION_TAGS.has(key)) {
+      return toArray(entry).map((nestedValue) => ({ tag: key, value: nestedValue }));
+    }
+    if (key.startsWith("@_") || key === "SHORT-LABEL") {
+      return [];
+    }
+    return collectValueSpecificationEntries(entry);
+  });
+}
+
+function formatSwValueCont(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") {
+    return readSimpleValue(value);
+  }
+  if (Array.isArray(value)) {
+    const values = value.map(formatSwValueCont).filter((entry): entry is string => Boolean(entry));
+    return values.length > 0 ? values.join(", ") : undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const values = [
+    ...collectSwValues(record["SW-VALUES"]),
+    ...collectSwValues(record["SW-AXIS-CONT"]),
+    ...collectSwValues(record["SW-VALUE-CONT"])
+  ];
+  return values.length > 0 ? values.join(",") : undefined;
+}
+
+function collectSwValues(value: unknown): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  const simpleValue = readSimpleValue(value);
+  if (simpleValue !== undefined) {
+    return [simpleValue];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectSwValues);
+  }
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  return Object.entries(value).flatMap(([key, entry]) => {
+    if (key === "V" || key === "VT" || key === "VTF" || key === "VF") {
+      return toArray(entry).flatMap(collectSwValues);
+    }
+    if (key === "VG") {
+      return collectSwValues(entry);
+    }
+    return [];
+  });
 }
 
 function collectRunnableAccessPoints(record: Record<string, unknown>) {
@@ -1323,6 +1880,48 @@ function readSimpleValue(value: unknown) {
   return undefined;
 }
 
+function attachInterfaceDefinitionMetadataToEntities(
+  entities: AutosarEntity[],
+  interfaceDefinitionsByPath: Map<string, InterfaceDefinition>
+) {
+  entities.forEach((entity) => {
+    if (entity.type !== "interface" || !entity.semanticPath) {
+      return;
+    }
+
+    const interfaceDefinition = interfaceDefinitionsByPath.get(entity.semanticPath);
+    const interfaceMembers = interfaceDefinition ? getInterfaceDefinitionMembers(interfaceDefinition) : [];
+    if (interfaceMembers.length === 0) {
+      return;
+    }
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      "INTERFACE-DATA-ELEMENT-DETAILS": JSON.stringify(interfaceMembers.map(serializeInterfaceMember))
+    });
+  });
+}
+
+function getInterfaceDefinitionMembers(definition: InterfaceDefinition) {
+  return [
+    ...definition.dataElements,
+    ...definition.operations,
+    ...definition.parameters,
+    ...definition.modeGroups,
+    ...definition.triggers,
+    ...definition.applicationErrors
+  ];
+}
+
+function serializeInterfaceMember(member: InterfaceMember): SerializedInterfaceMember {
+  return {
+    label: member.label,
+    kind: member.kind,
+    semanticPath: member.semanticPath,
+    metadata: member.metadata
+  };
+}
+
 function attachInspectorsToEntities(
   entities: AutosarEntity[],
   inspectorsByOwner: Map<string, MutableSwcInspector>,
@@ -1354,13 +1953,10 @@ function attachInterfaceMetadataToPortComSpecs(
   entities: AutosarEntity[],
   interfaceDefinitionsByPath: Map<string, InterfaceDefinition>
 ) {
+  const interfaceMembersByRef = buildInterfaceMemberIndexFromDefinitions(interfaceDefinitionsByPath);
+
   entities.forEach((entity) => {
     if (entity.type !== "port" || !entity.typeRef || !entity.metadata?.["COMMUNICATION-SPEC-DETAILS"]) {
-      return;
-    }
-
-    const interfaceDefinition = interfaceDefinitionsByPath.get(entity.typeRef);
-    if (!interfaceDefinition) {
       return;
     }
 
@@ -1369,33 +1965,162 @@ function attachInterfaceMetadataToPortComSpecs(
       return;
     }
 
-    const membersByPath = new Map<string, InterfaceMember>();
-    interfaceDefinition.dataElements.forEach((member) => {
-      if (member.semanticPath) {
-        membersByPath.set(member.semanticPath, member);
-      }
-      membersByPath.set(`${interfaceDefinition.semanticPath}/${member.label}`, member);
-      membersByPath.set(member.label, member);
-    });
-
-    const enrichedDetails = details.map((detail) => {
-      const member = membersByPath.get(detail.dataElement) ?? membersByPath.get(getReferenceLeafName(detail.dataElement));
-      return {
-        ...detail,
-        dataType: member?.metadata?.TYPE ?? "-",
-        dataConstraints: member?.metadata?.["DATA-CONSTRAINTS"] ?? "-",
-        addressingMethod: member?.metadata?.["SW-ADDR-METHOD-REF"] ?? "-",
-        useQueuedCommunication: member?.metadata?.["IS-QUEUED"] ?? "-",
-        measurementCalibration: member?.metadata?.["SW-CALIBRATION-ACCESS"] ?? "-",
-        handleInvalid: member?.metadata?.["HANDLE-INVALID"] ?? "-"
-      };
-    });
+    const enrichedDetails = details.map((detail) =>
+      enrichCommunicationSpecDetail(detail, interfaceMembersByRef, entity.typeRef!)
+    );
 
     entity.metadata = compactMetadata({
       ...(entity.metadata ?? {}),
       "COMMUNICATION-SPEC-DETAILS": JSON.stringify(enrichedDetails)
     });
   });
+}
+
+function buildInterfaceMemberIndexFromDefinitions(interfaceDefinitionsByPath: Map<string, InterfaceDefinition>) {
+  const membersByRef = new Map<string, SerializedInterfaceMember>();
+  interfaceDefinitionsByPath.forEach((definition) => {
+    getInterfaceDefinitionMembers(definition).forEach((member) => {
+      const serialized = serializeInterfaceMember(member);
+      if (member.semanticPath) {
+        membersByRef.set(buildInterfaceMemberKey(definition.semanticPath, member.semanticPath), serialized);
+      }
+      membersByRef.set(buildInterfaceMemberKey(definition.semanticPath, `${definition.semanticPath}/${member.label}`), serialized);
+    });
+  });
+  return membersByRef;
+}
+
+function buildInterfaceMemberIndexFromEntities(entities: AutosarEntity[]) {
+  const membersByRef = new Map<string, SerializedInterfaceMember>();
+  entities.forEach((entity) => {
+    if (entity.type !== "interface" || !entity.semanticPath) {
+      return;
+    }
+
+    parseSerializedInterfaceMembers(entity.metadata?.["INTERFACE-DATA-ELEMENT-DETAILS"]).forEach((member) => {
+      if (member.semanticPath) {
+        membersByRef.set(buildInterfaceMemberKey(entity.semanticPath!, member.semanticPath), member);
+      }
+      membersByRef.set(buildInterfaceMemberKey(entity.semanticPath!, `${entity.semanticPath}/${member.label}`), member);
+    });
+  });
+  return membersByRef;
+}
+
+function parseSerializedInterfaceMembers(value: string | undefined): SerializedInterfaceMember[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.flatMap((entry) => {
+      if (!isRecord(entry)) {
+        return [];
+      }
+
+      const label = readSimpleValue(entry.label);
+      if (!label) {
+        return [];
+      }
+
+      return [
+        {
+          label,
+          kind: readSimpleValue(entry.kind),
+          semanticPath: readSimpleValue(entry.semanticPath),
+          metadata: isRecord(entry.metadata) ? stringifyMetadataRecord(entry.metadata) : undefined
+        }
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function stringifyMetadataRecord(record: Record<string, unknown>) {
+  const metadata: Record<string, string> = {};
+  Object.entries(record).forEach(([key, value]) => {
+    const stringValue = readSimpleValue(value);
+    if (stringValue) {
+      metadata[key] = stringValue;
+    }
+  });
+  return metadata;
+}
+
+function enrichCommunicationSpecDetail(
+  detail: CommunicationSpecDetail,
+  interfaceMembersByRef: Map<string, SerializedInterfaceMember>,
+  interfaceRef: string
+) {
+  const member = interfaceMembersByRef.get(buildInterfaceMemberKey(interfaceRef, detail.dataElement));
+  return {
+    ...detail,
+    dataType: member?.metadata?.TYPE ?? detail.dataType ?? "-",
+    dataConstraints: member?.metadata?.["DATA-CONSTRAINTS"] ?? detail.dataConstraints ?? "-",
+    addressingMethod: member?.metadata?.["SW-ADDR-METHOD-REF"] ?? detail.addressingMethod ?? "-",
+    useQueuedCommunication: detail.useQueuedCommunication ?? member?.metadata?.["IS-QUEUED"] ?? "-",
+    measurementCalibration: member?.metadata?.["SW-CALIBRATION-ACCESS"] ?? detail.measurementCalibration ?? "-",
+    handleInvalid: member?.metadata?.["HANDLE-INVALID"] ?? detail.handleInvalid ?? "-"
+  };
+}
+
+function buildInterfaceMemberKey(interfaceRef: string, dataElementRef: string) {
+  return `${normalizeReferencePath(interfaceRef)}::${normalizeReferencePath(dataElementRef)}`;
+}
+
+function resolveInterfaceDefinition(
+  interfaceDefinitionsByPath: Map<string, InterfaceDefinition>,
+  typeRef: string
+) {
+  const exact = interfaceDefinitionsByPath.get(typeRef);
+  if (exact) {
+    return exact;
+  }
+
+  const suffixMatches = Array.from(interfaceDefinitionsByPath.values()).filter(
+    (definition) => referencesSameAutosarPath(typeRef, definition.semanticPath)
+  );
+  return suffixMatches.length === 1 ? suffixMatches[0] : undefined;
+}
+
+function resolveInterfaceMember(
+  interfaceDefinition: InterfaceDefinition,
+  membersByPath: Map<string, InterfaceMember>,
+  dataElementRef: string
+) {
+  const exact = membersByPath.get(dataElementRef);
+  if (exact) {
+    return exact;
+  }
+
+  const suffixMatches = interfaceDefinition.dataElements.filter(
+    (member) =>
+      (member.semanticPath && referencesSameAutosarPath(dataElementRef, member.semanticPath)) ||
+      referencesSameAutosarPath(dataElementRef, `${interfaceDefinition.semanticPath}/${member.label}`)
+  );
+  if (suffixMatches.length === 1) {
+    return suffixMatches[0];
+  }
+
+  const leafName = getReferenceLeafName(dataElementRef);
+  const leafMatches = interfaceDefinition.dataElements.filter((member) => member.label === leafName);
+  return leafMatches.length === 1 ? leafMatches[0] : undefined;
+}
+
+function referencesSameAutosarPath(left: string, right: string) {
+  const leftPath = normalizeReferencePath(left);
+  const rightPath = normalizeReferencePath(right);
+  return leftPath === rightPath || leftPath.endsWith(`/${rightPath}`) || rightPath.endsWith(`/${leftPath}`);
+}
+
+function normalizeReferencePath(value: string) {
+  return value.split("/").filter(Boolean).join("/");
 }
 
 function parseCommunicationSpecDetails(value: string): CommunicationSpecDetail[] {
@@ -1405,6 +2130,94 @@ function parseCommunicationSpecDetails(value: string): CommunicationSpecDetail[]
   } catch {
     return [];
   }
+}
+
+function buildConstantValueSpecIndexFromEntities(entities: AutosarEntity[]) {
+  const constantValueSpecsByPath = new Map<string, unknown>();
+  entities.forEach((entity) => {
+    if (entity.type !== "constant" || !entity.semanticPath) {
+      return;
+    }
+
+    const valueSpecRef = entity.metadata?.["VALUE-SPEC-REF"];
+    if (valueSpecRef) {
+      constantValueSpecsByPath.set(entity.semanticPath, {
+        "CONSTANT-REFERENCE": {
+          "CONSTANT-REF": valueSpecRef
+        }
+      });
+      return;
+    }
+
+    const valueSpec = entity.metadata?.["VALUE-SPEC"];
+    if (valueSpec) {
+      constantValueSpecsByPath.set(entity.semanticPath, valueSpec);
+    }
+  });
+  return constantValueSpecsByPath;
+}
+
+function resolvePortComSpecValueReferences(
+  entities: AutosarEntity[],
+  constantValueSpecsByPath: Map<string, unknown>
+) {
+  if (constantValueSpecsByPath.size === 0) {
+    return;
+  }
+
+  const resolveConstantReference = (reference: string, visited: Set<string>): string | undefined => {
+    const normalizedReference = normalizeReferencePath(reference);
+    if (visited.has(normalizedReference)) {
+      return undefined;
+    }
+
+    const valueSpec = resolveConstantValueSpec(reference, constantValueSpecsByPath);
+    if (!valueSpec) {
+      return undefined;
+    }
+
+    return extractValueSpecificationLabel(valueSpec, resolveConstantReference, new Set([...visited, normalizedReference]));
+  };
+
+  entities.forEach((entity) => {
+    if (entity.type !== "port" || !entity.metadata?.["COMMUNICATION-SPEC-DETAILS"]) {
+      return;
+    }
+
+    const details = parseCommunicationSpecDetails(entity.metadata["COMMUNICATION-SPEC-DETAILS"]);
+    if (details.length === 0) {
+      return;
+    }
+
+    const resolvedDetails = details.map((detail) => ({
+      ...detail,
+      initValue: detail.initValueRef
+        ? resolveConstantReference(detail.initValueRef, new Set()) ?? detail.initValue
+        : detail.initValue,
+      timeoutSubstitutionValue: detail.timeoutSubstitutionValueRef
+        ? resolveConstantReference(detail.timeoutSubstitutionValueRef, new Set()) ?? detail.timeoutSubstitutionValue
+        : detail.timeoutSubstitutionValue
+    }));
+
+    entity.metadata = compactMetadata({
+      ...(entity.metadata ?? {}),
+      "COMMUNICATION-SPEC-DETAILS": JSON.stringify(resolvedDetails)
+    });
+  });
+}
+
+function resolveConstantValueSpec(reference: string, constantValueSpecsByPath: Map<string, unknown>) {
+  const exact = constantValueSpecsByPath.get(reference);
+  if (exact) {
+    return exact;
+  }
+
+  const normalizedReference = normalizeReferencePath(reference);
+  const matches = Array.from(constantValueSpecsByPath.entries()).filter(([path]) =>
+    referencesSameAutosarPath(normalizedReference, path)
+  );
+  const match = matches[0];
+  return matches.length === 1 && match ? match[1] : undefined;
 }
 
 function attachPortApiOptionsToEntities(

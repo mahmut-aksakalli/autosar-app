@@ -7,6 +7,10 @@ Desktop AUTOSAR Application built with Electron, React, TypeScript, Node.js, and
 The current app focuses on local ARXML workspace exploration and editing:
 
 - open a workspace folder containing `.arxml` files
+- recognize Vector DaVinci Developer/Configurator-style project folders from metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg`
+- build workspace-level AUTOSAR model context from Vector project metadata-referenced ARXML inputs in the background
+- show a Model mode loading warning while Vector workspace indexing is still running
+- show parsed/indexed ARXML documents once when the Model view loads, with a View menu toggle for later access
 - open a single `.arxml` file directly
 - browse files in a VS Code-like Explorer tree
 - keep multiple ARXML files open in tabs
@@ -18,9 +22,11 @@ The current app focuses on local ARXML workspace exploration and editing:
 - browse semantic AUTOSAR model nodes and open graph, port, runnable, behavior, and memory detail tabs
 - classify AUTOSAR SWCs by family, including application, parameter, service, service-proxy, sensor-actuator, ECU abstraction, complex driver, nv-block, and composition components
 - annotate semantic model entities with AUTOSAR release/version, extraction profile, XML path, `SHORT-NAME` path, owner package path, and completeness metadata
-- render `P`, `R`, and `PR` ports with interface-aware metadata
-- inspect ports and connectors and jump back into the structured editor
+- render `P`, `R`, and `PR` ports with interface-aware metadata, service-port status, and port detail labels for sender-receiver, client-server, parameter, mode-switch, trigger, and NV-data interfaces
+- inspect ComSpec init values from numerical, text, resolved constant reference, application, array, and record value specifications
+- inspect ports and connectors within Model mode
 - inspect SWC internals in a bottom panel, including runnables, internal variables, and interface members when available
+- navigate AUTOSAR Model mode without switching back to ARXML source: composition clicks open inner composition views and SWC clicks focus the SWC graph while highlighting it in the model explorer
 - validate the active ARXML file on demand for syntax, AUTOSAR namespace/schema metadata, local AUTOSAR XSD conformance, and serialization diagnostics
 - validate AUTOSAR semantic references for indexed ports, interfaces, component prototypes, and composition connectors
 
@@ -52,6 +58,7 @@ electron/
     autosarModel.ts
     autosarSchemaRegistry.ts
     graphService.ts
+    vectorProjectService.ts
     workerPool.ts
     workspaceService.ts
     xsdValidationEngine.ts
@@ -180,10 +187,13 @@ npm run verify:functional
 
 1. Start the app with `npm run dev`.
 2. Click `Open Folder` to load an AUTOSAR workspace, or `Open File` to inspect a single `.arxml` file.
-3. Use the Explorer to open ARXML files in tabs.
-4. Edit the active file in raw XML or structured mode.
-5. Run `Validate File` from the Explorer sidebar when you want syntax/schema diagnostics.
-6. Save the active document with the save action or `Ctrl/Cmd+S`.
+3. When a folder contains Vector DaVinci metadata, the app treats it as a workspace-level AUTOSAR project and indexes the project ARXML inputs in the background for Model mode.
+4. Folders without Vector project metadata remain lazy file browsers; ARXML files are parsed individually when opened.
+5. If you switch to Model mode before Vector indexing finishes, the editor view shows a loading warning until the semantic model is ready.
+6. Use the Explorer to open ARXML files in tabs.
+7. Edit the active file in raw XML or structured mode.
+8. Run `Validate File` from the Explorer sidebar when you want syntax/schema diagnostics.
+9. Save the active document with the save action or `Ctrl/Cmd+S`.
 
 The ARXML fixtures under `examples/` target AUTOSAR Classic 4.4.0 and validate against
 `resources/autosar-schemas/R4.4.0/AUTOSAR_00046.xsd`.
@@ -227,6 +237,7 @@ Main files:
 Backend services handle:
 
 - workspace indexing and file watching
+- Vector DaVinci project discovery from workspace metadata and background indexing of referenced AUTOSAR inputs
 - on-demand ARXML syntax, namespace, schema, and serialization validation
 - AUTOSAR semantic reference validation for indexed SWCs, compositions, ports, interfaces, and connector endpoints
 - ARXML parsing and document loading
@@ -241,6 +252,7 @@ Heavy parse/index work is delegated through worker threads so the renderer stays
 Key files:
 
 - `electron/services/workspaceService.ts`
+- `electron/services/vectorProjectService.ts`
 - `electron/services/arxmlDocumentService.ts`
 - `electron/services/autosarModel.ts`
 - `electron/services/graphService.ts`

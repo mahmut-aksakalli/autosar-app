@@ -172,8 +172,31 @@ export interface ExplorerEntry {
   openable: boolean;
 }
 
+export type WorkspaceKind = "single-file" | "folder" | "vector-davinci";
+
+export interface VectorProjectMetadataFile {
+  filePath: string;
+  relativePath: string;
+  kind: "dpa" | "dcf" | "dvgproj" | "vector-metadata";
+}
+
+export interface WorkspaceProjectInfo {
+  kind: WorkspaceKind;
+  displayName: string;
+  metadataFiles: VectorProjectMetadataFile[];
+  inputFiles: Array<{
+    filePath: string;
+    relativePath: string;
+    sourceMetadataPath?: string;
+  }>;
+  indexedInBackground: boolean;
+  indexingStatus?: "idle" | "loading" | "complete";
+}
+
 export interface WorkspaceSnapshot {
   rootPath: string;
+  workspaceKind?: WorkspaceKind;
+  project?: WorkspaceProjectInfo;
   files: ArxmlDocumentSummary[];
   explorerEntries: ExplorerEntry[];
   entities: AutosarEntity[];
@@ -290,4 +313,5 @@ export interface AutosarApi {
   buildGraph(query: SwcGraphQuery): Promise<SwcGraphResult>;
   searchFiles(query: string, openDocuments: SearchInputDocument[]): Promise<FileSearchResult[]>;
   onWorkspaceUpdated(listener: (workspace: WorkspaceSnapshot) => void): () => void;
+  onToggleBottomPanel(listener: () => void): () => void;
 }

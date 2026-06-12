@@ -20,7 +20,6 @@ export interface FlowNodeData extends Record<string, unknown> {
   secondaryLabel?: string;
   swcKind?: SwcGraphNode["swcKind"];
   highlightedPortId?: string;
-  onPortDoubleClick?: (filePath: string, xmlPath?: string) => void | Promise<void>;
   onConnectionNavigate?: (nodeId: string, portId: string) => void;
 }
 
@@ -297,7 +296,7 @@ function buildPortConnectionLabels(
       const sourceLabels = (labelsByNode[sourceNode.id] ??= {});
       const sourceConnections = (sourceLabels[sourcePort.id] ??= []);
       sourceConnections.push({
-        componentName: String(targetNode.metadata?.TYPE ?? targetNode.label),
+        componentName: targetNode.label,
         portName: targetPort.label,
         targetNodeId: targetNode.id,
         targetPortId: targetPort.id
@@ -306,7 +305,7 @@ function buildPortConnectionLabels(
       const targetLabels = (labelsByNode[targetNode.id] ??= {});
       const targetConnections = (targetLabels[targetPort.id] ??= []);
       targetConnections.push({
-        componentName: String(sourceNode.metadata?.TYPE ?? sourceNode.label),
+        componentName: sourceNode.label,
         portName: sourcePort.label,
         targetNodeId: sourceNode.id,
         targetPortId: sourcePort.id

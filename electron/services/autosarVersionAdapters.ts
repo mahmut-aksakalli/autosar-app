@@ -7,7 +7,15 @@ import type {
   ValidationScope
 } from "../../src/shared/contracts.js";
 
-export type AutosarEntityType = "swc" | "composition" | "instance" | "port" | "connection" | "interface" | "generic";
+export type AutosarEntityType =
+  | "swc"
+  | "composition"
+  | "instance"
+  | "port"
+  | "connection"
+  | "interface"
+  | "constant"
+  | "generic";
 
 export interface AutosarExtractionContext {
   profile: "classic";
@@ -84,6 +92,9 @@ class ClassicAutosarVersionAdapter implements AutosarVersionAdapter {
     }
     if (INTERFACE_TAGS.has(tagName)) {
       return "interface";
+    }
+    if (tagName === "CONSTANT-SPECIFICATION") {
+      return "constant";
     }
     return "generic";
   }

@@ -104,7 +104,39 @@ const snapshot: WorkspaceSnapshot = {
       semanticPath: "/Pkg/SenderSwc/DataOut",
       parentSemanticPath: "/Pkg/SenderSwc",
       portDirection: "provided",
-      typeRef: "/Pkg/Interfaces/DataIf"
+      typeRef: "/Pkg/Interfaces/DataIf",
+      metadata: {
+        "COMMUNICATION-SPEC-DETAILS": JSON.stringify([
+          {
+            index: "1",
+            dataElement: "/Pkg/Interfaces/DataIf/Signal",
+            comSpec: "Nonqueued Sender Com Spec",
+            initValue: "-"
+          }
+        ])
+      }
+    },
+    {
+      id: "interface",
+      type: "interface",
+      shortName: "DataIf",
+      path: "/Pkg/Interfaces/DataIf",
+      filePath: "C:/workspace/interfaces.arxml",
+      xmlPath: "/AUTOSAR/.../DataIf",
+      semanticPath: "/Pkg/Interfaces/DataIf",
+      interfaceKind: "sender-receiver",
+      metadata: {
+        "INTERFACE-DATA-ELEMENT-DETAILS": JSON.stringify([
+          {
+            label: "Signal",
+            semanticPath: "/Pkg/Interfaces/DataIf/Signal",
+            metadata: {
+              TYPE: "/Pkg/DataTypes/uint8",
+              "SW-CALIBRATION-ACCESS": "READ-WRITE"
+            }
+          }
+        ])
+      }
     }
   ],
   connections: [
@@ -134,6 +166,11 @@ test("buildGraph returns SWC detail node with explicit ports", async () => {
   assert.equal(graph.nodes.length, 1);
   assert.equal(graph.nodes[0]?.kind, "swc");
   assert.equal(graph.nodes[0]?.ports[0]?.label, "DataOut");
+  const communicationSpecDetails = JSON.parse(
+    graph.nodes[0]?.ports[0]?.metadata?.["COMMUNICATION-SPEC-DETAILS"] ?? "[]"
+  ) as Array<Record<string, string>>;
+  assert.equal(communicationSpecDetails[0]?.dataType, "/Pkg/DataTypes/uint8");
+  assert.equal(communicationSpecDetails[0]?.measurementCalibration, "READ-WRITE");
   assert.equal(graph.nodes[0]?.inspector?.sections[0]?.items[0]?.label, "Step");
   assert.equal(graph.edges.length, 0);
 });

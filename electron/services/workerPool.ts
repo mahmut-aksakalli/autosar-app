@@ -1,10 +1,12 @@
 import { Worker } from "node:worker_threads";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const workerPath = path.join(__dirname, "workers", "autosarWorker.js");
+const compiledWorkerPath = path.join(__dirname, "workers", "autosarWorker.js");
+const useCompiledWorker = fs.existsSync(compiledWorkerPath);
 
 type WorkerRequest =
   | {
@@ -17,8 +19,18 @@ type WorkerRequest =
 
 export class WorkerPool {
   async run<T>(request: WorkerRequest): Promise<T> {
+    if (!useCompiledWorker) {
+      const { parseAutosarDocument } = await import("./autosarParserService.js");
+      return parseAutosarDocument(
+        request.filePath,
+        request.content,
+        request.validationScope,
+        request.validationEnabled === true
+      ) as Promise<T>;
+    }
+
     return new Promise<T>((resolve, reject) => {
-      const worker = new Worker(workerPath, {
+      const worker = new Worker(compiledWorkerPath, {
         workerData: request
       });
 

@@ -10,6 +10,7 @@ import type {
   ValidationIssue
 } from "../../src/shared/contracts.js";
 import { WorkspaceService } from "./workspaceService.js";
+import { enrichPortCommunicationSpecsFromEntities, enrichPortInterfaceMetadataFromEntities } from "./autosarModel.js";
 
 export class GraphService {
   constructor(private readonly workspaceService: WorkspaceService) {}
@@ -21,6 +22,8 @@ export class GraphService {
     }
 
     const entities = workspace.entities;
+    enrichPortInterfaceMetadataFromEntities(entities);
+    enrichPortCommunicationSpecsFromEntities(entities);
     const connections = workspace.connections;
     const entityBySemanticPath = new Map(
       entities
