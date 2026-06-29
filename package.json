@@ -1,50 +1,95 @@
 {
-  "name": "autosar-tooling-app",
-  "version": "0.1.0",
+  "name": "autosar-model-view",
+  "displayName": "AUTOSAR Model View",
+  "description": "VS Code extension for exploring AUTOSAR software component and composition models.",
+  "version": "0.0.1",
+  "publisher": "local",
   "private": true,
-  "description": "Desktop AUTOSAR Application built with Electron, React, TypeScript, and Node.js",
-  "main": "dist-electron/electron/main.js",
-  "type": "module",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:autosarModelView.open",
+    "onCommand:autosarModelView.openFile",
+    "onCommand:autosarModelView.refresh",
+    "onView:autosarModelView.tree"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "autosarModelView.open",
+        "title": "AUTOSAR: Show Model View for Workspace"
+      },
+      {
+        "command": "autosarModelView.openFile",
+        "title": "AUTOSAR: Show Model View for Single File"
+      },
+      {
+        "command": "autosarModelView.refresh",
+        "title": "AUTOSAR: Refresh Model View"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "autosarModelView.openFile",
+          "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "autosarModelView.openFile",
+          "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autosarModelView",
+          "title": "AUTOSAR",
+          "icon": "resources/autosar.svg"
+        }
+      ]
+    },
+    "views": {
+      "autosarModelView": [
+        {
+          "id": "autosarModelView.tree",
+          "name": "Model"
+        }
+      ]
+    }
+  },
   "scripts": {
-    "dev": "npm-run-all --parallel dev:renderer dev:electron:build dev:electron:run",
-    "dev:renderer": "vite",
-    "dev:electron:build": "tsc -p tsconfig.electron.json --watch --preserveWatchOutput",
-    "dev:electron:run": "wait-on http://localhost:5173 dist-electron/electron/main.js && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
-    "build": "npm-run-all typecheck build:renderer build:electron",
-    "build:renderer": "vite build",
-    "build:electron": "tsc -p tsconfig.electron.json && tsx scripts/copy-preload.ts",
-    "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
-    "test": "tsx --test tests/**/*.test.ts",
-    "test:e2e": "npm-run-all build test:e2e:run",
-    "test:e2e:run": "playwright test",
-    "smoke": "npm-run-all build smoke:app",
-    "smoke:app": "tsx scripts/electron-smoke.ts",
-    "verify:functional": "npm-run-all typecheck test smoke test:e2e:run"
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p ./tsconfig.json",
+    "compile:webview": "vite build --config webview/vite.config.ts",
+    "package": "npm run compile && vsce package",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
+    "watch": "tsc -watch -p ./tsconfig.json"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",
-    "chokidar": "^4.0.3",
-    "electron": "^36.2.0",
     "fast-xml-parser": "^4.5.3",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "xmllint-wasm": "^5.2.0"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@vitejs/plugin-react": "^4.4.1",
     "@types/node": "^22.15.17",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "cross-env": "^7.0.3",
-    "npm-run-all": "^4.1.5",
-    "tsx": "^4.19.4",
+    "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.5.0",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "wait-on": "^8.0.3"
-  },
-  "volta": {
-    "node": "22.22.2",
-    "npm": "10.9.8"
+    "vite": "^6.3.5"
   }
 }

@@ -1,81 +1,73 @@
-# AUTOSAR App
+# AUTOSAR Model View
 
-Desktop AUTOSAR Application built with Electron, React, TypeScript, Node.js, and Vite.
+VS Code extension for exploring AUTOSAR software component and composition models.
 
 ## What It Does
 
-The current app focuses on local ARXML workspace exploration and editing:
+The current extension focuses on AUTOSAR model visualization inside VS Code:
 
-- open a workspace folder containing `.arxml` files
+- open a VS Code workspace containing `.arxml` files
+- open and visualize a single `.arxml` file directly
 - recognize Vector DaVinci Developer/Configurator-style project folders from metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg`
-- build workspace-level AUTOSAR model context from Vector project metadata-referenced ARXML inputs in the background
-- show a Model mode loading warning while Vector workspace indexing is still running
-- show parsed/indexed ARXML documents once when the Model view loads, with a View menu toggle for later access
-- open a single `.arxml` file directly
-- browse files in a VS Code-like Explorer tree
-- keep multiple ARXML files open in tabs
-- edit discovered fields in a structured editor
-- search within the active document
-- jump from reference values to the referenced node
+- build workspace-level AUTOSAR model context from Vector project metadata-referenced ARXML inputs
 - build model graph data from indexed AUTOSAR entities
-- visualize SWCs and compositions in a dedicated tabbed model workspace
-- browse semantic AUTOSAR model nodes and open graph, port, runnable, behavior, and memory detail tabs
+- visualize SWCs and compositions in a React Flow webview
+- browse semantic AUTOSAR model nodes from the VS Code AUTOSAR tree
+- open graph, port, runnable, behavior, memory, parameter, and service detail tabs in the model webview
 - classify AUTOSAR SWCs by family, including application, parameter, service, service-proxy, sensor-actuator, ECU abstraction, complex driver, nv-block, and composition components
 - annotate semantic model entities with AUTOSAR release/version, extraction profile, XML path, `SHORT-NAME` path, owner package path, and completeness metadata
-- render `P`, `R`, and `PR` ports with interface-aware metadata, service-port status, and port detail labels for sender-receiver, client-server, parameter, mode-switch, trigger, and NV-data interfaces
+- render `P`, `R`, and `PR` ports with interface-aware metadata and labels for sender-receiver, client-server, parameter, mode-switch, trigger, and NV-data interfaces
 - inspect ComSpec init values from numerical, text, resolved constant reference, application, array, and record value specifications
-- inspect ports and connectors within Model mode
-- inspect SWC internals in a bottom panel, including runnables, internal variables, and interface members when available
-- navigate AUTOSAR Model mode without switching back to ARXML source: composition clicks open inner composition views and SWC clicks focus the SWC graph while highlighting it in the model explorer
-- validate the active ARXML file on demand for syntax, AUTOSAR namespace/schema metadata, local AUTOSAR XSD conformance, and serialization diagnostics
-- validate AUTOSAR semantic references for indexed ports, interfaces, component prototypes, and composition connectors
+- inspect ports, runnables, connectors, internal variables, memory, parameters, and interface members when available
+- navigate AUTOSAR Model mode from the VS Code tree and graph webview without introducing ARXML editor/viewer functionality
 
-The app also remembers the last opened workspace folder and restores it on the next launch.
+The extension intentionally does not port the ARXML viewer/editor, raw XML editor, structured ARXML editor, save flows, or schema validation UI from the desktop app.
 
 ## Tech Stack
 
-- `Electron` for the desktop shell and native dialogs
-- `React` for the renderer UI
+- `VS Code Extension API` for commands, tree views, file watching, and webviews
+- `React` for the model webview UI
 - `React Flow` for SWC/composition visualization
-- `TypeScript` across renderer and Electron code
-- `Node.js` for backend services and worker-thread execution
-- `Vite` for renderer development and production builds
+- `TypeScript` across extension host and webview code
+- `Node.js` for extension-host model services
+- `Vite` for webview development and production builds
+- `fast-xml-parser` for ARXML model extraction
 
 ## Project Structure
 
 ```text
-electron/
-  main.ts
-  mainIpc.ts
-  preload.ts
-  preload.cjs
-  services/
-    appStateService.ts
-    arxmlDocumentService.ts
+src/
+  extension.ts
+  model/
+    autosarModel.ts
     autosarSemanticValidationService.ts
     autosarVersionAdapters.ts
-    arxmlValidationService.ts
-    autosarModel.ts
-    autosarSchemaRegistry.ts
     graphService.ts
+    modelTreeProvider.ts
     vectorProjectService.ts
-    workerPool.ts
-    workspaceService.ts
-    xsdValidationEngine.ts
-    workers/
-      autosarWorker.ts
-src/
-  App.tsx
-  main.tsx
-  styles.css
+    workspaceModelService.ts
   shared/
     contracts.ts
-tests/
-  arxmlValidationService.test.ts
-  autosarModel.test.ts
+webview/
+  index.html
+  vite.config.ts
+  src/
+    main.tsx
+    ModelWebviewApp.tsx
+    styles.css
+    vscodeApi.ts
+    model/
+      ModelPanel.tsx
+      graphLayout.ts
+    shared/
+      contracts.ts
+media/
+  assets/
 resources/
+  autosar.svg
   autosar-schemas/
     schema-manifest.json
+    xml.xsd
     R4.0.3/
     R4.1.3/
     R4.2.2/
@@ -88,19 +80,20 @@ resources/
     R23-11/
     R24-11/
     R25-11/
-scripts/
-  copy-preload.ts
-  electron-smoke.ts
+examples/
+  example.arxml
+  example-ecu-project.arxml
+  TestApp.arxml
 PLAN.md
 ```
 
 ## Prerequisites
 
-- `Node.js` 22.22.2
-- `npm` 10.9.8
-- `Volta` is recommended; the project pins these tool versions in `package.json`.
+- `Node.js` 22.x is recommended
+- `npm` 10.x is recommended
+- VS Code compatible with extension engine `^1.92.0`
 
-If Electron's install step fails with a local certificate issuer error, rerun install with Node's system certificate store enabled:
+If npm install fails with a local certificate issuer error, rerun install with Node's system certificate store enabled:
 
 ```bash
 NODE_OPTIONS=--use-system-ca npm install
@@ -118,144 +111,154 @@ set NODE_OPTIONS=--use-system-ca&& npm install
 npm install
 ```
 
+To install the packaged extension locally:
+
+```powershell
+code --install-extension .\autosar-model-view-0.0.1.vsix
+```
+
+Reload VS Code after installing.
+
 ## Development
 
-Run the renderer dev server, Electron TypeScript watch build, and the Electron app together:
+Open this folder in VS Code and press `F5`.
 
-```bash
-npm run dev
+This launches an Extension Development Host. In that window, open an AUTOSAR workspace and run:
+
+```text
+AUTOSAR: Open Model View
+```
+
+To visualize one ARXML file without indexing a workspace, right-click an `.arxml` file in Explorer or an editor tab and run:
+
+```text
+AUTOSAR: Open ARXML File Model View
 ```
 
 ## Build
 
-Create a production build for both renderer and Electron:
+Create a production build for both the extension host and webview:
 
 ```bash
-npm run build
+npm run compile
 ```
 
 This runs:
 
-- `npm run typecheck`
-- `npm run build:renderer`
-- `npm run build:electron`
+- `npm run compile:extension`
+- `npm run compile:webview`
 
 Build output goes to:
 
 - `dist/`
-- `dist-electron/`
+- `media/`
+
+Create a local VSIX package:
+
+```bash
+npm run package
+```
+
+This creates:
+
+```text
+autosar-model-view-0.0.1.vsix
+```
 
 ## Validation Commands
 
 ```bash
 npm run typecheck
-npm test
-npm run test:e2e
-npm run smoke:app
-npm run verify:functional
+npm run compile
+npm run package
 ```
+
+Automated `npm test` coverage is planned but not wired yet.
 
 ## Local AUTOSAR Schemas
 
-Official AUTOSAR Classic 4.x XML schema files are stored under `resources/autosar-schemas/`
-for offline ARXML validation. The folder keeps only the XSD files needed for validation
-and `resources/autosar-schemas/schema-manifest.json`, which maps AUTOSAR releases to local XSD
-files and original AUTOSAR source URLs.
+Official AUTOSAR Classic 4.x XML schema files are stored under `resources/autosar-schemas/`.
+The folder includes `resources/autosar-schemas/schema-manifest.json`, which maps AUTOSAR
+releases to local XSD files and original AUTOSAR source URLs.
 
-XSD validation runs on demand from the renderer's `Validate File` action through the
-Electron/Node service layer with `xmllint-wasm`, while
-`fast-xml-parser` remains responsible for XML well-formedness checks and model extraction.
-The shared `resources/autosar-schemas/xml.xsd` file is preloaded for AUTOSAR schemas that
-import the standard XML namespace schema.
-
-AUTOSAR publishes these materials for information only. Review AUTOSAR's terms and release
-disclaimers before using them beyond local validation.
+The current extension uses `fast-xml-parser` for model extraction. The copied schemas are
+available for future offline schema validation work, but schema validation UI is not part of
+the current model-view migration.
 
 ## Main Scripts
 
 ```bash
-npm run dev
-npm run build
+npm run compile
+npm run compile:extension
+npm run compile:webview
 npm run typecheck
-npm test
-npm run test:e2e
-npm run smoke:app
-npm run verify:functional
+npm run package
 ```
 
 ## How To Use
 
-1. Start the app with `npm run dev`.
-2. Click `Open Folder` to load an AUTOSAR workspace, or `Open File` to inspect a single `.arxml` file.
-3. When a folder contains Vector DaVinci metadata, the app treats it as a workspace-level AUTOSAR project and indexes the project ARXML inputs in the background for Model mode.
-4. Folders without Vector project metadata remain lazy file browsers; ARXML files are parsed individually when opened.
-5. If you switch to Model mode before Vector indexing finishes, the editor view shows a loading warning until the semantic model is ready.
-6. Use the Explorer to open ARXML files in tabs.
-7. Edit the active file in raw XML or structured mode.
-8. Run `Validate File` from the Explorer sidebar when you want syntax/schema diagnostics.
-9. Save the active document with the save action or `Ctrl/Cmd+S`.
+1. Install the extension from the VSIX or start it with `F5` in an Extension Development Host.
+2. Open a VS Code workspace containing AUTOSAR `.arxml` files, or open a single `.arxml` file.
+3. Run `AUTOSAR: Open Model View` for workspace mode.
+4. Run `AUTOSAR: Open ARXML File Model View` for single-file mode.
+5. When a workspace contains Vector DaVinci metadata, the extension indexes metadata-referenced ARXML inputs.
+6. Use the AUTOSAR activity bar view to browse Software Compositions and Software Components.
+7. Select compositions, SWCs, graph nodes, ports, runnables, or detail nodes to open the React model webview.
+8. Use graph tabs and semantic detail tabs in the webview to inspect the model.
 
-The ARXML fixtures under `examples/` target AUTOSAR Classic 4.4.0 and validate against
-`resources/autosar-schemas/R4.4.0/AUTOSAR_00046.xsd`.
+The ARXML fixtures under `examples/` target AUTOSAR Classic 4.4.0 and can be used for local smoke testing.
 
 ## Architecture Overview
 
-### Renderer
+### Extension Host
 
-The renderer lives under `src/` and is responsible for:
+The extension host lives under `src/` and is responsible for:
 
-- workbench layout
-- Explorer and tabbed editor UI
-- raw XML and structured editing experiences
-- in-document search and reference jumps
-- model navigation views
-- semantic model workspace tabs for graphs and SWC details
+- registering VS Code commands
+- registering the AUTOSAR model tree view
+- indexing workspace and single-file ARXML inputs
+- discovering Vector DaVinci project metadata
+- building AUTOSAR semantic model snapshots
+- building SWC/composition graph data
+- serving graph requests from the webview
 
 Main entry points:
 
-- `src/App.tsx`
-- `src/main.tsx`
-- `src/shared/contracts.ts`
+- `src/extension.ts`
+- `src/model/workspaceModelService.ts`
+- `src/model/modelTreeProvider.ts`
 
-### Electron Main Process
+### Webview
 
-The Electron layer lives under `electron/` and is responsible for:
+The webview lives under `webview/` and is responsible for:
 
-- creating the application window
-- registering IPC handlers
-- opening native file and folder dialogs
-- restoring persisted workspace state
+- rendering the tabbed model workspace
+- rendering SWC and composition graphs with React Flow
+- rendering port, runnable, behavior, memory, parameter, and service detail surfaces
+- sending graph requests to the extension host through VS Code webview messaging
 
 Main files:
 
-- `electron/main.ts`
-- `electron/mainIpc.ts`
-- `electron/preload.ts`
+- `webview/src/ModelWebviewApp.tsx`
+- `webview/src/model/ModelPanel.tsx`
+- `webview/src/model/graphLayout.ts`
+- `webview/src/vscodeApi.ts`
 
-### Services And Workers
+### Services
 
-Backend services handle:
+Model services handle:
 
-- workspace indexing and file watching
-- Vector DaVinci project discovery from workspace metadata and background indexing of referenced AUTOSAR inputs
-- on-demand ARXML syntax, namespace, schema, and serialization validation
+- ARXML parsing for semantic model extraction
+- Vector DaVinci project discovery from workspace metadata
 - AUTOSAR semantic reference validation for indexed SWCs, compositions, ports, interfaces, and connector endpoints
-- ARXML parsing and document loading
-- save and preview flows
-- model extraction and graph generation
-- semantic SWC/composition graph generation for the model canvas, including AUTOSAR SWC kinds, port kinds, and port-interface semantics
+- semantic SWC/composition graph generation
 - version-aware Classic AUTOSAR extraction metadata for semantic model entities
-- app state persistence
-
-Heavy parse/index work is delegated through worker threads so the renderer stays responsive.
 
 Key files:
 
-- `electron/services/workspaceService.ts`
-- `electron/services/vectorProjectService.ts`
-- `electron/services/arxmlDocumentService.ts`
-- `electron/services/autosarModel.ts`
-- `electron/services/graphService.ts`
-- `electron/services/appStateService.ts`
-- `electron/services/workerPool.ts`
-- `electron/services/workers/autosarWorker.ts`
+- `src/model/workspaceModelService.ts`
+- `src/model/vectorProjectService.ts`
+- `src/model/autosarModel.ts`
+- `src/model/autosarSemanticValidationService.ts`
+- `src/model/autosarVersionAdapters.ts`
+- `src/model/graphService.ts`

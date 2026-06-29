@@ -1,296 +1,235 @@
-# AUTOSAR App Plan
+# AUTOSAR Model View VS Code Extension Migration Plan
 
-## Summary
-Build a desktop-first AUTOSAR engineering application focused on ARXML viewing/editing first, then standards-aware visualization that grows from individual SWCs to compositions, ECU-local deployment views, and finally whole-system AUTOSAR topology. The plan is broken into small execution steps with checkboxes so progress can be tracked directly in `PLAN.md`.
+This project migrates only the AUTOSAR model-view functionality from
+main branch into a focused VS Code extension. ARXML viewer,
+editor, schema validation UI, raw/structured editing, file tabs, save flows,
+and Electron shell code are intentionally out of scope.
 
-## Steps
-### Step 1 - Core ARXML editor foundation
-- [x] 1.1 Define the v1 workbench scope as `Explorer + tabbed editor`.
-- [x] 1.2 Keep `File mode` and `Model mode`, with `File mode` as the default primary workflow.
-- [x] 1.3 Support both opening a workspace folder and individual arxml files. On workspace, you list other files names as well, tool don't need to support opening them
-- [x] 1.4 Render the Explorer as a VS Code-like folder tree with filenames only at leaf nodes.
-- [x] 1.5 Open multiple ARXML files in tabs and allow switching without losing in-memory edits.
-- [x] 1.6 Keep dual editing modes: raw XML editor and structured field editor backed by the same parsed document.
-- [x] 1.7 Add search capabilities to editor.
-- [x] 1.8 User should be able to click on a reference on arxml file and editor should jump to there.
-- [x] 1.9 Remember the last opened workspace folder and restore it in the Explorer on next app launch without overwriting it when opening a single file.
+## 1. Scaffold The Extension
 
-### Step 2 - SWC visualization architecture
-- [x] 2.1 Keep the SWC diagram navigation-first in v1: visualization, selection, inspect, and jump-to-source only.
-- [x] 2.2 Use React Flow as the renderer canvas, but keep AUTOSAR graph types as the internal app contract instead of React Flow types.
-- [x] 2.3 Extend the AUTOSAR model index to expose stable semantic IDs for SWCs, compositions, component instances, ports, and connector endpoints.
-- [x] 2.4 Add a dedicated graph-building service that returns semantic graph data for two scopes: `SWC detail` and `Composition view`.
-- [x] 2.5 Replace the current generic graph DTO with shared contracts that include node kind, edge kind, labels, semantic IDs, file path, and XML path.
-- [x] 2.6 Keep layout ownership in the renderer: compute initial positions there and do not persist coordinates into ARXML.
-- [x] 2.7 Add a dedicated renderer model module with `ModelCanvas`, `ModelInspector`, and `ModelToolbar` instead of expanding `App.tsx` further.
-- [x] 2.8 Render individual SWCs with explicit provided/required port visualization and port-level selection metadata.
-- [x] 2.9 Render compositions with contained SWCs and edges for assembly/delegation connectors mapped to the correct endpoints.
-- [x] 2.10 Support double click on SWC nodes to open the defining file in the editor.
-- [x] 2.11 Support double click on ports/connectors to jump to the target XML path in the structured editor.
-- [x] 2.12 Handle unresolved references safely by showing degraded graph state and inspector warnings instead of breaking the canvas.
-- [x] 2.13 Keep graph extraction/indexing off the renderer thread and limit graph payloads to the requested focus scope for performance.
-- [x] 2.14 Add a bottom inspector panel in SWC visualization for internal SWC behavior details such as runnables, calibration variables, inter-runnable variables, and per-instance memory.
+- [x] Create a TypeScript VS Code extension project in this folder.
+- [x] Add `package.json`, `tsconfig.json`, `.vscodeignore`, and source folders.
+- [x] Register commands:
+  - [x] `autosarModelView.open`
+  - [x] `autosarModelView.openFile`
+  - [x] `autosarModelView.refresh`
+- [x] Register a dedicated AUTOSAR model tree view.
+- [x] Add build/typecheck scripts.
 
-### Step 3 - AUTOSAR semantic coverage for SWCs, ports, and interfaces
-References:
-- [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
-- Sections: `3.2 Software Component`, `3.2.2 PortPrototype`, `3.2.3 AtomicSwComponentType`, `3.2.4 ParameterSwComponentType`, `3.3 Composition`, `3.4 Port Interface`, `4.2 Port Interface Details`
-- Tables: `Table 3.1 SwComponentType`, `Table 3.2 PortPrototype`
-- [x] 3.1 Replace generic SWC parsing with explicit `swcKind` support for `application`, `composition`, `parameter`, `sensor-actuator`, `ecu-abstraction`, `complex-device-driver`, `service`, `service-proxy`, and `nv-block`.
-- [x] 3.2 Extend shared contracts so renderer and Electron both understand `swcKind`, `portKind`, `portInterfaceKind`, and richer connector metadata.
-- [x] 3.3 Parse `PR-PORT-PROTOTYPE` in addition to existing `P-PORT-PROTOTYPE` and `R-PORT-PROTOTYPE`.
-- [x] 3.4 Preserve `mayBeUnconnected` and similar port-level metadata for inspection and warnings.
-- [x] 3.5 Expand interface parsing to support `sender-receiver`, `client-server`, `mode-switch`, `parameter`, `nv-data`, and `trigger`.
-- [x] 3.6 Extract interface members for inspector usage: data elements, operations, arguments, application errors, parameters, mode groups, and triggers.
-- [x] 3.7 Add UI badges and grouping so each SWC family is visually distinct instead of all appearing as generic SWCs.
-- [x] 3.8 Add dedicated rendering behavior for `PR` ports so they are not flattened into only provided or only required.
-- [x] 3.9 Add warnings for unsupported or incompatible port/interface combinations instead of silently degrading.
-- [x] 3.10 Add parser and graph tests that cover one representative ARXML sample for each SWC family and port/interface family.
+## 2. Move Shared Model Contracts
 
-### Step 4 - ARXML syntax, schema, and serialization validation
-References:
-- [AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf](https://www.autosar.org/fileadmin/standards/R25-11/FO/AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf)
-- [AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf](https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf)
-- Scope: XML well-formedness, AUTOSAR namespace/release detection, XSD validation, and AUTOSAR ARXML serialization-rule checks.
-- [x] 4.1 Add an explicit ARXML validation service in the Electron backend, separate from model extraction, so validation can run on demand for the active file and later support workspace or batch validation flows.
-- [x] 4.2 Report XML well-formedness errors before semantic parsing, including parser message, line, column when available, file path, and a stable issue code.
-- [x] 4.3 Detect AUTOSAR namespace, declared schema location, and AUTOSAR release/version hints from the root `AUTOSAR` element.
-- [x] 4.4 Warn when the root namespace is missing, not the AUTOSAR namespace, or uses an unsupported namespace/prefix form for the selected validation mode.
-- [x] 4.5 Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files without hard-coding paths inside parser code.
-  - [x] Download official AUTOSAR Classic 4.x schema bundles locally under `resources/autosar-schemas/` for offline validation.
-- [x] 4.6 Validate ARXML documents against the selected AUTOSAR XSD and surface structural schema errors with file, path, message, severity, and source category.
-- [x] 4.7 Define validation scopes for `single-file`, `workspace`, and future `batch` runs so individual SWC extracts can be validated without pretending the whole AUTOSAR project is present.
-- [x] 4.8 Support workspace-level validation of ARXML fragments while preserving per-file results, because AUTOSAR projects are commonly split across many `.arxml` files.
-- [x] 4.9 Add serialization-rule checks that XSD alone does not cover, including namespace usage, `xsi:schemaLocation` shape, unsupported extra namespaces, and root/schema consistency.
-- [x] 4.10 Add validation result contracts in `src/shared/` that distinguish `syntax`, `namespace`, `schema`, and `serialization` issues from later semantic/model issues.
-- [x] 4.11 Carry validation scope and completeness metadata in document/workspace results so the UI can explain whether diagnostics came from one file or a full workspace.
-- [x] 4.12 Show syntax/schema/serialization validation issues in the renderer after the user explicitly runs validation, without blocking read-only exploration of partially valid files.
-- [x] 4.13 Add fixtures for malformed XML, missing namespace, wrong namespace, missing schema location, unsupported schema version, schema-invalid ARXML structure, and schema-valid standalone SWC extracts.
-- [ ] 4.14 Add unit tests for validation issue normalization and functional tests that verify invalid ARXML files produce actionable UI diagnostics.
-  - [x] Add unit coverage for valid schema-backed ARXML, malformed XML, missing namespace/schema location, wrong namespace, unsupported schema location, malformed schema location shape, and XSD structural errors.
-  - [ ] Add Playwright/Electron UI coverage for invalid ARXML diagnostics once the smoke-test runtime issue is resolved.
+- [x] Copy model-related contracts from `src/shared/contracts.ts`.
+- [x] Keep only data needed for model indexing, model tree, graph rendering, and
+  webview communication.
+- [x] Avoid editor/search/save-only APIs from the Electron app.
 
-### Step 5 - AUTOSAR reference and semantic validation
-References:
-- [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
-- [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
-- Scope: single-file and workspace model/reference resolution plus AUTOSAR semantic validation rules for the currently supported Classic Platform model surface.
-- [x] 5.1 Build one AUTOSAR model index implementation that can be populated from either a single ARXML file or a full workspace.
-  - [x] Detect Vector DaVinci project metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg` when opening folders.
-  - [x] Seed full-workspace semantic indexing from Vector project metadata-referenced ARXML inputs, with fallback to all ARXML files when metadata references cannot be resolved.
-  - [x] Show an editor-view loading warning when Model mode is opened while Vector workspace indexing is still running.
-  - [x] Show parsed/indexed ARXML documents in a Model-mode bottom panel using the validation-panel layout.
-- [x] 5.2 Add version-aware semantic extractor interfaces that convert generic XML nodes into app-level AUTOSAR entities instead of binding the renderer to XSD-generated XML shapes.
-- [x] 5.3 Implement a shared Classic AUTOSAR extractor foundation for common `4.x` structures, then isolate version-specific differences behind adapters selected from namespace/schema metadata.
-- [ ] 5.4 Add focused extractors for SWCs, ports, interfaces, compositions, component prototypes, connectors, runnables, events, memory, calibration data, ECU mappings, and hardware references as each feature becomes supported.
-  - [x] Route currently supported Classic SWC, port, interface, composition, component-prototype, connector, runnable, event, memory, and calibration extraction through the version-aware Classic adapter foundation.
-  - [ ] Add ECU mapping and hardware-reference extractors once Step 7 and Step 8 entities are introduced.
-- [x] 5.5 Keep extractor output stable across AUTOSAR versions by mapping version-specific XML differences into shared semantic contracts used by the rest of the app.
-- [x] 5.6 Record semantic paths, XML paths, entity kinds, `SHORT-NAME` chains, defining file, owning package, validation scope, model completeness, AUTOSAR version, and raw XML source pointers for every supported entity.
-- [x] 5.7 Build the model index first, then resolve references in a separate pass so cross-file links and forward references can be handled consistently.
-- [x] 5.8 Resolve `*-REF` and `*-TREF` values against the currently available index, using single-file mode for isolated SWC extracts and workspace mode for project folders.
-- [x] 5.9 Classify references as `resolved-local`, `resolved-workspace`, `external`, `unresolved`, or `wrong-kind` instead of flattening every missing target into the same warning.
-- [x] 5.10 In single-file mode, treat well-formed references to missing outside entities as `external` or incomplete-context warnings so standalone SWC descriptions remain useful and viewable.
-- [x] 5.11 In workspace mode, escalate missing cross-file references to unresolved-reference diagnostics when the target should be present in the loaded project.
-- [x] 5.12 Validate that resolved references point to the expected AUTOSAR destination kind, including port interfaces, SWC types, component prototypes, ports, runnables, events, connectors, ECU instances, mappings, and hardware references as support grows.
-  - [x] Implement destination-kind checks for currently indexed port interfaces, component types, component prototypes, and connector ports.
-  - [ ] Extend destination-kind checks to runnable/event/mapping/hardware references after those references are extracted into the semantic model.
-- [x] 5.13 Report reference diagnostics with the source XML path, reference value, expected destination, resolved status, validation scope, AUTOSAR version, and nearest owning AUTOSAR entity.
-- [x] 5.14 Detect duplicate or ambiguous semantic paths that would make reference resolution unsafe.
-- [ ] 5.15 Validate port/interface compatibility for `P`, `R`, and `PR` ports, including sender-receiver, client-server, mode-switch, parameter, nv-data, and trigger interfaces when the interface definition is available.
-- [x] 5.16 Preserve port and connector display when interface definitions or connector endpoints are external to a single-file extract, using badges and warnings instead of dropping graph elements.
-- [x] 5.17 Validate composition connectors, including assembly/delegation endpoint existence, compatible port direction, compatible interface type, and degraded handling for intentionally unconnected or external ports.
-  - [x] Validate assembly/delegation component and port endpoint existence.
-  - [ ] Add full connector port-direction and interface-compatibility checks once connector endpoint interface resolution is expanded.
-- [ ] 5.18 Validate SWC internal behavior relationships, including runnable references from events, runnable access points, calibration variables, inter-runnable variables, and per-instance memory links where currently parsed.
-  - [x] Extract runnable access-point detail rows for the runnable details view, including DEP/operation/trigger target, access type, and access-point name.
-  - [ ] Add semantic validation for runnable access-point references after referenced port/data/operation targets are indexed consistently.
-- [ ] 5.19 Validate component family constraints already represented in the app, including parameter SWC usage, service/service-proxy distinctions, sensor-actuator, ECU abstraction, complex driver, and nv-block expectations.
-- [ ] 5.20 Keep semantic validation incremental so editing one ARXML file revalidates affected references without forcing a full workspace rebuild when avoidable.
-- [x] 5.21 Expose semantic validation issues in shared contracts with stable issue codes, severity, source file, XML path, semantic path, related target path, reference status, validation scope, AUTOSAR version, and optional quick-jump metadata.
-- [ ] 5.22 Add fixtures and tests for version-aware extraction, standalone SWC extracts, external interface references, unresolved workspace references, wrong destination types, incompatible port/interface pairs, invalid connector endpoints, duplicate semantic paths, and incomplete but still viewable AUTOSAR models.
-  - [x] Add unit tests for standalone external references, unresolved workspace references, wrong destination kinds, invalid connector endpoints, and duplicate semantic paths.
-  - [ ] Add version-aware extractor fixtures and incompatible port/interface-pair fixtures.
+## 3. Move Model Extraction Services
 
-### Step 6 - Richer SWC and composition visualization
-References:
-- [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
-- Sections: `3.3 Composition`, `3.3.2 SwComponentPrototype`, `3.3.3 Connectors`, `3.4 Port Interface`, `4.2.2 Sender Receiver Communication`, `4.2.3 Client Server Communication`, `4.2.4 External Trigger Event Communication`, `4.2.5 Communication of Modes`, `4.2.6 Parameter Communication`
-- Constraints: `constr_1032`, `constr_1036`, `constr_1069` to `constr_1084`
-- [x] 6.1 Update the `Model` explorer tree to group components by SWC family.
-  - [x] Highlight root and SWC-family parent rows in the Model explorer with persistent background colors for better scanability.
+- [x] Copy and adapt:
+  - [x] `autosarModel.ts`
+  - [x] `autosarVersionAdapters.ts`
+  - [x] `autosarSemanticValidationService.ts`
+  - [x] `vectorProjectService.ts`
+  - [x] `graphService.ts`
+- [x] Replace Electron-relative imports with extension-local imports.
+- [x] Keep `fast-xml-parser` as the model parser.
+- [x] Do not port XSD validation or ARXML editor services.
+- [x] Copy AUTOSAR schema resources to `resources/autosar-schemas/`.
+- [x] Copy source example ARXML files to `examples/`.
+
+## 4. Source Step 4 - ARXML Syntax, Schema, And Serialization Validation
+
+The extension is model-view focused, so source-app ARXML editor validation UI is
+not part of the first migration. Keep these items as parity/backlog work only
+where diagnostics improve model exploration.
+
+- [ ] Add an explicit ARXML validation service in the extension host, separate from model extraction.
+- [ ] Report XML well-formedness errors before semantic parsing with message, file path, line, column when available, and stable issue code.
+- [ ] Detect AUTOSAR namespace, declared schema location, and release/version hints from the root `AUTOSAR` element.
+- [ ] Warn when the root namespace is missing, non-AUTOSAR, or unsupported for the selected validation mode.
+- [ ] Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files.
+  - [ ] Decide whether the extension should bundle or optionally locate `resources/autosar-schemas/`.
+- [ ] Validate ARXML against selected AUTOSAR XSD and surface structural schema errors.
+- [x] Preserve validation scopes for `single-file` and `workspace` in shared contracts.
+- [ ] Support workspace-level validation of split AUTOSAR projects while preserving per-file results.
+- [ ] Add serialization-rule checks for namespace usage, schema location shape, extra namespaces, and root/schema consistency.
+- [x] Keep validation issue contracts for `syntax`, `namespace`, `schema`, `serialization`, and `semantic`.
+- [x] Carry validation scope and completeness metadata in document/workspace results.
+- [ ] Show syntax/schema/serialization diagnostics in VS Code Problems or a model diagnostics view.
+- [ ] Add fixtures for malformed XML, namespace/schema edge cases, schema-invalid ARXML, and standalone schema-valid SWC extracts.
+- [ ] Add unit tests for validation issue normalization and UI/extension diagnostics.
+
+## 5. Source Step 5 - AUTOSAR Reference And Semantic Validation
+
+- [x] Build one AUTOSAR model index path for either a single ARXML file or a full workspace.
+  - [x] Detect Vector DaVinci metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg`.
+  - [x] Seed workspace semantic indexing from Vector metadata-referenced ARXML inputs.
+  - [x] Fall back to all ARXML files when Vector metadata inputs cannot be resolved.
+  - [ ] Show an explicit model-loading state in the webview while larger workspace indexing runs.
+  - [ ] Add a parsed/indexed ARXML documents panel equivalent for VS Code.
+- [x] Add version-aware semantic extractor interfaces.
+- [x] Implement the shared Classic AUTOSAR extractor foundation.
+- [ ] Add focused extractors for every source-app roadmap entity:
+  - [x] SWCs
+  - [x] ports
+  - [x] interfaces
+  - [x] compositions
+  - [x] component prototypes
+  - [x] connectors
+  - [x] runnables
+  - [x] events
+  - [x] memory
+  - [x] calibration data
+  - [ ] ECU mappings
+  - [ ] hardware references
+- [x] Keep extractor output stable across AUTOSAR versions through shared semantic contracts.
+- [x] Record semantic paths, XML paths, entity kinds, `SHORT-NAME` chains, defining file, owning package, validation scope, model completeness, AUTOSAR version, and raw source pointers where available.
+- [x] Build the model index first, then resolve references in a separate semantic validation pass.
+- [x] Resolve `*-REF` and `*-TREF` values against single-file or workspace context.
+- [x] Classify references as resolved, external, unresolved, wrong-kind, or ambiguous through shared contracts.
+- [x] Treat missing outside entities in single-file mode as incomplete/external context rather than fatal.
+- [x] Escalate missing cross-file references in workspace mode where targets should be loaded.
+- [ ] Complete destination-kind validation coverage:
+  - [x] port interfaces
+  - [x] component types
+  - [x] component prototypes
+  - [x] connector ports
+  - [ ] runnable/event references
+  - [ ] mapping/hardware references
+- [x] Report reference diagnostics with source XML path, reference value, expected destination, status, scope, and related target data.
+- [x] Detect duplicate or ambiguous semantic paths.
+- [ ] Validate port/interface compatibility for `P`, `R`, and `PR` ports.
+- [x] Preserve port and connector display when definitions/endpoints are external or incomplete.
+- [ ] Complete composition connector validation:
+  - [x] endpoint existence
+  - [ ] port-direction compatibility
+  - [ ] interface compatibility
+- [ ] Validate SWC internal behavior relationships:
+  - [x] extract runnable access-point details
+  - [ ] validate runnable access-point references
+- [ ] Validate component-family constraints for parameter, service, service-proxy, sensor-actuator, ECU abstraction, complex driver, and nv-block expectations.
+- [ ] Add incremental semantic validation so editing or refreshing one ARXML avoids a full rebuild when possible.
+- [x] Expose semantic validation issues in shared contracts.
+- [ ] Add fixtures and tests for version-aware extraction, external references, unresolved workspace references, wrong destinations, invalid connectors, duplicates, and incomplete viewable models.
+
+## 6. Source Step 6 - Richer SWC And Composition Visualization
+
+- [x] Update the model explorer tree to group components by SWC family.
+  - [ ] Native VS Code TreeView cannot persist custom row backgrounds/borders; consider custom tree webview if exact row styling is required.
   - [x] Default-open Software Compositions and Software Components while keeping SWC family groups folded.
-- [x] 6.2 Replace the bottom SWC inspector panel with a tabbed model workspace in the main canvas area.
-  - [x] Keep `File` mode explorer unchanged for physical workspace browsing.
-  - [x] Turn `Model` mode explorer into a semantic AUTOSAR browser with tree nodes for SWCs, compositions, and later ECU/system entities.
-  - [x] Under each SWC, expose explorer children such as `Graph`, `Ports`, `Runnables`, `Events`, `Parameters`, `Inter-Runnable Variables`, `Per-Instance Memory`, `Exclusive Areas`, and `Service Dependencies`.
-  - [x] Open semantic detail tabs from the model explorer, using titles like `Graph: CoverageApplicationSwc`, `Runnable: EvaluateCoveragePaths`, and `Port: WakeupDataPr`.
-  - [x] Keep the graph tab as the default entry point for an SWC workspace.
-- [x] 6.3 Add dedicated canvas tabs for SWC details instead of inspector sections, starting with interface details and Chapter 7 internal-behavior details.
-  - [x] Add `Graph`, `Runnables`, `Events`, `Behavior`, and `Memory` workspace tabs for an SWC.
-  - [x] Support entity-specific tabs opened from explorer or graph selections, such as `Runnable`, `Port`, and `Event`.
-  - [x] Make runnable tabs the primary surface for Chapter `7.2 RunnableEntity` details.
-  - [x] Show runnable access points in a compact details table with user-resizable columns.
-  - [x] Show runnable trigger events in a collapsible details table with trigger, type, disabled modes, activation reason, and event name.
-  - [x] Show runnable activation reasons in a dedicated Bit/Name/Symbol table and expose `SW-ADDR-METHOD-REF` in runnable fields.
-  - [x] Add a richer port detail surface with direction checkboxes, port API options, port-defined argument values, and communication specs.
-  - [x] Trim the port detail surface to requested fields and make Port API Options and Communication Specs collapsible sections.
-  - [x] Expand Communication Specs data elements into collapsible detail rows with interface properties, sender com spec fields, init value typing, invalid/out-of-range handling, and transmission timing values in ms.
-  - [x] Split Communication Specs detail rendering so sender fields appear only for sender ComSpecs and receiver fields appear only for receiver ComSpecs.
-  - [x] Add port interface type, interface-aware direction labels, generic ComSpec targets, transformation props, and receiver filter/status/queue fields to port details.
-  - [x] Remove `Transformation ComSpec Props` from sender, receiver, and generic ComSpec detail panels.
-  - [x] Derive `Use queued communication` from `QUEUED-*` and `NONQUEUED-*` ComSpec tag names before falling back to interface metadata.
-  - [x] Derive `Uses Tx Acknowledge` from standard `TRANSMISSION-ACKNOWLEDGE` and show its timeout with ms units on the sender ComSpec row.
-  - [x] Render SR receiver Rx Filter as a compact dropdown value without nested summary labels.
-  - [x] Order receiver ComSpec details as init value, filter, protection, receiver handling, timing, queue, and out-of-range rows.
-  - [x] Parse ComSpec init values for constant references, application values, arrays, and records using AUTOSAR value specification tags.
-  - [x] Resolve ComSpec constant init values across indexed ARXML files and render array/application values as compact value lists.
-  - [x] Include `Not Accessible` in the Measurement & Calibration dropdown for missing/empty or `SW-CALIBRATION-ACCESS=NOT-ACCESSIBLE`.
-  - [x] Refresh runnable and port detail surfaces from green-tinted styling to the app's light blue design palette.
-  - [x] Show Port API Option `ERROR-HANDLING` as a Transformation Error Handling checkbox on port details.
-  - [x] Show Communication Specs as a left-side two-column table with a right-side detail panel for the selected data element, operation, parameter, mode group, or trigger.
-  - [x] Add `Is Service Port` to the Ports table and port details, backed by direct port or referenced PortInterface `IS-SERVICE` metadata with a false fallback.
-  - [x] Parse port interface type from interface TREF `DEST` and show Parameter, NvData, Mode, and Trigger interface members in port details when ComSpecs are not present.
-  - [x] Use distinct Model explorer port icons for SenderReceiver, ClientServer, Parameter, NvData, ModeSwitch, and Trigger interface types.
-  - [x] Make the Ports tab a clickable Port/Direction/Interface table that opens the selected port detail tab and uses Sender/Receiver terminology.
-  - [x] Make the Runnables tab a clickable SWC/Name/Symbol/Period-in-ms table that opens the selected runnable detail tab.
-  - [x] Add search and sortable columns to the Ports and Runnables tables without breaking row click-through navigation.
-  - [x] Add search and sortable columns to runnable detail Trigger Events and Access Points tables while preserving collapsible sections and resizable columns.
-- [x] 6.4 Render a selected software composition as its own focused graph node with composition ports, without expanding child SWCs inside the composition.
-- [x] 6.5 Preserve composition-instance selection so clicking an individual SWC under a composition opens the focused component graph with its connections.
-  - [x] Keep AUTOSAR model canvas navigation inside Model mode instead of jumping to ARXML source.
-  - [x] Route composition graph-node clicks to inner composition visualization and route non-composition SWC clicks to the focused SWC graph with model explorer highlighting.
-  - [x] Scroll the Model explorer to the highlighted SWC/composition after graph navigation expands the relevant tree groups.
-- [x] 6.6 Render composition outer ports on the composition boundary instead of as standalone SWC-like cards.
-- [x] 6.7 Add family-specific icons or glyphs for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
-- [x] 6.8 Add tests for mixed compositions containing application, parameter, service, sensor-actuator, and nv-block components.
-- [ ] 6.9 Add renderer tests for model-explorer navigation and semantic workspace tab opening from AUTOSAR tree nodes.
-  - [x] Implement semantic model explorer nodes and tab-opening behavior for AUTOSAR tree nodes.
-  - [ ] Add formal renderer automation around model explorer tab opening.
-- [ ] 6.10 Render SWC, composition, port, interface, and connector views only from the semantic model/index contracts, not directly from raw XML parser objects or XSD-generated classes.
-- [ ] 6.11 Keep raw XML nodes available only as source pointers for jump-to-XML, editing, diagnostics, and traceability.
-- [ ] 6.12 Add graph/view tests that prove version-specific extractor output produces the same stable semantic rendering contract for equivalent SWC and composition examples.
+- [x] Replace the source app bottom inspector model with a tabbed model workspace webview.
+  - [x] Keep file/explorer editing features out of this extension.
+  - [x] Turn the VS Code AUTOSAR tree into a semantic AUTOSAR browser.
+  - [x] Under each SWC, expose `Graph`, `Ports`, `Runnables`, `Inter-Runnable Variables`, `Calibration Parameters`, `Per-Instance Memory`, and `Service Needs`.
+  - [x] Open semantic detail tabs from tree selections.
+  - [x] Keep the graph tab as the default entry point.
+- [x] Port dedicated canvas/detail tabs for SWC details.
+  - [x] `Graph`
+  - [x] `Runnables`
+  - [x] `Ports`
+  - [x] `Runnable`
+  - [x] `Port`
+  - [x] behavior/memory/parameter/service detail tables supported by the ported `ModelPanel`.
+- [x] Port runnable detail tables, trigger events, access points, activation reasons, and sortable/searchable surfaces from the source model UI.
+- [x] Port richer port detail surface, including direction, API options, argument values, communication specs, service-port metadata, interface-aware labels, and interface member fallback details.
+- [x] Port clickable Ports and Runnables tables that open detail tabs.
+- [x] Render selected software composition as a focused graph node with composition ports.
+- [x] Preserve composition-instance selection and graph navigation inside model mode.
+- [x] Render composition outer ports on the composition boundary.
+- [x] Add family-specific glyphs/icons for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
+- [ ] Add tests for mixed compositions and standards coverage in this extension repo.
+- [ ] Add renderer/webview tests for model explorer navigation and semantic workspace tab opening.
+- [ ] Prove graph/detail rendering consumes only semantic contracts, not raw parser object shapes.
+- [ ] Keep raw XML nodes available only as source pointers for jump-to-XML, diagnostics, and traceability.
+- [ ] Add graph/view tests for stable semantic rendering across equivalent version-specific fixtures.
 
-### Step 7 - ECU Abstraction and Complex Driver support
+## 7. Source Step 7 - ECU Abstraction And Complex Driver Support
 References:
 - [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
 - Chapter: `10 ECU Abstraction and Complex Drivers`
 - Sections: `10.3.1 ECU Abstraction and its AUTOSAR Interfaces`, `10.4 Sensors/Actuators`, `10.5 I/O Hardware Abstraction`, `10.6 Complex Driver`
 - Tables: `Table 10.1 SensorActuatorSwComponentType`, `Table 10.2 EcuAbstractionSwComponentType`, `Table 10.3 ComplexDeviceDriverSwComponentType`
-- [x] 7.1 Parse `ECU-ABSTRACTION-SW-COMPONENT-TYPE` as a dedicated SWC family.
-- [x] 7.2 Parse `COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE` as a dedicated SWC family.
-- [ ] 7.3 Extract and expose `hardwareElement` references for ECU abstraction and complex driver components.
-- [ ] 7.4 Extract and expose `SwcBswMapping` references where present.
-- [ ] 7.5 Show ECU abstraction and complex driver components as ECU-local or hardware-bound elements in the UI.
-- [ ] 7.6 Add inspector sections for hardware references and BSW mapping relationships.
-- [ ] 7.7 Add warnings when ECU abstraction or complex driver elements are missing expected hardware references.
-- [ ] 7.8 Add ARXML tests for ECU abstraction and complex driver examples, including hardware reference extraction.
+- [x] Parse `ECU-ABSTRACTION-SW-COMPONENT-TYPE` as a dedicated SWC family.
+- [x] Parse `COMPLEX-DEVICE-DRIVER-SW-COMPONENT-TYPE` as a dedicated SWC family.
+- [ ] Extract and expose `hardwareElement` references for ECU abstraction and complex driver components.
+- [ ] Extract and expose `SwcBswMapping` references where present.
+- [ ] Show ECU abstraction and complex driver components as ECU-local or hardware-bound elements in the UI.
+- [ ] Add detail sections for hardware references and BSW mapping relationships.
+- [ ] Add warnings when expected hardware references are missing.
+- [ ] Add ARXML tests for ECU abstraction and complex driver examples, including hardware reference extraction.
 
-### Step 8 - System Template foundation
+## 8. Source Step 8 - System Template Foundation
 References:
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
 - Sections: `4 Root software composition of a system`, `5 Mapping`, `5.1 Software Component Mapping`, `3.4 Mapping of Topology Entities onto Hardware Elements`
 - Tables: `Table 4.1 RootSwCompositionPrototype`, `Table 5.1 SystemMapping`, `Table 5.2 SwcToEcuMapping`, `Table 3.140 ECUMapping`
-- [ ] 8.1 Extend the backend index to parse `System` documents from the System Template.
-- [ ] 8.2 Parse `RootSwCompositionPrototype` and treat it as the system entry point.
-- [ ] 8.3 Parse `SystemMapping`.
-- [ ] 8.4 Parse `SwcToEcuMapping`.
-- [ ] 8.5 Parse `EcuInstance`.
-- [ ] 8.6 Parse `ECUMapping` and preserve links between topology entities and ECU-resource entities where available.
-- [ ] 8.7 Parse the system and data mapping entities needed to later derive inter-ECU communication edges.
-- [ ] 8.8 Add shared contracts for system-level entities and mapping relationships.
-- [ ] 8.9 Add tests for root composition resolution and SWC-to-ECU mapping extraction.
+- [ ] Extend the extension host index to parse `System` documents from the System Template.
+- [ ] Parse `RootSwCompositionPrototype` and treat it as the system entry point.
+- [ ] Parse `SystemMapping`.
+- [ ] Parse `SwcToEcuMapping`.
+- [ ] Parse `EcuInstance`.
+- [ ] Parse `ECUMapping` and preserve links between topology entities and ECU-resource entities.
+- [ ] Parse system and data mapping entities needed to derive inter-ECU communication edges.
+- [ ] Add shared contracts for system-level entities and mapping relationships.
+- [ ] Add tests for root composition resolution and SWC-to-ECU mapping extraction.
 
-### Step 9 - ECU-level visualization
+## 9. Source Step 9 - ECU-Level Visualization
 References:
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
 - Sections: `5.1 SW Component to ECU Mapping`, `3.4.1 ECU Mapping`
 - [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
 - Sections: `10.5 I/O Hardware Abstraction`, `10.6 Complex Driver`
-- [ ] 9.1 Add a new graph scope: `ecu`.
-- [ ] 9.2 Render each `EcuInstance` as a container for mapped SWCs.
-- [ ] 9.3 Place ECU abstraction, complex driver, service, and application components inside the mapped ECU context.
-- [ ] 9.4 Support recursive mapping behavior from mapped compositions down to contained atomic components.
-- [ ] 9.5 Handle exceptions such as multi-ECU mapping of `ParameterSwComponentType` and `ServiceProxySwComponentType`.
-- [ ] 9.6 Add drill-down navigation from ECU view into composition view and SWC detail view.
-- [ ] 9.7 Add tests for single-ECU and multi-ECU mapping scenarios.
+- [ ] Add a new graph scope: `ecu`.
+- [ ] Render each `EcuInstance` as a container for mapped SWCs.
+- [ ] Place ECU abstraction, complex driver, service, and application components inside the mapped ECU context.
+- [ ] Support recursive mapping behavior from mapped compositions down to contained atomic components.
+- [ ] Handle multi-ECU mapping exceptions such as `ParameterSwComponentType` and `ServiceProxySwComponentType`.
+- [ ] Add drill-down navigation from ECU view into composition view and SWC detail view.
+- [ ] Add tests for single-ECU and multi-ECU mapping scenarios.
 
-### Step 10 - Whole-system visualization
+## 10. Source Step 10 - Whole-System Visualization
 References:
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
 - Sections: `4 Root software composition of a system`, `5 Mapping`, `5.1 Software Component Mapping`, `5.2` data and signal mapping related sections
 - Tables: `Table 4.1 RootSwCompositionPrototype`, `Table 5.1 SystemMapping`, `Table 5.2 SwcToEcuMapping`
-- [ ] 10.1 Add a new graph scope: `system`.
-- [ ] 10.2 Build the top-level graph from `RootSwCompositionPrototype`.
-- [ ] 10.3 Render multiple `EcuInstance` containers in the same system canvas.
-- [ ] 10.4 Show which SWCs are deployed on which ECU using `SwcToEcuMapping`.
-- [ ] 10.5 Derive inter-ECU edges from system and data mapping information, not only composition-level connectors.
-- [ ] 10.6 Distinguish intra-ECU and inter-ECU connections visually.
-- [ ] 10.7 Support navigation chain: `System -> ECU -> Composition -> SWC -> Port/Behavior -> XML`.
-- [ ] 10.8 Add degraded-state handling for incomplete system descriptions and partial extracts.
-- [ ] 10.9 Add end-to-end tests for a small multi-ECU AUTOSAR system sample.
+- [ ] Add a new graph scope: `system`.
+- [ ] Build the top-level graph from `RootSwCompositionPrototype`.
+- [ ] Render multiple `EcuInstance` containers in the same system canvas.
+- [ ] Show which SWCs are deployed on which ECU using `SwcToEcuMapping`.
+- [ ] Derive inter-ECU edges from system and data mapping information, not only composition-level connectors.
+- [ ] Distinguish intra-ECU and inter-ECU connections visually.
+- [ ] Support navigation chain: `System -> ECU -> Composition -> SWC -> Port/Behavior -> XML`.
+- [ ] Add degraded-state handling for incomplete system descriptions and partial extracts.
+- [ ] Add end-to-end tests for a small multi-ECU AUTOSAR system sample.
 
-### Step 11 - Quality and usability hardening
-References:
-- Cross-cutting step covering the compatibility and mapping constraints in [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf) and [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
-- [x] 11.1 Keep all new parsing, validation, and graph building off the renderer thread.
-- [ ] 11.2 Add incremental indexing paths so larger multi-ECU workspaces remain responsive.
-- [ ] 11.3 Improve warning messages with exact ARXML path and entity context.
-- [ ] 11.4 Add sample-workspace fixtures that cover SWC-only, composition, ECU, and whole-system scenarios.
-- [x] 11.4.a Expand `examples/example-ecu-project.arxml` with validation coverage for AUTOSAR SWC families, `P/R/PR` ports, composition wiring, ECU abstraction, and complex driver examples.
-- [ ] 11.4.b Add a dedicated multi-ECU whole-system sample focused on `EcuInstance`, deployment mapping, and inter-ECU communication.
-- [x] 11.4.c Add Playwright-based Electron validation that opens the standards coverage fixture and verifies model rendering end-to-end.
-- [ ] 11.4.d Add Playwright-based Electron validation flows that open the example AUTOSAR workspace and verify model rendering, inspectors, navigation, and AUTOSAR-specific node and port coverage.
-- [ ] 11.5 Review `README.md` so supported AUTOSAR element coverage is documented clearly.
-- [ ] 11.6 Keep `PLAN.md` as the source of truth and update completed boxes after each implementation task.
-- [x] 11.7 Close open bottom panels when the user interacts with the Explorer panel, and expose the parsed-documents panel through the View menu.
+## 11. Verification And Packaging
 
-## Important Interfaces and Public Surface
-- `WorkspaceService`: open folder, watch files, maintain workspace snapshot, rebuild on external change.
-- `ArxmlDocumentService`: open and save one ARXML document, run on-demand validation in single-file or workspace context, and return structured editor data.
-- `ArxmlValidationService`: validate XML well-formedness, AUTOSAR namespace/schema metadata, XSD conformance, serialization rules, validation scope, completeness, and normalized issue reporting.
-- `AutosarVersionAdapterRegistry`: select the correct semantic extractor behavior from detected AUTOSAR namespace, schema filename, or user-selected version.
-- `AutosarSemanticExtractor`: convert generic XML AST nodes into stable app-level AUTOSAR entities for SWCs, ports, interfaces, compositions, connectors, behavior, mapping, and hardware features.
-- `AutosarModelIndex`: expose entities, references, and connections from one file or many files for semantic validation, model mode, ECU view, and later system view.
-- `AutosarReferenceResolver`: classify references as local, workspace-resolved, external, unresolved, or wrong-kind based on available ARXML context.
-- `AutosarSemanticValidationService`: resolve references and validate currently supported AUTOSAR model constraints without blocking partial single-file or workspace exploration.
-- `GraphService`: produce `swc`, `composition`, `ecu`, and later `system` graph data from the indexed AUTOSAR model while preserving partial/external nodes and references.
-- Shared contracts should evolve to carry validation issue categories, issue codes, validation scope, completeness, reference status, source/target paths, `swcKind`, `portKind`, `portInterfaceKind`, ECU mapping metadata, hardware references, and inter-ECU linkage.
-- Renderer UI contract includes an `Explorer tree` for workspace files.
-- Renderer UI contract includes a `Tabbed editor` for multi-file editing.
-- Renderer UI contract includes an `Editor mode toggle` for raw vs structured editing.
-- Renderer UI contract includes `Graph actions` for SWC, composition, ECU, and whole-system visualization.
-
-## Test Plan
-- [ ] Validate malformed XML, namespace/schema detection, XSD validation failures, and AUTOSAR serialization-rule diagnostics.
-- [ ] Validate version-aware semantic extractors with equivalent SWC/composition fixtures from supported AUTOSAR versions.
-- [ ] Validate single-file SWC extracts with external interface references and confirm the model view remains useful with incomplete-context warnings.
-- [ ] Validate workspace reference resolution, wrong destination detection, duplicate semantic paths, unresolved reference reporting, and stricter workspace diagnostics.
-- [ ] Validate that graph/model views consume semantic contracts and do not depend on raw XML parser object shapes.
-- [x] Validate each newly supported SWC family with fixture coverage.
-- [x] Validate each port kind and interface kind with parser assertions.
-- [ ] Validate ECU abstraction and complex driver hardware reference extraction.
-- [ ] Validate root composition resolution from system descriptions.
-- [ ] Validate SWC-to-ECU mapping, including recursive composition mapping.
-- [ ] Validate parameter and service-proxy multi-ECU edge cases.
-- [ ] Validate system graph rendering for multiple ECUs and cross-ECU connections.
-- [ ] Validate the renderer with Playwright-based Electron UI flows for model navigation, inspector visibility, node coverage, and jump-to-source behavior.
-- [ ] Open a workspace with nested folders and many `.arxml` files; verify tree rendering and correct file opening.
-- [ ] Open multiple files in tabs, switch between them, and confirm drafts are preserved.
-- [ ] Edit a file in raw mode, save it, and verify the workspace snapshot updates cleanly.
-- [ ] Edit a file in structured mode and verify the resulting raw XML stays loadable.
-- [ ] Trigger validation issues with malformed XML and confirm the UI reports them without crashing.
-- [ ] Modify an `.arxml` file outside the app and verify file watching refreshes the workspace safely.
+- [ ] Reuse service-level tests from the source app:
+  - [ ] model extraction
+  - [ ] graph generation
+  - [ ] Vector project discovery
+  - [ ] semantic validation
+- [ ] Add extension-host tests for:
+  - [ ] workspace indexing
+  - [ ] graph request handling
+  - [ ] tree refresh behavior
+- [ ] Add webview tests for:
+  - [ ] graph rendering
+  - [ ] tree-to-tab navigation
+  - [ ] port/runnable detail tabs
 - [x] Run `npm run typecheck`.
-- [x] Run `npm test`.
-- [x] Prefer `npm run verify:functional` after each functional milestone.
+- [x] Run `npm run compile`.
+- [x] Bundle extension host code.
+- [x] Bundle webview assets.
+- [x] Validate `.vscodeignore`.
+- [x] Generate local VSIX package.
+- [ ] Add and run `npm test`.
+- [ ] Smoke test in VS Code Extension Development Host.
 
-## Assumptions and Defaults
-- Desktop Electron app remains the active target.
-- Target scope remains AUTOSAR Classic Platform.
-- Roadmap priority is `ARXML viewer/editor first`, then `standards-aware visualization`, then `ECU/system-level topology`.
-- Primary users are engineers working with local AUTOSAR workspaces.
-- Windows remains the main target for now, with later portability kept in mind.
-- System visualization should be built on the same shared semantic index as current SWC and composition views.
-- Incomplete AUTOSAR models should remain viewable with warnings rather than hard failures.
-- Checkboxes are intended to live in `PLAN.md` as a working execution tracker.
+## References:
+- [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)
+- [AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_TPS_SoftwareComponentTemplate.pdf)
+- [AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf](https://www.autosar.org/fileadmin/standards/R25-11/FO/AUTOSAR_FO_TPS_ARXMLSerializationRules.pdf)
+- [AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf](https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_TPS_XMLSchemaProductionRules.pdf)
+
+
