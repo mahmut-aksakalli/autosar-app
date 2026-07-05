@@ -2002,6 +2002,43 @@ body.is-resizing-model-inspector {
   font-weight: inherit;
 }
 
+.model-init-value-display {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.model-init-value-text {
+  min-width: 0;
+}
+
+.model-init-value-text.is-multiline {
+  display: block;
+  flex-basis: 100%;
+  font-family: Consolas, "Courier New", monospace;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.model-init-value-toggle {
+  border: 0;
+  background: transparent;
+  color: #1f6fb2;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 24px;
+  padding: 0 2px;
+}
+
+.model-init-value-toggle:hover {
+  color: #154f82;
+  text-decoration: underline;
+}
+
 .model-inline-value-with-label {
   display: inline-flex;
   align-items: center;

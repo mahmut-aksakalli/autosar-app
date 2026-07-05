@@ -16,7 +16,7 @@ declare global {
 
 export function ModelWebviewApp() {
   const initialState = window.__AUTOSAR_INITIAL_STATE__;
-  const [workspace] = useState(initialState.workspace);
+  const [workspace, setWorkspace] = useState(initialState.workspace);
   const modelEntities = useMemo(
     () =>
       workspace.entities
@@ -64,7 +64,18 @@ export function ModelWebviewApp() {
             focusEntityId?: string;
             activeWorkspaceTab?: ModelWorkspaceTab;
           }
+        | {
+            type: "workspaceUpdated";
+            workspace?: WorkspaceSnapshot;
+          }
         | { type: string };
+
+      if (message.type === "workspaceUpdated") {
+        if (message.workspace) {
+          setWorkspace(message.workspace);
+        }
+        return;
+      }
 
       if (message.type !== "focusModel") {
         return;

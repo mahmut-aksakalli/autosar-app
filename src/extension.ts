@@ -11,10 +11,17 @@ export function activate(context: vscode.ExtensionContext) {
   const graphService = new GraphService(workspaceModelService);
   const treeProvider = new ModelTreeProvider();
   let modelPanel: vscode.WebviewPanel | undefined;
+  let initialWorkspaceIndexPromise: Promise<void> | undefined;
 
   context.subscriptions.push(
     workspaceModelService,
-    workspaceModelService.onUpdated((snapshot) => treeProvider.update(snapshot)),
+    workspaceModelService.onUpdated((snapshot) => {
+      treeProvider.update(snapshot);
+      void modelPanel?.webview.postMessage({
+        type: "workspaceUpdated",
+        workspace: snapshot
+      });
+    }),
     vscode.window.registerTreeDataProvider("autosarModelView.tree", treeProvider),
     vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
       const snapshot = workspaceModelService.getSnapshot() ?? (await workspaceModelService.refresh());
@@ -99,6 +106,31 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  void ensureInitialWorkspaceIndexed();
+
+  async function ensureInitialWorkspaceIndexed() {
+    if (workspaceModelService.getSnapshot() || initialWorkspaceIndexPromise) {
+      return initialWorkspaceIndexPromise;
+    }
+
+    initialWorkspaceIndexPromise = (async () => {
+      try {
+        const snapshot = await workspaceModelService.refresh();
+        treeProvider.update(snapshot);
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to index AUTOSAR model: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    })();
+
+    try {
+      await initialWorkspaceIndexPromise;
+    } finally {
+      initialWorkspaceIndexPromise = undefined;
+    }
+  }
 
   function openModelWebview(
     focusEntityId: string | undefined,

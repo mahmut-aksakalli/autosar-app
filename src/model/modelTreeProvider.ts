@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type {
   AutosarEntity,
   SwcGraphScope,
+  SwcInspectorItem,
   SwcInspectorSectionId,
   WorkspaceSnapshot
 } from "../shared/contracts";
@@ -22,7 +23,12 @@ export interface ModelWorkspaceTab {
     | "perInstanceMemory"
     | "exclusiveAreas"
     | "serviceDependencies"
+    | "serviceDependencyGroup"
     | "port"
+    | "parameter"
+    | "interRunnableVariable"
+    | "perInstanceMemoryItem"
+    | "serviceDependency"
     | "runnable"
     | "event";
   focusEntityId: string;
@@ -32,6 +38,7 @@ export interface ModelWorkspaceTab {
   entityId?: string;
   sectionId?: SwcInspectorSectionId;
   itemId?: string;
+  serviceType?: string;
   xmlPath?: string;
 }
 
@@ -62,13 +69,13 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     item.contextValue = node.selectable ? `autosarModelNode.${node.workspaceTab?.kind ?? "entity"}` : "autosarModelGroup";
     item.iconPath = getNodeIconPath(node);
     item.tooltip = getTreeTooltip(node);
-    item.command = node.selectable
-      ? {
-          command: "autosarModelView.selectTreeNode",
-          title: "Open AUTOSAR Model Node",
-          arguments: [node]
-        }
-      : undefined;
+    if (node.selectable) {
+      item.command = {
+        command: "autosarModelView.selectTreeNode",
+        title: "Open AUTOSAR Model Node",
+        arguments: [node]
+      };
+    }
     return item;
   }
 
@@ -78,13 +85,7 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     }
 
     if (!this.snapshot) {
-      return [
-        {
-          id: "empty",
-          label: "AUTOSAR: Show Model View for Workspace",
-          selectable: false
-        }
-      ];
+      return [];
     }
 
     return buildModelTree(this.snapshot);
@@ -205,7 +206,8 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
   const interRunnableVariables =
     inspector?.sections.find((section) => section.id === "interRunnableVariables")?.items ?? [];
   const perInstanceMemory = inspector?.sections.find((section) => section.id === "perInstanceMemory")?.items ?? [];
-  const parameters = inspector?.sections.find((section) => section.id === "interfaceParameters")?.items ?? [];
+  const serviceDependencies = inspector?.sections.find((section) => section.id === "serviceDependencies")?.items ?? [];
+  const parameters = getInspectorItems(inspector, ["calibrationVariables", "interfaceParameters"]);
 
   return [
     makeSwcWorkspaceNode(swc, "graph", "Graph"),
@@ -243,11 +245,114 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
           })
         }))
     },
-    makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
-    makeSwcWorkspaceNode(swc, "parameters", "Calibration Parameters", parameters.length),
-    makeSwcWorkspaceNode(swc, "perInstanceMemory", "Per-Instance Memory", perInstanceMemory.length),
-    makeSwcWorkspaceNode(swc, "serviceDependencies", "Service Needs")
+    {
+      ...makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
+      children: interRunnableVariables
+        .slice()
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .map((item) =>
+          makeInspectorItemNode(
+            swc,
+            item,
+            "interRunnableVariables",
+            "interRunnableVariable",
+            "V",
+            "Inter-Runnable Variable"
+          )
+        )
+    },
+    {
+      ...makeSwcWorkspaceNode(swc, "parameters", "Calibration Parameters", parameters.length),
+      children: parameters
+        .slice()
+        .sort((left, right) => left.item.label.localeCompare(right.item.label))
+        .map(({ item, sectionId }) => makeInspectorItemNode(swc, item, sectionId, "parameter", "K", "Parameter"))
+    },
+    {
+      ...makeSwcWorkspaceNode(swc, "perInstanceMemory", "Per-Instance Memory", perInstanceMemory.length),
+      children: perInstanceMemory
+        .slice()
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .map((item) =>
+          makeInspectorItemNode(swc, item, "perInstanceMemory", "perInstanceMemoryItem", "M", "Per-Instance Memory")
+        )
+    },
+    makeServiceNeedsWorkspaceNode(swc, serviceDependencies)
   ];
+}
+
+function makeServiceNeedsWorkspaceNode(swc: AutosarEntity, serviceDependencies: SwcInspectorItem[]): ModelTreeNode {
+  const groups = groupServiceDependenciesByType(serviceDependencies);
+  return {
+    id: `${swc.id}:serviceDependencies`,
+    label: `Service Needs (${serviceDependencies.length})`,
+    icon: formatModelWorkspaceIcon("serviceDependencies"),
+    focusEntityId: swc.id,
+    preferredScope: "swc",
+    selectable: false,
+    children: groups.map(([serviceType, items]) => ({
+      id: `${swc.id}:serviceDependencies:${serviceType}`,
+      label: `${serviceType} (${items.length})`,
+      icon: "S",
+      focusEntityId: swc.id,
+      preferredScope: "swc",
+      selectable: true,
+      workspaceTab: makeModelTab(swc, "serviceDependencyGroup", `Service Needs: ${serviceType}`, {
+        preferredScope: "swc",
+        serviceType
+      }),
+      children: items
+        .slice()
+        .sort((left, right) => left.label.localeCompare(right.label))
+        .map((item) =>
+          makeInspectorItemNode(swc, item, "serviceDependencies", "serviceDependency", "S", "Service Need")
+        )
+    }))
+  };
+}
+
+function groupServiceDependenciesByType(serviceDependencies: SwcInspectorItem[]) {
+  const groups = new Map<string, SwcInspectorItem[]>();
+  for (const item of serviceDependencies) {
+    const serviceType = item.metadata?.["SERVICE-TYPE"] ?? "SERVICE-NEEDS";
+    const items = groups.get(serviceType) ?? [];
+    items.push(item);
+    groups.set(serviceType, items);
+  }
+  return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+}
+
+function getInspectorItems(
+  inspector: AutosarEntity["inspector"],
+  sectionIds: SwcInspectorSectionId[]
+): Array<{ sectionId: SwcInspectorSectionId; item: SwcInspectorItem }> {
+  return sectionIds.flatMap((sectionId) => {
+    const section = inspector?.sections.find((entry) => entry.id === sectionId);
+    return (section?.items ?? []).map((item) => ({ sectionId, item }));
+  });
+}
+
+function makeInspectorItemNode(
+  swc: AutosarEntity,
+  item: SwcInspectorItem,
+  sectionId: SwcInspectorSectionId,
+  kind: ModelWorkspaceTab["kind"],
+  icon: string,
+  titlePrefix: string
+): ModelTreeNode {
+  return {
+    id: `${swc.id}:${sectionId}:${item.id}`,
+    label: item.label,
+    icon,
+    focusEntityId: swc.id,
+    preferredScope: "swc",
+    selectable: true,
+    workspaceTab: makeModelTab(swc, kind, `${titlePrefix}: ${item.label}`, {
+      sectionId,
+      itemId: item.id,
+      xmlPath: item.xmlPath
+    })
+  };
 }
 
 function makeSwcWorkspaceNode(
@@ -276,7 +381,9 @@ function makeModelTab(
   options: Partial<ModelWorkspaceTab> = {}
 ): ModelWorkspaceTab {
   return {
-    id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}${
+    id: `${entity.id}:${kind}:${
+      options.entityId ?? options.itemId ?? options.preferredNodeId ?? options.serviceType ?? "main"
+    }${
       options.includeCompositionInternals ? ":internals" : ""
     }`,
     title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
@@ -289,6 +396,7 @@ function makeModelTab(
     entityId: options.entityId,
     sectionId: options.sectionId,
     itemId: options.itemId,
+    serviceType: options.serviceType,
     xmlPath: options.xmlPath
   };
 }
@@ -420,9 +528,12 @@ function formatModelWorkspaceIcon(kind: ModelWorkspaceTab["kind"]) {
     case "parameters":
       return "K";
     case "perInstanceMemory":
+    case "perInstanceMemoryItem":
     case "memory":
       return "M";
     case "serviceDependencies":
+    case "serviceDependencyGroup":
+    case "serviceDependency":
       return "S";
     case "events":
     case "event":

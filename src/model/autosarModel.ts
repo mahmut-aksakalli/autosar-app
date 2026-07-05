@@ -69,6 +69,9 @@ interface MutableSwcInspector {
   runnablePeriodsByName: Record<string, string>;
   runnableEventsByName: Record<string, string[]>;
   runnableEventDetailsByName: Record<string, RunnableTriggerEventDetail[]>;
+  runnableAccessPointDetailsByName: Record<string, RunnableAccessPointDetail[]>;
+  nvmBlockNeedsByPimName: Record<string, string>;
+  portInterfacesByName: Record<string, string>;
   portApiOptionsByPortRef: Record<string, Record<string, string>>;
 }
 
@@ -781,7 +784,9 @@ function collectInterfaceMemberMetadata(tagName: string, record: Record<string, 
       "DATA-CONSTRAINTS": extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]),
       "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
       "IS-QUEUED": extractSwDataDefPropsValue(record, ["IS-QUEUED", "QUEUE-LENGTH"]),
-      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsOnlyValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "INITIAL-VALUE": extractInitialValue(record),
+      "INITIAL-VALUE-TYPE": extractInitialValueType(record),
       "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
     });
   }
@@ -874,12 +879,16 @@ function extractDirectReference(value: unknown): string | undefined {
 }
 
 function extractSwDataDefPropsReference(record: Record<string, unknown>, keys: string[]) {
+  const propsRecords = getSwDataDefPropsContentRecords(record);
   for (const key of keys) {
-    const fromProps = extractNestedReference(record["SW-DATA-DEF-PROPS"], key);
-    if (fromProps) {
-      return fromProps;
+    for (const propsRecord of propsRecords) {
+      const fromProps = extractDirectReference(propsRecord[key]) ?? extractReference(propsRecord, key);
+      if (fromProps) {
+        return fromProps;
+      }
     }
-    const fromRecord = extractNestedReference(record, key);
+
+    const fromRecord = extractDirectReference(record[key]) ?? extractReference(record, key);
     if (fromRecord) {
       return fromRecord;
     }
@@ -887,14 +896,15 @@ function extractSwDataDefPropsReference(record: Record<string, unknown>, keys: s
   return undefined;
 }
 
-function extractSwDataDefPropsOnlyValue(record: Record<string, unknown>, keys: string[]) {
-  return findNestedStringValueByKey(record["SW-DATA-DEF-PROPS"], keys);
-}
-
 function extractSwDataDefPropsValue(record: Record<string, unknown>, keys: string[]) {
-  const fromProps = findNestedStringValueByKey(record["SW-DATA-DEF-PROPS"], keys);
-  if (fromProps) {
-    return fromProps;
+  const propsRecords = getSwDataDefPropsContentRecords(record);
+  for (const propsRecord of propsRecords) {
+    for (const key of keys) {
+      const fromProps = readSimpleValue(propsRecord[key]);
+      if (fromProps) {
+        return fromProps;
+      }
+    }
   }
 
   for (const key of keys) {
@@ -904,7 +914,42 @@ function extractSwDataDefPropsValue(record: Record<string, unknown>, keys: strin
     }
   }
 
-  return findNestedStringValueByKey(record, keys);
+  return undefined;
+}
+
+function getSwDataDefPropsContentRecords(record: Record<string, unknown>) {
+  const props = record["SW-DATA-DEF-PROPS"];
+  if (!props) {
+    return [];
+  }
+
+  const contentRecords = [
+    ...collectSwDataDefPropsConditionalRecords(props),
+    ...toRecordArray(props)
+  ];
+  const seen = new Set<Record<string, unknown>>();
+  return contentRecords.filter((entry) => {
+    if (seen.has(entry)) {
+      return false;
+    }
+    seen.add(entry);
+    return true;
+  });
+}
+
+function collectSwDataDefPropsConditionalRecords(props: unknown) {
+  const conditionals: Record<string, unknown>[] = [];
+  for (const propsRecord of toRecordArray(props)) {
+    conditionals.push(
+      ...collectChildRecords(propsRecord["SW-DATA-DEF-PROPS-VARIANTS"], "SW-DATA-DEF-PROPS-CONDITIONAL")
+    );
+    conditionals.push(...collectChildRecords(propsRecord, "SW-DATA-DEF-PROPS-CONDITIONAL"));
+  }
+  return conditionals;
+}
+
+function collectChildRecords(container: unknown, childKey: string): Record<string, unknown>[] {
+  return toRecordArray(container).flatMap((record) => toRecordArray(record[childKey]));
 }
 
 function findNestedStringValueByKey(node: unknown, keys: string[]): string | undefined {
@@ -958,6 +1003,7 @@ function collectSwcInspectorFeature(
   }
 
   const inspector = getOrCreateInspector(ownerSemanticPath, inspectorsByOwner);
+  const shortName = extractShortName(record);
   if (tagName.endsWith("-EVENT")) {
     const runnableRef = extractReference(record, "START-ON-EVENT-REF");
     const period = readSimpleValue(record["PERIOD"]);
@@ -973,15 +1019,32 @@ function collectSwcInspectorFeature(
       runnableEventDetails.push(collectRunnableTriggerEventDetail(tagName, record, eventName));
     }
   }
+  if (tagName === "RUNNABLE-ENTITY") {
+    const accessPointDetails = collectRunnableLocalVariableAccessPointDetails(record);
+    const runnableName = extractShortName(record);
+    if (accessPointDetails.length > 0 && runnableName) {
+      inspector.runnableAccessPointDetailsByName[runnableName] = accessPointDetails;
+    }
+  }
   if (tagName === "PORT-API-OPTION") {
     const portRef = extractReference(record, "PORT-REF");
     if (portRef) {
       inspector.portApiOptionsByPortRef[portRef] = collectPortApiOptionMetadata(record);
     }
   }
+  if (PORT_TAGS.has(tagName) && shortName) {
+    const interfaceRef = extractTypeRef(record);
+    if (interfaceRef) {
+      inspector.portInterfacesByName[shortName] = interfaceRef;
+    }
+  }
+  if (tagName === "SWC-SERVICE-DEPENDENCY") {
+    for (const assignment of collectNvmBlockNeedAssignments(record)) {
+      inspector.nvmBlockNeedsByPimName[assignment.pimName] = assignment.nvmBlockNeed;
+    }
+  }
 
   const inspectorSection = getInspectorSectionId(tagName, currentPath);
-  const shortName = extractShortName(record);
   if (!inspectorSection || !shortName) {
     return;
   }
@@ -990,7 +1053,7 @@ function collectSwcInspectorFeature(
     id: `${ownerSemanticPath}:${currentPath}`,
     label: shortName,
     xmlPath: currentPath,
-    metadata: collectInspectorMetadata(tagName, record)
+    metadata: collectInspectorMetadata(tagName, record, currentPath)
   });
 }
 
@@ -1003,6 +1066,12 @@ function getInspectorSectionId(
   }
   if (tagName === "PER-INSTANCE-MEMORY") {
     return "perInstanceMemory";
+  }
+  if (tagName === "VARIABLE-DATA-PROTOTYPE" && /AR-TYPED-PER-INSTANCE-MEMORYS/i.test(currentPath)) {
+    return "perInstanceMemory";
+  }
+  if (tagName === "SWC-SERVICE-DEPENDENCY") {
+    return "serviceDependencies";
   }
   if (tagName === "PARAMETER-DATA-PROTOTYPE" || tagName === "CALPRM-ELEMENT-PROTOTYPE") {
     return "calibrationVariables";
@@ -1029,6 +1098,7 @@ function getOrCreateInspector(
         calibrationVariables: [],
         interRunnableVariables: [],
         perInstanceMemory: [],
+        serviceDependencies: [],
         interfaceDataElements: [],
         interfaceOperations: [],
         interfaceApplicationErrors: [],
@@ -1039,6 +1109,9 @@ function getOrCreateInspector(
       runnablePeriodsByName: {},
       runnableEventsByName: {},
       runnableEventDetailsByName: {},
+      runnableAccessPointDetailsByName: {},
+      nvmBlockNeedsByPimName: {},
+      portInterfacesByName: {},
       portApiOptionsByPortRef: {}
     };
     inspectorsByOwner.set(ownerSemanticPath, inspector);
@@ -1046,7 +1119,7 @@ function getOrCreateInspector(
   return inspector;
 }
 
-function collectInspectorMetadata(tagName: string, record: Record<string, unknown>) {
+function collectInspectorMetadata(tagName: string, record: Record<string, unknown>, currentPath: string) {
   if (tagName === "RUNNABLE-ENTITY") {
     return compactMetadata({
       PERIOD: undefined,
@@ -1065,18 +1138,247 @@ function collectInspectorMetadata(tagName: string, record: Record<string, unknow
   if (tagName === "PARAMETER-DATA-PROTOTYPE" || tagName === "CALPRM-ELEMENT-PROTOTYPE") {
     return compactMetadata({
       TYPE: extractTypeRef(record),
-      "INITIAL-VALUE": extractInitialValue(record)
+      "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+      SCOPE: inferCalibrationParameterScope(currentPath),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "INITIAL-VALUE": extractInitialValue(record),
+      "INITIAL-VALUE-TYPE": extractInitialValueType(record)
+    });
+  }
+
+  if (tagName === "VARIABLE-DATA-PROTOTYPE" && /INTER[-/]?RUNNABLE/i.test(currentPath)) {
+    return compactMetadata({
+      ...collectMetadata(record),
+      TYPE: extractVariableDataPrototypeTypeRef(record),
+      "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "INITIAL-VALUE": extractInitialValue(record),
+      "INITIAL-VALUE-TYPE": extractInitialValueType(record),
+      COMMUNICATION: inferInterRunnableCommunication(currentPath)
     });
   }
 
   if (tagName === "PER-INSTANCE-MEMORY") {
     return compactMetadata({
-      TYPE: readSimpleValue(record["TYPE"]),
-      "TYPE-DEFINITION": readSimpleValue(record["TYPE-DEFINITION"])
+      TYPE: readSimpleValue(record["TYPE"]) ?? extractTypeRef(record),
+      "TYPE-DEFINITION": readSimpleValue(record["TYPE-DEFINITION"]),
+      "NVM-BLOCK-NEED": extractNvmBlockNeedName(record),
+      "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "INITIAL-VALUE": extractInitialValue(record),
+      "INITIAL-VALUE-TYPE": extractInitialValueType(record)
     });
   }
 
+  if (tagName === "VARIABLE-DATA-PROTOTYPE" && /AR-TYPED-PER-INSTANCE-MEMORYS/i.test(currentPath)) {
+    return compactMetadata({
+      ...collectMetadata(record),
+      TYPE: extractVariableDataPrototypeTypeRef(record),
+      "NVM-BLOCK-NEED": extractNvmBlockNeedName(record),
+      "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
+      "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
+      "INITIAL-VALUE": extractInitialValue(record),
+      "INITIAL-VALUE-TYPE": extractInitialValueType(record)
+    });
+  }
+
+  if (tagName === "SWC-SERVICE-DEPENDENCY") {
+    return collectServiceDependencyMetadata(record);
+  }
+
   return collectMetadata(record);
+}
+
+function inferCalibrationParameterScope(currentPath: string) {
+  if (/PER-INSTANCE-PARAMETERS|PER[-/]?INSTANCE[-/]?PARAMETERS/i.test(currentPath)) {
+    return "Per Instance";
+  }
+  if (/SHARED-PARAMETERS|SHARED[-/]?PARAMETERS/i.test(currentPath)) {
+    return "Shared";
+  }
+  return undefined;
+}
+
+function inferInterRunnableCommunication(currentPath: string) {
+  if (/IMPLICIT-INTER-RUNNABLE-VARIABLES|IMPLICIT[-/]?INTER[-/]?RUNNABLE[-/]?VARIABLES/i.test(currentPath)) {
+    return "Implicit";
+  }
+  if (/EXPLICIT-INTER-RUNNABLE-VARIABLES|EXPLICIT[-/]?INTER[-/]?RUNNABLE[-/]?VARIABLES/i.test(currentPath)) {
+    return "Explicit";
+  }
+  return undefined;
+}
+
+function collectServiceDependencyMetadata(record: Record<string, unknown>) {
+  const serviceNeed = extractServiceNeed(record);
+  const dataAssignments = collectRoleBasedDataAssignmentDetails(record);
+  const portAssignments = collectRoleBasedPortAssignmentDetails(record["ASSIGNED-PORTS"]);
+  return compactMetadata({
+    CATEGORY: readSimpleValue(record["CATEGORY"]),
+    "SERVICE-TYPE": serviceNeed?.tag,
+    "SERVICE-NEED": serviceNeed?.shortName,
+    "ASSIGNED-DATAS": collectRoleBasedAssignmentsSummary(record["ASSIGNED-DATAS"], "data"),
+    "ASSIGNED-PORTS": collectRoleBasedAssignmentsSummary(record["ASSIGNED-PORTS"], "port"),
+    "ASSIGNED-DATA-DETAILS": dataAssignments.length > 0 ? JSON.stringify(dataAssignments) : undefined,
+    "ASSIGNED-DATA-RAM-BLOCK": getRoleBasedDataAssignmentValue(dataAssignments, "ramblock"),
+    "ASSIGNED-DATA-DEFAULT-VALUE": getRoleBasedDataAssignmentValue(dataAssignments, "defaultvalue"),
+    "ASSIGNED-PORT-DETAILS": portAssignments.length > 0 ? JSON.stringify(portAssignments) : undefined,
+    "SERVICE-NEED-DETAIL-FIELDS": serviceNeed ? collectServiceNeedDetailFields(serviceNeed.value) : undefined,
+    "SERVICE-NEED-DETAILS": serviceNeed ? summarizeServiceNeedDetails(serviceNeed.value) : undefined
+  });
+}
+
+function extractServiceNeed(record: Record<string, unknown>) {
+  const serviceNeeds = record["SERVICE-NEEDS"];
+  for (const entry of toRecordArray(serviceNeeds)) {
+    for (const [tag, value] of Object.entries(entry)) {
+      if (tag.startsWith("@_")) {
+        continue;
+      }
+      const serviceRecord = toRecordArray(value)[0];
+      return {
+        tag,
+        value,
+        shortName: serviceRecord ? extractShortName(serviceRecord) : undefined
+      };
+    }
+  }
+  return undefined;
+}
+
+function collectRoleBasedAssignmentsSummary(container: unknown, kind: "data" | "port") {
+  const childTag = kind === "data" ? "ROLE-BASED-DATA-ASSIGNMENT" : "ROLE-BASED-PORT-ASSIGNMENT";
+  const assignments = collectNamedChildren(container, childTag).map((assignment) => {
+    const role = readSimpleValue(assignment["ROLE"]) ?? "-";
+    const reference =
+      kind === "data" ? extractRoleBasedDataAssignmentReference(assignment) : findFirstReferenceValue(assignment);
+    const target = reference ? getReferenceLeafName(reference) : "-";
+    return `${role}: ${target}`;
+  });
+
+  return assignments.length > 0 ? assignments.join(", ") : undefined;
+}
+
+function collectRoleBasedDataAssignmentDetails(record: Record<string, unknown>) {
+  return collectRoleBasedDataAssignments(record).map((assignment) => {
+    const dataElementRef = extractRoleBasedDataAssignmentReference(assignment.record);
+    const portRef = extractRoleBasedDataAssignmentPortReference(assignment.record);
+    return {
+      role: assignment.role,
+      value: dataElementRef ? getReferenceLeafName(dataElementRef) : "-",
+      dataElementPrototype: dataElementRef ? getReferenceLeafName(dataElementRef) : "-",
+      dataElementPrototypeRef: dataElementRef,
+      portPrototype: portRef ? getReferenceLeafName(portRef) : "-",
+      portPrototypeRef: portRef,
+      portInterface: "-"
+    };
+  });
+}
+
+function extractRoleBasedDataAssignmentReference(record: Record<string, unknown>) {
+  return (
+    extractNestedReference(record, "TARGET-DATA-PROTOTYPE-REF") ??
+    extractNestedReference(record, "TARGET-PARAMETER-REF") ??
+    extractReference(record, "USED-PIM-REF") ??
+    extractReference(record, "USED-DATA-ELEMENT") ??
+    extractReference(record, "USED-PARAMETER-ELEMENT") ??
+    extractReference(record, "USED-DATA-ELEMENT-REF") ??
+    extractReference(record, "USED-PARAMETER-ELEMENT-REF")
+  );
+}
+
+function extractRoleBasedDataAssignmentPortReference(record: Record<string, unknown>) {
+  return (
+    extractNestedReference(record, "CONTEXT-PORT-REF") ??
+    extractNestedReference(record, "PORT-PROTOTYPE-REF") ??
+    extractNestedReference(record, "CONTEXT-P-PORT-REF") ??
+    extractNestedReference(record, "CONTEXT-R-PORT-REF")
+  );
+}
+
+function getRoleBasedDataAssignmentValue(assignments: Array<{ role: string; value: string }>, normalizedRole: string) {
+  return assignments.find((assignment) => normalizeAutosarName(assignment.role) === normalizedRole)?.value;
+}
+
+function normalizeAutosarName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function collectRoleBasedPortAssignmentDetails(container: unknown) {
+  return collectNamedChildren(container, "ROLE-BASED-PORT-ASSIGNMENT").map((assignment) => {
+    const portRef = extractReference(assignment, "PORT-PROTOTYPE-REF") ?? findFirstReferenceValue(assignment);
+    return {
+      portPrototype: portRef ? getReferenceLeafName(portRef) : "-",
+      portPrototypeRef: portRef,
+      portInterface: "-",
+      assignedRole: readSimpleValue(assignment["ROLE"]) ?? "-"
+    };
+  });
+}
+
+function summarizeServiceNeedDetails(value: unknown) {
+  const detailFields = readServiceNeedDetailFields(value);
+  return detailFields.length > 0
+    ? detailFields.map((detail) => `${detail.label}: ${detail.value}`).join(", ")
+    : undefined;
+}
+
+function collectServiceNeedDetailFields(value: unknown) {
+  const detailFields = readServiceNeedDetailFields(value);
+  return detailFields.length > 0 ? JSON.stringify(detailFields) : undefined;
+}
+
+function readServiceNeedDetailFields(value: unknown) {
+  const records = toRecordArray(value);
+  const record = records[0];
+  if (!record) {
+    return [];
+  }
+
+  return Object.entries(record)
+    .filter(([key]) => key !== "SHORT-NAME" && !key.startsWith("@_") && key !== "ADMIN-DATA")
+    .flatMap(([key, entry]) => {
+      const summary = summarizeAutosarValue(entry);
+      return summary ? [{ tag: key, label: formatAutosarTagLabel(key), value: summary }] : [];
+    });
+}
+
+function extractNvmBlockNeedName(record: Record<string, unknown>) {
+  return (
+    extractShortNameFromNestedRecord(record["NV-BLOCK-NEEDS"]) ??
+    extractShortNameFromNestedRecord(record["SERVICE-NEEDS"]) ??
+    extractReference(record, "NV-BLOCK-NEEDS-REF") ??
+    extractReference(record, "NVM-BLOCK-NEED-REF") ??
+    readSimpleValue(record["NVM-BLOCK-NEED"]) ??
+    readSimpleValue(record["NVM-BLOCK-NEEDS"])
+  );
+}
+
+function collectNvmBlockNeedAssignments(record: Record<string, unknown>) {
+  const nvmBlockNeed = extractNvmBlockNeedName(record) ?? extractShortName(record);
+  if (!nvmBlockNeed) {
+    return [];
+  }
+
+  return collectRoleBasedDataAssignments(record)
+    .filter((assignment) => normalizeAutosarName(assignment.role) === "ramblock")
+    .flatMap((assignment) => {
+      const variableRef = extractRoleBasedDataAssignmentReference(assignment.record);
+      const pimName = variableRef ? getReferenceLeafName(variableRef) : undefined;
+      return pimName ? [{ pimName, nvmBlockNeed }] : [];
+    });
+}
+
+function collectRoleBasedDataAssignments(record: Record<string, unknown>) {
+  const assignedDatas = record["ASSIGNED-DATAS"];
+  return collectNamedChildren(assignedDatas, "ROLE-BASED-DATA-ASSIGNMENT").map((assignment) => ({
+    role: readSimpleValue(assignment["ROLE"]) ?? "-",
+    record: assignment
+  }));
+}
+
+function extractShortNameFromNestedRecord(value: unknown) {
+  return toRecordArray(value).map(extractShortName).find((entry): entry is string => Boolean(entry));
 }
 
 function collectPortMetadata(record: Record<string, unknown>) {
@@ -1630,6 +1932,11 @@ const runnableAccessContainers: Record<string, { access: string; childTags: stri
 };
 
 function collectRunnableAccessPointDetails(record: Record<string, unknown>) {
+  const details = collectRunnableAccessPointDetailsRaw(record);
+  return details.length > 0 ? JSON.stringify(dedupeRunnableAccessPointDetails(details)) : undefined;
+}
+
+function collectRunnableAccessPointDetailsRaw(record: Record<string, unknown>) {
   const details: RunnableAccessPointDetail[] = [];
 
   for (const [containerKey, definition] of Object.entries(runnableAccessContainers)) {
@@ -1665,7 +1972,33 @@ function collectRunnableAccessPointDetails(record: Record<string, unknown>) {
     });
   }
 
-  return details.length > 0 ? JSON.stringify(dedupeRunnableAccessPointDetails(details)) : undefined;
+  return dedupeRunnableAccessPointDetails(details);
+}
+
+function collectRunnableLocalVariableAccessPointDetails(record: Record<string, unknown>) {
+  const details: RunnableAccessPointDetail[] = [];
+  const localAccessContainers: Array<[string, string]> = [
+    ["READ-LOCAL-VARIABLES", "Read"],
+    ["WRITTEN-LOCAL-VARIABLES", "Write"]
+  ];
+
+  for (const [containerKey, access] of localAccessContainers) {
+    const container = record[containerKey];
+    if (!container) {
+      continue;
+    }
+
+    for (const child of collectNamedChildren(container, "VARIABLE-ACCESS")) {
+      const accessName = extractShortName(child) ?? "-";
+      details.push({
+        target: extractRunnableAccessTarget(child, accessName),
+        access,
+        name: accessName
+      });
+    }
+  }
+
+  return dedupeRunnableAccessPointDetails(details);
 }
 
 function collectNamedChildren(container: unknown, childTag: string): Record<string, unknown>[] {
@@ -1685,7 +2018,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function extractRunnableAccessTarget(record: Record<string, unknown>) {
+function extractRunnableAccessTarget(record: Record<string, unknown>, accessName?: string) {
   const preferredReferenceKeys = [
     "TARGET-DATA-PROTOTYPE-REF",
     "TARGET-REQUIRED-OPERATION-REF",
@@ -1708,7 +2041,15 @@ function extractRunnableAccessTarget(record: Record<string, unknown>) {
   }
 
   const firstReference = findFirstReferenceValue(record);
-  return firstReference ? getReferenceLeafName(firstReference) : "-";
+  return firstReference ? getReferenceLeafName(firstReference) : inferLocalVariableNameFromAccessName(accessName) ?? "-";
+}
+
+function inferLocalVariableNameFromAccessName(accessName: string | undefined) {
+  if (!accessName || accessName === "-") {
+    return undefined;
+  }
+  const withoutPrefix = accessName.replace(/^(Read|Write|Written|Get|Set)/i, "");
+  return withoutPrefix || accessName;
 }
 
 function findFirstReferenceValue(node: unknown): string | undefined {
@@ -1864,18 +2205,30 @@ function compactMetadata(metadata: Record<string, string | undefined>) {
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
-function readSimpleValue(value: unknown) {
+function readSimpleValue(value: unknown): string | undefined {
   if (typeof value === "string") {
     return value;
   }
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
   }
-  if (Array.isArray(value) && typeof value[0] === "string") {
-    return value[0];
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = readSimpleValue(entry);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
   }
-  if (Array.isArray(value) && (typeof value[0] === "number" || typeof value[0] === "boolean")) {
-    return String(value[0]);
+  if (isRecord(value)) {
+    const textValue = value["#text"] ?? value["_"] ?? value["value"];
+    if (typeof textValue === "string") {
+      return textValue;
+    }
+    if (typeof textValue === "number" || typeof textValue === "boolean") {
+      return String(textValue);
+    }
   }
   return undefined;
 }
@@ -2261,12 +2614,17 @@ function toSwcInspectorData(entity: AutosarEntity, inspector: MutableSwcInspecto
       {
         id: "interRunnableVariables",
         label: "Inter-runnable Variables",
-        items: inspector.sections.interRunnableVariables
+        items: inspector.sections.interRunnableVariables.map((item) => enrichInterRunnableVariableItem(item, inspector))
       },
       {
         id: "perInstanceMemory",
         label: "Per-instance Memory",
-        items: inspector.sections.perInstanceMemory
+        items: inspector.sections.perInstanceMemory.map((item) => enrichPerInstanceMemoryItem(item, inspector))
+      },
+      {
+        id: "serviceDependencies",
+        label: "Service Needs",
+        items: inspector.sections.serviceDependencies.map((item) => enrichServiceDependencyItem(item, inspector))
       },
       {
         id: "interfaceDataElements",
@@ -2315,6 +2673,178 @@ function enrichInspectorItem(item: SwcInspectorItem, inspector: MutableSwcInspec
       ...(item.metadata ?? {})
     })
   };
+}
+
+function enrichInterRunnableVariableItem(item: SwcInspectorItem, inspector: MutableSwcInspector) {
+  const accesses = Object.entries(inspector.runnableAccessPointDetailsByName).flatMap(([runnable, details]) =>
+    details
+      .filter((detail) => detail.target === item.label || referencesSameAutosarPath(detail.target, item.label))
+      .map((detail) => ({
+        runnable,
+        access: detail.access,
+        accessPoint: detail.name
+      }))
+  );
+
+  return {
+    ...item,
+    metadata: compactMetadata({
+      ...(item.metadata ?? {}),
+      "INTER-RUNNABLE-VARIABLE-ACCESS": accesses.length > 0 ? JSON.stringify(dedupeInterRunnableAccesses(accesses)) : undefined
+    })
+  };
+}
+
+function enrichPerInstanceMemoryItem(item: SwcInspectorItem, inspector: MutableSwcInspector) {
+  const nvmBlockNeed = inspector.nvmBlockNeedsByPimName[item.label];
+  return {
+    ...item,
+    metadata: compactMetadata({
+      ...(item.metadata ?? {}),
+      "NVM-BLOCK-NEED": item.metadata?.["NVM-BLOCK-NEED"] ?? nvmBlockNeed
+    })
+  };
+}
+
+function enrichServiceDependencyItem(item: SwcInspectorItem, inspector: MutableSwcInspector) {
+  const dataDetails = parseServiceAssignedDataDetails(item.metadata?.["ASSIGNED-DATA-DETAILS"]).map((detail) => {
+    const interfaceRef = resolvePortInterfaceRef(detail.portPrototypeRef ?? detail.portPrototype, inspector);
+    return {
+      ...detail,
+      portInterface: interfaceRef ? getReferenceLeafName(interfaceRef) : detail.portInterface,
+      portInterfaceRef: interfaceRef
+    };
+  });
+  const portDetails = parseServiceAssignedPortDetails(item.metadata?.["ASSIGNED-PORT-DETAILS"]).map((detail) => {
+    const interfaceRef = resolvePortInterfaceRef(detail.portPrototypeRef ?? detail.portPrototype, inspector);
+    return {
+      ...detail,
+      portInterface: interfaceRef ? getReferenceLeafName(interfaceRef) : detail.portInterface,
+      portInterfaceRef: interfaceRef
+    };
+  });
+
+  return {
+    ...item,
+    metadata: compactMetadata({
+      ...(item.metadata ?? {}),
+      "ASSIGNED-DATA-DETAILS": dataDetails.length > 0 ? JSON.stringify(dataDetails) : undefined,
+      "ASSIGNED-PORT-DETAILS": portDetails.length > 0 ? JSON.stringify(portDetails) : undefined
+    })
+  };
+}
+
+function resolvePortInterfaceRef(portReference: string | undefined, inspector: MutableSwcInspector) {
+  if (!portReference) {
+    return undefined;
+  }
+
+  const portName = getReferenceLeafName(portReference);
+  const direct = inspector.portInterfacesByName[portName];
+  if (direct) {
+    return direct;
+  }
+
+  const match = Object.entries(inspector.portInterfacesByName).find(([name]) => referencesSameAutosarPath(portReference, name));
+  return match?.[1];
+}
+
+interface ServiceAssignedPortDetail {
+  portPrototype: string;
+  portPrototypeRef?: string;
+  portInterface: string;
+  portInterfaceRef?: string;
+  assignedRole: string;
+}
+
+interface ServiceAssignedDataDetail {
+  role: string;
+  value: string;
+  portPrototype: string;
+  portPrototypeRef?: string;
+  portInterface: string;
+  portInterfaceRef?: string;
+  dataElementPrototype: string;
+  dataElementPrototypeRef?: string;
+}
+
+function parseServiceAssignedPortDetails(value: string | undefined): ServiceAssignedPortDetail[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.flatMap((entry) => {
+      if (!isRecord(entry)) {
+        return [];
+      }
+      return [
+        {
+          portPrototype: readSimpleValue(entry.portPrototype) ?? "-",
+          portPrototypeRef: readSimpleValue(entry.portPrototypeRef),
+          portInterface: readSimpleValue(entry.portInterface) ?? "-",
+          portInterfaceRef: readSimpleValue(entry.portInterfaceRef),
+          assignedRole: readSimpleValue(entry.assignedRole) ?? "-"
+        }
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function parseServiceAssignedDataDetails(value: string | undefined): ServiceAssignedDataDetail[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.flatMap((entry) => {
+      if (!isRecord(entry)) {
+        return [];
+      }
+      return [
+        {
+          role: readSimpleValue(entry.role) ?? "-",
+          value: readSimpleValue(entry.value) ?? "-",
+          portPrototype: readSimpleValue(entry.portPrototype) ?? "-",
+          portPrototypeRef: readSimpleValue(entry.portPrototypeRef),
+          portInterface: readSimpleValue(entry.portInterface) ?? "-",
+          portInterfaceRef: readSimpleValue(entry.portInterfaceRef),
+          dataElementPrototype: readSimpleValue(entry.dataElementPrototype) ?? readSimpleValue(entry.value) ?? "-",
+          dataElementPrototypeRef: readSimpleValue(entry.dataElementPrototypeRef)
+        }
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function dedupeInterRunnableAccesses(
+  accesses: Array<{
+    runnable: string;
+    access: string;
+    accessPoint: string;
+  }>
+) {
+  const seen = new Set<string>();
+  return accesses.filter((access) => {
+    const key = `${access.runnable}\u0000${access.access}\u0000${access.accessPoint}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function attachInterfaceSections(
@@ -2408,9 +2938,15 @@ function attachInterfaceSectionItems(
 
 function extractInitialValue(record: Record<string, unknown>) {
   return (
+    extractValueSpecificationLabel(record["INIT-VALUE"]) ??
+    extractValueSpecificationLabel(record["DEFAULT-VALUE"]) ??
     findNestedStringValue(record["INIT-VALUE"], ["VALUE", "SHORT-LABEL", "CONSTANT-REF"]) ??
     findNestedStringValue(record["DEFAULT-VALUE"], ["VALUE", "SHORT-LABEL", "CONSTANT-REF"])
   );
+}
+
+function extractInitialValueType(record: Record<string, unknown>) {
+  return extractValueSpecificationType(record["INIT-VALUE"]) ?? extractValueSpecificationType(record["DEFAULT-VALUE"]);
 }
 
 function findNestedStringValue(node: unknown, preferredKeys: string[]): string | undefined {

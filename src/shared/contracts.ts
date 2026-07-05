@@ -96,6 +96,7 @@ export type SwcInspectorSectionId =
   | "calibrationVariables"
   | "interRunnableVariables"
   | "perInstanceMemory"
+  | "serviceDependencies"
   | "interfaceDataElements"
   | "interfaceOperations"
   | "interfaceApplicationErrors"

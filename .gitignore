@@ -2,4 +2,7 @@ node_modules/
 dist/
 *.vsix
 *.tsbuildinfo
+*.log
+.DS_Store
+Thumbs.db
 PLAN.md

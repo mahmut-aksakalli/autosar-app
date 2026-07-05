@@ -12,18 +12,16 @@
     "Visualization",
     "Other"
   ],
+  "main": "./dist/extension.js",
   "activationEvents": [
-    "onCommand:autosarModelView.open",
-    "onCommand:autosarModelView.openFile",
-    "onCommand:autosarModelView.refresh",
     "onView:autosarModelView.tree"
   ],
-  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "autosarModelView.open",
-        "title": "AUTOSAR: Show Model View for Workspace"
+        "title": "AUTOSAR: Show Model View for Workspace",
+        "icon": "$(preview)"
       },
       {
         "command": "autosarModelView.openFile",
@@ -31,10 +29,18 @@
       },
       {
         "command": "autosarModelView.refresh",
-        "title": "AUTOSAR: Refresh Model View"
+        "title": "AUTOSAR: Refresh Model View",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "autosarModelView.refresh",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@2"
+        }
+      ],
       "explorer/context": [
         {
           "command": "autosarModelView.openFile",
@@ -63,7 +69,8 @@
       "autosarModelView": [
         {
           "id": "autosarModelView.tree",
-          "name": "Model"
+          "name": "Model",
+          "icon": "resources/autosar.svg"
         }
       ]
     }
