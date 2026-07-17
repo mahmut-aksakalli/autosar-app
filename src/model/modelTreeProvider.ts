@@ -51,17 +51,42 @@ export interface ModelTreeNode {
   preferredNodeId?: string;
   workspaceTab?: ModelWorkspaceTab;
   selectable?: boolean;
+  forceExpanded?: boolean;
   children?: ModelTreeNode[];
 }
+
+export type TreeGroupingMode = "semantic" | "packages";
 
 export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode> {
   private readonly changeEmitter = new vscode.EventEmitter<ModelTreeNode | undefined | null | void>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
   private snapshot: WorkspaceSnapshot | null = null;
+  private groupingMode: TreeGroupingMode = "semantic";
+  private filterText = "";
+  private indexing = false;
 
   update(snapshot: WorkspaceSnapshot | null) {
     this.snapshot = snapshot;
     this.changeEmitter.fire();
+  }
+
+  setIndexing(indexing: boolean) {
+    this.indexing = indexing;
+    this.changeEmitter.fire();
+  }
+
+  setGroupingMode(mode: TreeGroupingMode) {
+    this.groupingMode = mode;
+    this.changeEmitter.fire();
+  }
+
+  setFilterText(value: string) {
+    this.filterText = value.trim();
+    this.changeEmitter.fire();
+  }
+
+  getFilterText() {
+    return this.filterText;
   }
 
   getTreeItem(node: ModelTreeNode): vscode.TreeItem {
@@ -85,14 +110,73 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     }
 
     if (!this.snapshot) {
-      return [];
+      return this.indexing ? [makeIndexingNode()] : [];
     }
 
-    return buildModelTree(this.snapshot);
+    const filteredTree = filterModelTree(buildModelTree(this.snapshot, this.groupingMode), this.filterText);
+    return this.indexing ? [makeIndexingNode(), ...filteredTree] : filteredTree;
   }
 }
 
-function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
+function makeIndexingNode(): ModelTreeNode {
+  return {
+    id: "autosar-indexing",
+    label: "Indexing AUTOSAR model...",
+    icon: "I",
+    selectable: false
+  };
+}
+
+function filterModelTree(nodes: ModelTreeNode[], filterText: string): ModelTreeNode[] {
+  const normalizedFilter = normalizeTreeSearchText(filterText);
+  if (!normalizedFilter) {
+    return nodes;
+  }
+
+  return nodes.flatMap((node) => {
+    const filteredChildren = filterModelTree(node.children ?? [], normalizedFilter);
+    if (getTreeNodeSearchText(node).includes(normalizedFilter)) {
+      return [
+        {
+          ...node,
+          forceExpanded: Boolean(node.children?.length),
+          children: node.children
+        }
+      ];
+    }
+    if (filteredChildren.length > 0) {
+      return [
+        {
+          ...node,
+          forceExpanded: true,
+          children: filteredChildren
+        }
+      ];
+    }
+    return [];
+  });
+}
+
+function getTreeNodeSearchText(node: ModelTreeNode) {
+  return normalizeTreeSearchText(
+    [
+      node.label,
+      node.id,
+      node.workspaceTab?.title,
+      node.workspaceTab?.kind,
+      node.workspaceTab?.serviceType,
+      node.workspaceTab?.xmlPath
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function normalizeTreeSearchText(value: string) {
+  return value.toLowerCase().trim();
+}
+
+function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeGroupingMode): ModelTreeNode[] {
   if (!workspace) {
     return [];
   }
@@ -116,7 +200,84 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
       portsByOwner.set(port.parentSemanticPath!, ports);
     });
 
-  const compositionTree: ModelTreeNode[] = compositions.map((composition) => {
+  const compositionTree: ModelTreeNode[] = compositions.map((composition) => makeCompositionNode(composition, entities));
+  const componentChildren = swcs.map((swc): ModelTreeNode => makeSwcNode(swc, portsByOwner.get(swc.semanticPath ?? "") ?? []));
+  const componentFamilies = new Map<string, { entities: AutosarEntity[]; children: ModelTreeNode[] }>();
+
+  componentChildren.forEach((child) => {
+    const swc = swcs.find((entity) => `software-component:${entity.id}` === child.id);
+    if (!swc) {
+      return;
+    }
+    const familyLabel = formatSwcKindLabel(swc.swcKind);
+    const family = componentFamilies.get(familyLabel) ?? { entities: [], children: [] };
+    family.entities.push(swc);
+    family.children.push(child);
+    componentFamilies.set(familyLabel, family);
+  });
+
+  return [
+    makeTopLevelNode("software-compositions", "Software Compositions", () =>
+      groupingMode === "packages"
+        ? buildPackageFolderTree(compositions, (composition) => makeCompositionNode(composition, entities), "software-compositions")
+        : compositionTree
+    ),
+    makeTopLevelNode("software-components", "Software Components", () =>
+      Array.from(componentFamilies.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([label, family]) => ({
+          id: `software-components:${label}`,
+          label,
+          icon: "folder",
+          selectable: false,
+          children:
+            groupingMode === "packages"
+              ? buildPackageFolderTree(
+                  family.entities,
+                  (swc) => makeSwcNode(swc, portsByOwner.get(swc.semanticPath ?? "") ?? []),
+                  `software-components:${label}`
+                )
+              : family.children
+        }))
+    ),
+    makePortInterfacesNode(entities, groupingMode),
+    makeDataTypesNode(entities, groupingMode),
+    makeEntityCollectionNode(
+      "constants",
+      "Constants",
+      entities,
+      ["constant"],
+      "K",
+      groupingMode
+    ),
+    makeEntityCollectionNode(
+      "mode-declaration-groups",
+      "Mode Declaration Groups",
+      entities,
+      ["mode-declaration-group"],
+      "Mo",
+      groupingMode
+    ),
+    makeEntityCollectionNode(
+      "type-mapping-sets",
+      "Type Mapping Sets",
+      entities,
+      ["type-mapping-set"],
+      "T",
+      groupingMode
+    ),
+    makeEntityCollectionNode(
+      "addressing-methods",
+      "Addressing Methods",
+      entities,
+      ["addressing-method"],
+      "A",
+      groupingMode
+    )
+  ];
+}
+
+function makeCompositionNode(composition: AutosarEntity, entities: AutosarEntity[]): ModelTreeNode {
     const children = entities
       .filter(
         (entity) =>
@@ -140,21 +301,22 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
       }))
       .sort((left, right) => left.label.localeCompare(right.label));
 
-    return {
-      id: composition.id,
-      label: composition.shortName,
-      icon: "C",
-      focusEntityId: composition.id,
-      preferredScope: "composition",
-      workspaceTab: makeModelTab(composition, "graph", "Graph", {
-        preferredScope: "composition"
-      }),
-      selectable: true,
-      children
-    };
-  });
+  return {
+    id: composition.id,
+    label: composition.shortName,
+    icon: "C",
+    focusEntityId: composition.id,
+    preferredScope: "composition",
+    workspaceTab: makeModelTab(composition, "graph", "Graph", {
+      preferredScope: "composition"
+    }),
+    selectable: true,
+    children
+  };
+}
 
-  const componentChildren = swcs.map((swc): ModelTreeNode => ({
+function makeSwcNode(swc: AutosarEntity, ports: AutosarEntity[]): ModelTreeNode {
+  return {
     id: `software-component:${swc.id}`,
     label: swc.shortName,
     icon: formatSwcKindIcon(swc.swcKind),
@@ -164,40 +326,169 @@ function buildModelTree(workspace: WorkspaceSnapshot | null): ModelTreeNode[] {
     workspaceTab: makeModelTab(swc, "graph", "Graph", {
       preferredScope: "swc"
     }),
-    children: buildSwcWorkspaceChildren(swc, portsByOwner.get(swc.semanticPath ?? "") ?? [])
-  }));
-  const componentFamilies = new Map<string, ModelTreeNode[]>();
+    children: buildSwcWorkspaceChildren(swc, ports)
+  };
+}
 
-  componentChildren.forEach((child) => {
-    const swc = swcs.find((entity) => `software-component:${entity.id}` === child.id);
-    const familyLabel = formatSwcKindLabel(swc?.swcKind);
-    const familyChildren = componentFamilies.get(familyLabel) ?? [];
-    familyChildren.push(child);
-    componentFamilies.set(familyLabel, familyChildren);
-  });
+function makeTopLevelNode(
+  id: string,
+  label: string,
+  childrenFactory: () => ModelTreeNode[]
+): ModelTreeNode {
+  return {
+    id,
+    label,
+    icon: "folder",
+    selectable: false,
+    children: childrenFactory()
+  };
+}
 
-  return [
-    {
-      id: "software-compositions",
-      label: "SOFTWARE COMPOSITIONS",
-      selectable: false,
-      children: compositionTree
-    },
-    {
-      id: "software-components",
-      label: "SOFTWARE COMPONENTS",
-      selectable: false,
-      children: Array.from(componentFamilies.entries())
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([label, children]) => ({
-          id: `software-components:${label}`,
-          label,
-          icon: "folder",
-          selectable: false,
-          children
-        }))
+function makePortInterfacesNode(entities: AutosarEntity[], groupingMode: TreeGroupingMode): ModelTreeNode {
+  const interfaces = entities.filter((entity) => entity.type === "interface");
+  return makeTopLevelNode("port-interfaces", "Port Interfaces", () => [
+    makeEntityCollectionNode(
+      "port-interfaces:application",
+      "Application Port Interfaces",
+      interfaces.filter((entity) => !isServicePortInterface(entity)),
+      ["interface"],
+      "I",
+      groupingMode
+    ),
+    makeEntityCollectionNode(
+      "port-interfaces:service",
+      "Service Port Interfaces",
+      interfaces.filter(isServicePortInterface),
+      ["interface"],
+      "S",
+      groupingMode
+    )
+  ]);
+}
+
+function makeDataTypesNode(entities: AutosarEntity[], groupingMode: TreeGroupingMode): ModelTreeNode {
+  return makeTopLevelNode("data-types", "Data Types", () => [
+    makeEntityCollectionNode("data-types:application", "Application Data Types", entities, ["application-data-type"], "A", groupingMode),
+    makeEntityCollectionNode(
+      "data-types:implementation",
+      "Implementation Data Types",
+      entities,
+      ["implementation-data-type"],
+      "I",
+      groupingMode
+    ),
+    makeEntityCollectionNode("data-types:base", "Base Types", entities, ["base-type"], "B", groupingMode),
+    makeEntityCollectionNode("data-types:units", "Units", entities, ["unit"], "U", groupingMode),
+    makeEntityCollectionNode("data-types:compu-methods", "Compu Methods", entities, ["compu-method"], "C", groupingMode),
+    makeEntityCollectionNode(
+      "data-types:data-constraints",
+      "Data Constraints",
+      entities,
+      ["data-constraint"],
+      "D",
+      groupingMode
+    ),
+    makeEntityCollectionNode("data-types:record-layouts", "Record Layouts", entities, ["record-layout"], "R", groupingMode)
+  ]);
+}
+
+function makeEntityCollectionNode(
+  id: string,
+  label: string,
+  entities: AutosarEntity[],
+  entityTypes: string[],
+  icon: string,
+  groupingMode: TreeGroupingMode = "semantic"
+): ModelTreeNode {
+  const matchingEntities = entities
+    .filter((entity) => entityTypes.includes(entity.type))
+    .slice()
+    .sort((left, right) => left.shortName.localeCompare(right.shortName));
+  const children =
+    groupingMode === "packages"
+      ? buildPackageFolderTree(matchingEntities, (entity) => makePlainEntityNode(entity, icon), id)
+      : matchingEntities.map((entity): ModelTreeNode => makePlainEntityNode(entity, icon));
+
+  return {
+    id,
+    label,
+    icon: "folder",
+    selectable: false,
+    children
+  };
+}
+
+interface PackageFolderBuilder {
+  label: string;
+  children: Map<string, PackageFolderBuilder>;
+  leaves: ModelTreeNode[];
+}
+
+function buildPackageFolderTree(
+  entities: AutosarEntity[],
+  makeLeafNode: (entity: AutosarEntity) => ModelTreeNode,
+  idPrefix: string
+): ModelTreeNode[] {
+  const root: PackageFolderBuilder = {
+    label: "",
+    children: new Map(),
+    leaves: []
+  };
+
+  for (const entity of entities) {
+    const segments = getPackagePathSegments(entity);
+    let cursor = root;
+    for (const segment of segments) {
+      const existing = cursor.children.get(segment);
+      const next =
+        existing ??
+        {
+          label: segment,
+          children: new Map<string, PackageFolderBuilder>(),
+          leaves: []
+        };
+      cursor.children.set(segment, next);
+      cursor = next;
     }
-  ];
+    cursor.leaves.push(makeLeafNode(entity));
+  }
+
+  return materializePackageFolders(root, idPrefix);
+}
+
+function materializePackageFolders(folder: PackageFolderBuilder, idPrefix: string): ModelTreeNode[] {
+  const childFolders = Array.from(folder.children.values())
+    .sort((left, right) => left.label.localeCompare(right.label))
+    .map((child) => ({
+      id: `${idPrefix}:package:${child.label}`,
+      label: child.label,
+      icon: "folder",
+      selectable: false,
+      children: materializePackageFolders(child, `${idPrefix}:package:${child.label}`)
+    }));
+  const leaves = folder.leaves.slice().sort((left, right) => left.label.localeCompare(right.label));
+  return [...childFolders, ...leaves];
+}
+
+function getPackagePathSegments(entity: AutosarEntity) {
+  return (entity.packagePath ?? "")
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function makePlainEntityNode(entity: AutosarEntity, icon: string): ModelTreeNode {
+  return {
+    id: `model-entity:${entity.id}`,
+    label: entity.shortName,
+    icon,
+    selectable: false,
+  };
+}
+
+function isServicePortInterface(entity: AutosarEntity) {
+  const value = entity.metadata?.["IS-SERVICE"]?.toLowerCase();
+  return value === "true" || value === "1";
 }
 
 function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): ModelTreeNode[] {
@@ -406,6 +697,10 @@ function getCollapsibleState(node: ModelTreeNode) {
     return vscode.TreeItemCollapsibleState.None;
   }
 
+  if (node.forceExpanded) {
+    return vscode.TreeItemCollapsibleState.Expanded;
+  }
+
   if (node.id === "software-compositions" || node.id === "software-components") {
     return vscode.TreeItemCollapsibleState.Expanded;
   }
@@ -414,9 +709,6 @@ function getCollapsibleState(node: ModelTreeNode) {
 }
 
 function getNodeIconPath(node: ModelTreeNode) {
-  if (node.id === "software-compositions" || node.id === "software-components") {
-    return undefined;
-  }
   if (node.id.startsWith("software-components:")) {
     return makeBadgeIcon("folder");
   }

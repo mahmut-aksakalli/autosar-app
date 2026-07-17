@@ -32,6 +32,13 @@ const INTERFACE_TAGS = new Set([
   "PARAMETER-INTERFACE",
   "TRIGGER-INTERFACE"
 ]);
+const APPLICATION_DATA_TYPE_TAGS = new Set([
+  "APPLICATION-ARRAY-DATA-TYPE",
+  "APPLICATION-ASSOC-MAP-DATA-TYPE",
+  "APPLICATION-COMPOSITE-DATA-TYPE",
+  "APPLICATION-PRIMITIVE-DATA-TYPE",
+  "APPLICATION-RECORD-DATA-TYPE"
+]);
 
 type EntityType = AutosarEntityType;
 
@@ -368,6 +375,36 @@ function classifyTag(tagName: string): EntityType {
   }
   if (tagName === "CONSTANT-SPECIFICATION") {
     return "constant";
+  }
+  if (APPLICATION_DATA_TYPE_TAGS.has(tagName)) {
+    return "application-data-type";
+  }
+  if (tagName === "IMPLEMENTATION-DATA-TYPE") {
+    return "implementation-data-type";
+  }
+  if (tagName === "SW-BASE-TYPE") {
+    return "base-type";
+  }
+  if (tagName === "UNIT") {
+    return "unit";
+  }
+  if (tagName === "COMPU-METHOD") {
+    return "compu-method";
+  }
+  if (tagName === "DATA-CONSTR") {
+    return "data-constraint";
+  }
+  if (tagName === "SW-RECORD-LAYOUT") {
+    return "record-layout";
+  }
+  if (tagName === "MODE-DECLARATION-GROUP") {
+    return "mode-declaration-group";
+  }
+  if (tagName === "DATA-TYPE-MAPPING-SET") {
+    return "type-mapping-set";
+  }
+  if (tagName === "SW-ADDR-METHOD") {
+    return "addressing-method";
   }
   return "generic";
 }

@@ -14,6 +14,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onView:autosarModelView.filter",
     "onView:autosarModelView.tree"
   ],
   "contributes": {
@@ -31,14 +32,44 @@
         "command": "autosarModelView.refresh",
         "title": "AUTOSAR: Refresh Model View",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "autosarModelView.showSemanticTree",
+        "title": "AUTOSAR: Show Tree View",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "autosarModelView.showPackageTree",
+        "title": "AUTOSAR: Show Packages",
+        "icon": "$(symbol-folder)"
+      },
+      {
+        "command": "autosarModelView.collapseAll",
+        "title": "AUTOSAR: Collapse All",
+        "icon": "$(collapse-all)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "autosarModelView.refresh",
+          "command": "autosarModelView.showSemanticTree",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "autosarModelView.showPackageTree",
           "when": "view == autosarModelView.tree",
           "group": "navigation@2"
+        },
+        {
+          "command": "autosarModelView.refresh",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "autosarModelView.collapseAll",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@4"
         }
       ],
       "explorer/context": [
@@ -71,6 +102,11 @@
           "id": "autosarModelView.tree",
           "name": "Model",
           "icon": "resources/autosar.svg"
+        },
+        {
+          "id": "autosarModelView.filter",
+          "name": "Filter",
+          "type": "webview"
         }
       ]
     }

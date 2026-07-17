@@ -10,6 +10,12 @@ export function activate(context: vscode.ExtensionContext) {
   const workspaceModelService = new WorkspaceModelService();
   const graphService = new GraphService(workspaceModelService);
   const treeProvider = new ModelTreeProvider();
+  const filterStorageKey = "autosarModelView.filterText";
+  const initialFilterText = context.workspaceState.get(filterStorageKey, "");
+  const treeView = vscode.window.createTreeView("autosarModelView.tree", {
+    treeDataProvider: treeProvider
+  });
+  let filterView: vscode.WebviewView | undefined;
   let modelPanel: vscode.WebviewPanel | undefined;
   let initialWorkspaceIndexPromise: Promise<void> | undefined;
 
@@ -22,7 +28,34 @@ export function activate(context: vscode.ExtensionContext) {
         workspace: snapshot
       });
     }),
-    vscode.window.registerTreeDataProvider("autosarModelView.tree", treeProvider),
+    workspaceModelService.onIndexingChanged((indexing) => {
+      treeProvider.setIndexing(indexing);
+    }),
+    treeView,
+    vscode.window.registerWebviewViewProvider("autosarModelView.filter", {
+      resolveWebviewView(view) {
+        filterView = view;
+        view.webview.options = {
+          enableScripts: true
+        };
+        view.webview.html = getFilterViewHtml(view.webview);
+        view.onDidDispose(() => {
+          if (filterView === view) {
+            filterView = undefined;
+          }
+        });
+        view.webview.onDidReceiveMessage((message: unknown) => {
+          if (!isFilterChangedMessage(message)) {
+            return;
+          }
+          setTreeFilter(message.value, { updateFilterView: false });
+        });
+        void view.webview.postMessage({
+          type: "setFilter",
+          value: treeProvider.getFilterText()
+        });
+      }
+    }),
     vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
       const snapshot = workspaceModelService.getSnapshot() ?? (await workspaceModelService.refresh());
       treeProvider.update(snapshot);
@@ -104,9 +137,19 @@ export function activate(context: vscode.ExtensionContext) {
           `AUTOSAR model refreshed: ${snapshot.files.length} ARXML file(s), ${snapshot.entities.length} model entity/entities.`
         );
       }
+    }),
+    vscode.commands.registerCommand("autosarModelView.showSemanticTree", () => {
+      treeProvider.setGroupingMode("semantic");
+    }),
+    vscode.commands.registerCommand("autosarModelView.showPackageTree", () => {
+      treeProvider.setGroupingMode("packages");
+    }),
+    vscode.commands.registerCommand("autosarModelView.collapseAll", async () => {
+      await vscode.commands.executeCommand("workbench.actions.treeView.autosarModelView.tree.collapseAll");
     })
   );
 
+  setTreeFilter(initialFilterText);
   void ensureInitialWorkspaceIndexed();
 
   async function ensureInitialWorkspaceIndexed() {
@@ -129,6 +172,19 @@ export function activate(context: vscode.ExtensionContext) {
       await initialWorkspaceIndexPromise;
     } finally {
       initialWorkspaceIndexPromise = undefined;
+    }
+  }
+
+  function setTreeFilter(value: string, options: { updateFilterView?: boolean } = {}) {
+    treeProvider.setFilterText(value);
+    const filterText = treeProvider.getFilterText();
+    treeView.description = filterText ? `Filter: ${filterText}` : undefined;
+    void context.workspaceState.update(filterStorageKey, filterText || undefined);
+    if (options.updateFilterView !== false) {
+      void filterView?.webview.postMessage({
+        type: "setFilter",
+        value: filterText
+      });
     }
   }
 
@@ -235,6 +291,75 @@ export function activate(context: vscode.ExtensionContext) {
   </body>
 </html>`;
   }
+
+  function getFilterViewHtml(webview: vscode.Webview) {
+    const nonce = String(Date.now());
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <style>
+      body {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 2px 6px 4px;
+        color: var(--vscode-foreground);
+        background: var(--vscode-sideBar-background);
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        overflow: hidden;
+      }
+      .filter-row {
+        display: flex;
+        align-items: center;
+        height: 22px;
+      }
+      input {
+        flex: 1;
+        min-width: 0;
+        height: 22px;
+        box-sizing: border-box;
+        padding: 2px 6px;
+        color: var(--vscode-input-foreground);
+        background: var(--vscode-input-background);
+        border: 1px solid var(--vscode-input-border, transparent);
+        outline: none;
+      }
+      input:focus {
+        border-color: var(--vscode-focusBorder);
+      }
+    </style>
+    <title>AUTOSAR Filter</title>
+  </head>
+  <body>
+    <div class="filter-row">
+      <input id="filter" type="search" placeholder="Filter AUTOSAR model" aria-label="Filter AUTOSAR model" autofocus>
+    </div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+      const input = document.getElementById("filter");
+      const previousState = vscode.getState();
+      if (previousState && typeof previousState.filter === "string") {
+        input.value = previousState.filter;
+      }
+      function postFilter() {
+        vscode.setState({ filter: input.value });
+        vscode.postMessage({ type: "filterChanged", value: input.value });
+      }
+      input.addEventListener("input", postFilter);
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (message && message.type === "setFilter" && input.value !== message.value) {
+          input.value = message.value || "";
+          vscode.setState({ filter: input.value });
+        }
+      });
+    </script>
+  </body>
+</html>`;
+  }
 }
 
 export function deactivate() {
@@ -273,5 +398,14 @@ function isBuildGraphMessage(message: unknown): message is {
     typeof message === "object" &&
     (message as { type?: unknown }).type === "buildGraph" &&
     typeof (message as { requestId?: unknown }).requestId === "string"
+  );
+}
+
+function isFilterChangedMessage(message: unknown): message is { type: "filterChanged"; value: string } {
+  return (
+    Boolean(message) &&
+    typeof message === "object" &&
+    (message as { type?: unknown }).type === "filterChanged" &&
+    typeof (message as { value?: unknown }).value === "string"
   );
 }

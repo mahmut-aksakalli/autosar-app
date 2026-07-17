@@ -54,6 +54,13 @@ export class WorkspaceModelService implements vscode.Disposable {
     };
   }
 
+  onIndexingChanged(listener: (indexing: boolean) => void) {
+    this.events.on("indexingChanged", listener);
+    return {
+      dispose: () => this.events.off("indexingChanged", listener)
+    };
+  }
+
   async refresh() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
@@ -66,20 +73,27 @@ export class WorkspaceModelService implements vscode.Disposable {
     this.workspaceFolder = workspaceFolder;
     const generation = ++this.indexingGeneration;
 
-    return vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Window,
-        title: "Indexing AUTOSAR model"
-      },
-      async () => {
-        const snapshot = await this.indexWorkspace(workspaceFolder, generation);
-        if (snapshot && generation === this.indexingGeneration) {
-          this.workspace = snapshot;
-          this.events.emit("updated", snapshot);
+    this.setIndexing(true);
+    try {
+      return await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: "Indexing AUTOSAR model"
+        },
+        async () => {
+          const snapshot = await this.indexWorkspace(workspaceFolder, generation);
+          if (snapshot && generation === this.indexingGeneration) {
+            this.workspace = snapshot;
+            this.events.emit("updated", snapshot);
+          }
+          return snapshot;
         }
-        return snapshot;
+      );
+    } finally {
+      if (generation === this.indexingGeneration) {
+        this.setIndexing(false);
       }
-    );
+    }
   }
 
   async openFile(uri?: vscode.Uri) {
@@ -89,22 +103,29 @@ export class WorkspaceModelService implements vscode.Disposable {
     }
 
     const generation = ++this.indexingGeneration;
-    return vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Window,
-        title: "Indexing AUTOSAR file"
-      },
-      async () => {
-        const snapshot = await this.indexSingleFile(selectedUri.fsPath, generation);
-        if (snapshot && generation === this.indexingGeneration) {
-          this.workspaceFolder = undefined;
-          this.singleFilePath = selectedUri.fsPath;
-          this.workspace = snapshot;
-          this.events.emit("updated", snapshot);
+    this.setIndexing(true);
+    try {
+      return await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: "Indexing AUTOSAR file"
+        },
+        async () => {
+          const snapshot = await this.indexSingleFile(selectedUri.fsPath, generation);
+          if (snapshot && generation === this.indexingGeneration) {
+            this.workspaceFolder = undefined;
+            this.singleFilePath = selectedUri.fsPath;
+            this.workspace = snapshot;
+            this.events.emit("updated", snapshot);
+          }
+          return snapshot;
         }
-        return snapshot;
+      );
+    } finally {
+      if (generation === this.indexingGeneration) {
+        this.setIndexing(false);
       }
-    );
+    }
   }
 
   dispose() {
@@ -182,6 +203,10 @@ export class WorkspaceModelService implements vscode.Disposable {
       watched: true,
       lastIndexedAt: new Date().toISOString()
     } satisfies WorkspaceSnapshot;
+  }
+
+  private setIndexing(indexing: boolean) {
+    this.events.emit("indexingChanged", indexing);
   }
 
   private async indexSingleFile(filePath: string, generation: number) {
