@@ -20,7 +20,7 @@ export function ModelWebviewApp() {
   const modelEntities = useMemo(
     () =>
       workspace.entities
-        .filter((entity) => entity.type === "swc" || entity.type === "composition")
+        .filter((entity) => !["port", "instance", "connection", "generic"].includes(entity.type))
         .slice()
         .sort((left, right) => left.shortName.localeCompare(right.shortName)),
     [workspace.entities]
@@ -157,7 +157,7 @@ export function ModelWebviewApp() {
   }
 
   if (!activeModelFocusEntity || !activeModelWorkspaceTab) {
-    return <div className="empty-state">No AUTOSAR SWC or composition was discovered.</div>;
+    return <div className="empty-state">No AUTOSAR model entity was discovered.</div>;
   }
 
   return (
@@ -195,6 +195,7 @@ export function ModelWebviewApp() {
       <div className="editor-view">
         <ModelPanel
           focusEntity={activeModelFocusEntity}
+          workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}
           preferredNodeId={activeModelWorkspaceTab.preferredNodeId ?? modelPreferredNodeId}
           activeWorkspaceTab={activeModelWorkspaceTab}

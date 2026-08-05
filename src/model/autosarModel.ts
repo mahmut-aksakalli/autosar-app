@@ -271,7 +271,7 @@ function walkNode(state: WalkState) {
           ? collectPortMetadata(record)
           : type === "constant"
             ? collectConstantMetadata(record)
-            : collectMetadata(record)
+            : collectEntityMetadata(type, tagName, record)
     });
   }
 
@@ -794,17 +794,25 @@ function getInterfaceMemberKind(interfaceKind: PortInterfaceKind, tagName: strin
 
 function collectInterfaceMemberMetadata(tagName: string, record: Record<string, unknown>) {
   if (tagName === "CLIENT-SERVER-OPERATION") {
-    const argumentNames = toRecordArray(record["ARGUMENTS"])
+    const argumentsList = toRecordArray(record["ARGUMENTS"])
       .flatMap((entry) => toRecordArray(entry["ARGUMENT-DATA-PROTOTYPE"]))
-      .map((entry) => extractShortName(entry))
-      .filter((value): value is string => Boolean(value));
+      .map((entry) => ({
+        name: extractShortName(entry) ?? "-",
+        type: extractTypeRef(entry) ?? "-",
+        direction: readSimpleValue(entry["DIRECTION"]) ?? "-",
+        serverPolicy: readSimpleValue(entry["SERVER-ARGUMENT-IMPL-POLICY"]) ?? "-"
+      }));
     const errorRefs = toRecordArray(record["POSSIBLE-ERROR-REFS"])
       .flatMap((entry) => toArray(entry["POSSIBLE-ERROR-REF"]))
       .map((entry) => (typeof entry === "string" ? entry : extractReference({ entry }, "entry")))
       .filter((value): value is string => Boolean(value));
 
     return compactMetadata({
-      ARGUMENTS: argumentNames.length > 0 ? argumentNames.join(", ") : undefined,
+      DESCRIPTION: extractDescription(record),
+      ARGUMENTS: argumentsList.length > 0 ? argumentsList.map((argument) => argument.name).join(", ") : undefined,
+      "ARGUMENT-DETAILS": argumentsList.length > 0 ? JSON.stringify(argumentsList) : undefined,
+      "DIAG-ARG-INTEGRITY": readSimpleValue(record["DIAG-ARG-INTEGRITY"]),
+      "FIRE-AND-FORGET": readSimpleValue(record["FIRE-AND-FORGET"]),
       ERRORS: errorRefs.length > 0 ? errorRefs.map(getReferenceLeafName).join(", ") : undefined
     });
   }
@@ -817,6 +825,7 @@ function collectInterfaceMemberMetadata(tagName: string, record: Record<string, 
 
   if (tagName === "VARIABLE-DATA-PROTOTYPE") {
     return compactMetadata({
+      DESCRIPTION: extractDescription(record),
       TYPE: extractVariableDataPrototypeTypeRef(record),
       "DATA-CONSTRAINTS": extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]),
       "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
@@ -827,13 +836,21 @@ function collectInterfaceMemberMetadata(tagName: string, record: Record<string, 
       "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
     });
   }
+  if (tagName === "TRIGGER") {
+    return compactMetadata({
+      "SW-IMPL-POLICY": readSimpleValue(record["SW-IMPL-POLICY"]),
+      "TRIGGER-PERIOD": summarizeAutosarValue(record["TRIGGER-PERIOD"]),
+    });
+  }
   return compactMetadata({
     TYPE: extractTypeRef(record) ?? extractNestedReference(record["SW-DATA-DEF-PROPS"], "TYPE-TREF"),
     "DATA-CONSTRAINTS": extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]),
     "SW-ADDR-METHOD-REF": extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]),
     "IS-QUEUED": extractSwDataDefPropsValue(record, ["IS-QUEUED", "QUEUE-LENGTH"]),
     "SW-CALIBRATION-ACCESS": extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]),
-    "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"])
+    "HANDLE-INVALID": extractSwDataDefPropsValue(record, ["HANDLE-INVALID", "INVALIDATION-POLICY"]),
+    "INITIAL-VALUE": extractInitialValue(record),
+    "INITIAL-VALUE-TYPE": extractInitialValueType(record)
   });
 }
 
@@ -931,6 +948,281 @@ function extractSwDataDefPropsReference(record: Record<string, unknown>, keys: s
     }
   }
   return undefined;
+}
+
+interface EntityDetailField {
+  label: string;
+  value: string;
+  valueType?: string;
+}
+
+interface EntityDetailTable {
+  title: string;
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<Record<string, string>>;
+}
+
+interface EntityDetailPayload {
+  fields: EntityDetailField[];
+  tables: EntityDetailTable[];
+}
+
+function collectEntityMetadata(type: EntityType, tagName: string, record: Record<string, unknown>) {
+  const metadata = collectMetadata(record) ?? {};
+  const details = buildEntityDetailPayload(type, tagName, record);
+  return compactMetadata({
+    ...metadata,
+    DESCRIPTION: extractDescription(record),
+    "ENTITY-DETAILS": details ? JSON.stringify(details) : undefined
+  });
+}
+
+function buildEntityDetailPayload(
+  type: EntityType,
+  tagName: string,
+  record: Record<string, unknown>
+): EntityDetailPayload | undefined {
+  const fields: EntityDetailField[] = [];
+  const tables: EntityDetailTable[] = [];
+  const addField = (label: string, value: string | undefined, valueType?: string) => {
+    fields.push({ label, value: value ?? "-", valueType });
+  };
+  const addReference = (label: string, key: string) => addField(label, extractNestedReference(record, key));
+
+  if (type === "interface") {
+    addField("Interface Type", formatAutosarElementName(tagName));
+    addField("Is Service", readNestedSimpleValue(record, "IS-SERVICE") ?? "false");
+  } else if (type === "application-data-type") {
+    addField("Category", readNestedSimpleValue(record, "CATEGORY"));
+    addSwDataDefinitionFields(record, addField);
+
+    if (tagName === "APPLICATION-ARRAY-DATA-TYPE") {
+      addField("Dynamic Array Size Profile", readNestedSimpleValue(record, "DYNAMIC-ARRAY-SIZE-PROFILE"));
+      const rows = toRecordArray(record["ELEMENT"]).map((element) => ({
+        name: extractShortName(element) ?? "Element",
+        dataType: extractNestedReference(element, "TYPE-TREF") ?? "-",
+        maximumElements: readNestedSimpleValue(element, "MAX-NUMBER-OF-ELEMENTS") ?? "-",
+        sizeSemantics: readNestedSimpleValue(element, "ARRAY-SIZE-SEMANTICS") ?? "-",
+        sizeHandling: readNestedSimpleValue(element, "ARRAY-SIZE-HANDLING") ?? "-",
+        indexType: extractNestedReference(element, "INDEX-DATA-TYPE-REF") ?? "-"
+      }));
+      addDetailTable(tables, "Array Element", [
+        ["name", "Name"], ["dataType", "Data Type"], ["maximumElements", "Maximum Elements"],
+        ["sizeSemantics", "Size Semantics"], ["sizeHandling", "Size Handling"], ["indexType", "Index Data Type"]
+      ], rows);
+    } else if (tagName === "APPLICATION-RECORD-DATA-TYPE") {
+      const rows = collectContainedRecords(record, "ELEMENTS", "APPLICATION-RECORD-ELEMENT").map((element) => ({
+        name: extractShortName(element) ?? "-",
+        dataType: extractNestedReference(element, "TYPE-TREF") ?? "-",
+        optional: readNestedSimpleValue(element, "IS-OPTIONAL") ?? "false"
+      }));
+      addDetailTable(tables, "Record Elements", [["name", "Name"], ["dataType", "Data Type"], ["optional", "Optional"]], rows);
+    }
+  } else if (type === "implementation-data-type") {
+    addField("Category", readNestedSimpleValue(record, "CATEGORY"));
+    addSwDataDefinitionFields(record, addField);
+    addField("Dynamic Array Size Profile", readNestedSimpleValue(record, "DYNAMIC-ARRAY-SIZE-PROFILE"));
+    addField("Structure Has Optional Elements", readNestedSimpleValue(record, "IS-STRUCT-WITH-OPTIONAL-ELEMENT"));
+    addField("Type Emitter", readNestedSimpleValue(record, "TYPE-EMITTER"));
+    addField("Symbol", readNestedSimpleValue(record["SYMBOL-PROPS"], "SYMBOL"));
+    const rows = collectContainedRecords(record, "SUB-ELEMENTS", "IMPLEMENTATION-DATA-TYPE-ELEMENT").map((element) => ({
+      name: extractShortName(element) ?? "-",
+      category: readNestedSimpleValue(element, "CATEGORY") ?? "-",
+      dataType: extractNestedReference(element, "IMPLEMENTATION-DATA-TYPE-REF") ?? extractNestedReference(element, "BASE-TYPE-REF") ?? "-",
+      arraySize: readNestedSimpleValue(element, "ARRAY-SIZE") ?? "-",
+      sizeSemantics: readNestedSimpleValue(element, "ARRAY-SIZE-SEMANTICS") ?? "-",
+      optional: readNestedSimpleValue(element, "IS-OPTIONAL") ?? "false"
+    }));
+    addDetailTable(tables, "Sub-elements", [
+      ["name", "Name"], ["category", "Category"], ["dataType", "Data Type"],
+      ["arraySize", "Array Size"], ["sizeSemantics", "Size Semantics"], ["optional", "Optional"]
+    ], rows);
+  } else if (type === "base-type") {
+    addField("Size", appendUnit(readNestedSimpleValue(record, "BASE-TYPE-SIZE"), "bits"));
+    addField("Encoding", readNestedSimpleValue(record, "BASE-TYPE-ENCODING"));
+    addField("Memory Alignment", appendUnit(readNestedSimpleValue(record, "MEM-ALIGNMENT"), "bits"));
+    addField("Byte Order", readNestedSimpleValue(record, "BYTE-ORDER"));
+    addField("Native Declaration", readNestedSimpleValue(record, "NATIVE-DECLARATION"));
+  } else if (type === "unit") {
+    addField("Display Name", findNestedStringValue(record["DISPLAY-NAME"], ["L-2", "L-4", "#text"]));
+    addField("Factor SI to Unit", readNestedSimpleValue(record, "FACTOR-SI-TO-UNIT"));
+    addField("Offset SI to Unit", readNestedSimpleValue(record, "OFFSET-SI-TO-UNIT"));
+    addReference("Physical Dimension", "PHYSICAL-DIMENSION-REF");
+  } else if (type === "compu-method") {
+    addField("Category", readNestedSimpleValue(record, "CATEGORY"));
+    addField("Display Format", readNestedSimpleValue(record, "DISPLAY-FORMAT"));
+    addReference("Unit", "UNIT-REF");
+    addField("Internal to Physical Default Value", readNestedSimpleValue(record["COMPU-INTERNAL-TO-PHYS"], "COMPU-DEFAULT-VALUE"));
+    addField("Physical to Internal Default Value", readNestedSimpleValue(record["COMPU-PHYS-TO-INTERNAL"], "COMPU-DEFAULT-VALUE"));
+    const rows = [
+      ...collectCompuScaleRows(record["COMPU-INTERNAL-TO-PHYS"], "Internal to Physical"),
+      ...collectCompuScaleRows(record["COMPU-PHYS-TO-INTERNAL"], "Physical to Internal")
+    ];
+    addDetailTable(tables, "Conversion Scales", [
+      ["direction", "Direction"], ["label", "Label"], ["lower", "Lower Limit"], ["upper", "Upper Limit"],
+      ["value", "Value / Text"], ["numerator", "Numerator"], ["denominator", "Denominator"], ["mask", "Mask"]
+    ], rows);
+  } else if (type === "data-constraint") {
+    const rows = collectContainedRecords(record, "DATA-CONSTR-RULES", "DATA-CONSTR-RULE").flatMap((rule, index) =>
+      ["INTERNAL-CONSTRS", "PHYS-CONSTRS"].flatMap((key) => toRecordArray(rule[key]).map((constraints) => ({
+        rule: String(index + 1),
+        kind: key === "INTERNAL-CONSTRS" ? "Internal" : "Physical",
+        level: readNestedSimpleValue(rule, "CONSTR-LEVEL") ?? "-",
+        lower: readNestedSimpleValue(constraints, "LOWER-LIMIT") ?? "-",
+        upper: readNestedSimpleValue(constraints, "UPPER-LIMIT") ?? "-",
+        maxGradient: readNestedSimpleValue(constraints, "MAX-GRADIENT") ?? "-",
+        maxDifference: readNestedSimpleValue(constraints, "MAX-DIFF") ?? "-",
+        monotony: readNestedSimpleValue(constraints, "MONOTONY") ?? "-",
+        scaleConstraints: summarizeAutosarValue(constraints["SCALE-CONSTRS"]) ?? "-",
+        unit: extractNestedReference(constraints, "UNIT-REF") ?? "-"
+      })))
+    );
+    addDetailTable(tables, "Constraint Rules", [
+      ["rule", "Rule"], ["kind", "Kind"], ["level", "Level"], ["lower", "Lower Limit"], ["upper", "Upper Limit"],
+      ["scaleConstraints", "Scale Constraints"], ["maxGradient", "Maximum Gradient"], ["maxDifference", "Maximum Difference"],
+      ["monotony", "Monotony"], ["unit", "Unit"]
+    ], rows);
+  } else if (type === "record-layout") {
+    const rows = collectDescendantRecords(record, "SW-RECORD-LAYOUT-GROUP").map((group) => ({
+      label: readNestedSimpleValue(group, "SHORT-LABEL") ?? "-",
+      category: readNestedSimpleValue(group, "CATEGORY") ?? "-",
+      axis: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-GROUP-AXIS") ?? "-",
+      index: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-GROUP-INDEX") ?? "-",
+      from: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-GROUP-FROM") ?? "-",
+      to: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-GROUP-TO") ?? "-",
+      step: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-GROUP-STEP") ?? "-",
+      component: readNestedSimpleValue(group, "SW-RECORD-LAYOUT-COMPONENT") ?? "-"
+    }));
+    addDetailTable(tables, "Layout Groups", [
+      ["label", "Label"], ["category", "Category"], ["axis", "Axis"], ["index", "Index"],
+      ["from", "From"], ["to", "To"], ["step", "Step"], ["component", "Component"]
+    ], rows);
+  } else if (type === "mode-declaration-group") {
+    addReference("Initial Mode", "INITIAL-MODE-REF");
+    addField("On-transition Value", readNestedSimpleValue(record, "ON-TRANSITION-VALUE"));
+    addField("Mode Manager Error Behavior", summarizeAutosarValue(record["MODE-MANAGER-ERROR-BEHAVIOR"]));
+    addField("Mode User Error Behavior", summarizeAutosarValue(record["MODE-USER-ERROR-BEHAVIOR"]));
+    addDetailTable(tables, "Modes", [["name", "Name"], ["value", "Numeric Value"]],
+      collectContainedRecords(record, "MODE-DECLARATIONS", "MODE-DECLARATION").map((mode) => ({
+        name: extractShortName(mode) ?? "-", value: readNestedSimpleValue(mode, "VALUE") ?? "-"
+      })));
+    addDetailTable(tables, "Transitions", [["exited", "Exited Mode"], ["entered", "Entered Mode"]],
+      collectContainedRecords(record, "MODE-TRANSITIONS", "MODE-TRANSITION").map((transition) => ({
+        exited: extractNestedReference(transition, "EXITED-MODE-REF") ?? "-",
+        entered: extractNestedReference(transition, "ENTERED-MODE-REF") ?? "-"
+      })));
+  } else if (type === "type-mapping-set") {
+    addDetailTable(tables, "Data Type Mappings", [["application", "Application Data Type"], ["implementation", "Implementation Data Type"]],
+      collectContainedRecords(record, "DATA-TYPE-MAPS", "DATA-TYPE-MAP").map((mapping) => ({
+        application: extractNestedReference(mapping, "APPLICATION-DATA-TYPE-REF") ?? "-",
+        implementation: extractNestedReference(mapping, "IMPLEMENTATION-DATA-TYPE-REF") ?? "-"
+      })));
+    addDetailTable(tables, "Mode Request Mappings", [["modeGroup", "Mode Declaration Group"], ["implementation", "Implementation Data Type"]],
+      collectContainedRecords(record, "MODE-REQUEST-TYPE-MAPS", "MODE-REQUEST-TYPE-MAP").map((mapping) => ({
+        modeGroup: extractNestedReference(mapping, "MODE-GROUP-REF") ?? "-",
+        implementation: extractNestedReference(mapping, "IMPLEMENTATION-DATA-TYPE-REF") ?? "-"
+      })));
+  } else if (type === "addressing-method") {
+    addField("Memory Allocation Keyword Policy", readNestedSimpleValue(record, "MEMORY-ALLOCATION-KEYWORD-POLICY"));
+    addField("Section Initialization Policy", readNestedSimpleValue(record, "SECTION-INITIALIZATION-POLICY"));
+    addField("Section Type", readNestedSimpleValue(record, "SECTION-TYPE"));
+    addField("Options", collectSimpleDescendantValues(record["OPTIONS"]).join(", ") || undefined);
+  } else {
+    return undefined;
+  }
+
+  return { fields, tables };
+}
+
+function addSwDataDefinitionFields(
+  record: Record<string, unknown>,
+  addField: (label: string, value: string | undefined) => void
+) {
+  addField("Base Type", extractSwDataDefPropsReference(record, ["BASE-TYPE-REF"]));
+  addField("Implementation Data Type", extractSwDataDefPropsReference(record, ["IMPLEMENTATION-DATA-TYPE-REF"]));
+  addField("Compu Method", extractSwDataDefPropsReference(record, ["COMPU-METHOD-REF"]));
+  addField("Data Constraint", extractSwDataDefPropsReference(record, ["DATA-CONSTR-REF", "DATA-CONSTR-TREF"]));
+  addField("Unit", extractSwDataDefPropsReference(record, ["UNIT-REF"]));
+  addField("Addressing Method", extractSwDataDefPropsReference(record, ["SW-ADDR-METHOD-REF"]));
+  addField("Measurement&Calibration", extractSwDataDefPropsValue(record, ["SW-CALIBRATION-ACCESS"]));
+}
+
+function addDetailTable(
+  tables: EntityDetailTable[],
+  title: string,
+  columns: Array<[string, string]>,
+  rows: Array<Record<string, string>>
+) {
+  tables.push({ title, columns: columns.map(([key, label]) => ({ key, label })), rows });
+}
+
+function collectContainedRecords(record: Record<string, unknown>, containerKey: string, itemKey: string) {
+  return toRecordArray(record[containerKey]).flatMap((container) => collectNamedChildren(container, itemKey));
+}
+
+function collectDescendantRecords(node: unknown, tagName: string): Array<Record<string, unknown>> {
+  if (Array.isArray(node)) {
+    return node.flatMap((entry) => collectDescendantRecords(entry, tagName));
+  }
+  if (!isRecord(node)) {
+    return [];
+  }
+  return [
+    ...toRecordArray(node[tagName]),
+    ...Object.entries(node)
+      .filter(([key]) => !key.startsWith("@_"))
+      .flatMap(([, value]) => collectDescendantRecords(value, tagName))
+  ];
+}
+
+function readNestedSimpleValue(node: unknown, key: string): string | undefined {
+  if (Array.isArray(node)) {
+    for (const entry of node) {
+      const value = readNestedSimpleValue(entry, key);
+      if (value !== undefined) return value;
+    }
+    return undefined;
+  }
+  if (!isRecord(node)) return undefined;
+  const direct = readSimpleValue(node[key]);
+  if (direct !== undefined) return direct;
+  for (const [childKey, child] of Object.entries(node)) {
+    if (childKey.startsWith("@_")) continue;
+    const value = readNestedSimpleValue(child, key);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function collectSimpleDescendantValues(node: unknown): string[] {
+  const direct = readSimpleValue(node);
+  if (direct !== undefined) return [direct];
+  if (Array.isArray(node)) return node.flatMap(collectSimpleDescendantValues);
+  if (!isRecord(node)) return [];
+  return Object.entries(node)
+    .filter(([key]) => !key.startsWith("@_"))
+    .flatMap(([, value]) => collectSimpleDescendantValues(value));
+}
+
+function collectCompuScaleRows(node: unknown, direction: string) {
+  return collectDescendantRecords(node, "COMPU-SCALE").map((scale) => ({
+    direction,
+    label: readNestedSimpleValue(scale, "SHORT-LABEL") ?? "-",
+    lower: readNestedSimpleValue(scale, "LOWER-LIMIT") ?? "-",
+    upper: readNestedSimpleValue(scale, "UPPER-LIMIT") ?? "-",
+    value: readNestedSimpleValue(scale, "VT") ?? readNestedSimpleValue(scale, "V") ?? "-",
+    numerator: collectSimpleDescendantValues(scale["COMPU-RATIONAL-COEFFS"] && (scale["COMPU-RATIONAL-COEFFS"] as Record<string, unknown>)["COMPU-NUMERATOR"]).join(", ") || "-",
+    denominator: collectSimpleDescendantValues(scale["COMPU-RATIONAL-COEFFS"] && (scale["COMPU-RATIONAL-COEFFS"] as Record<string, unknown>)["COMPU-DENOMINATOR"]).join(", ") || "-",
+    mask: readNestedSimpleValue(scale, "MASK") ?? "-"
+  }));
+}
+
+function appendUnit(value: string | undefined, unit: string) {
+  return value ? `${value} ${unit}` : undefined;
+}
+
+function formatAutosarElementName(value: string) {
+  return value.toLowerCase().split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
 
 function extractSwDataDefPropsValue(record: Record<string, unknown>, keys: string[]) {
@@ -1427,10 +1719,20 @@ function collectPortMetadata(record: Record<string, unknown>) {
 }
 
 function collectConstantMetadata(record: Record<string, unknown>) {
+  const value = extractValueSpecificationLabel(record["VALUE-SPEC"]);
+  const valueType = extractValueSpecificationType(record["VALUE-SPEC"]);
   return compactMetadata({
-    "VALUE-SPEC": extractValueSpecificationLabel(record["VALUE-SPEC"]),
-    "VALUE-SPEC-TYPE": extractValueSpecificationType(record["VALUE-SPEC"]),
-    "VALUE-SPEC-REF": extractValueSpecificationReference(record["VALUE-SPEC"])
+    DESCRIPTION: extractDescription(record),
+    "VALUE-SPEC": value,
+    "VALUE-SPEC-TYPE": valueType,
+    "VALUE-SPEC-REF": extractValueSpecificationReference(record["VALUE-SPEC"]),
+    "ENTITY-DETAILS": JSON.stringify({
+      fields: [
+        { label: "Category", value: readNestedSimpleValue(record, "CATEGORY") ?? "-" },
+        { label: "Value", value: value ?? "-", valueType }
+      ],
+      tables: []
+    } satisfies EntityDetailPayload)
   });
 }
 

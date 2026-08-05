@@ -210,7 +210,10 @@ function toGraphPort(
     direction: entity.portDirection ?? "required",
     portKind: entity.portKind,
     interfaceRef: entity.typeRef,
-    interfaceKind: interfaceEntity?.interfaceKind,
+    interfaceKind:
+      interfaceEntity?.interfaceKind && interfaceEntity.interfaceKind !== "unknown"
+        ? interfaceEntity.interfaceKind
+        : entity.interfaceKind,
     ownerId: entity.parentSemanticPath ?? entity.id,
     ownerSemanticPath: entity.parentSemanticPath,
     filePath: entity.filePath,

@@ -30,7 +30,8 @@ export interface ModelWorkspaceTab {
     | "perInstanceMemoryItem"
     | "serviceDependency"
     | "runnable"
-    | "event";
+    | "event"
+    | "entityDetails";
   focusEntityId: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
@@ -482,8 +483,24 @@ function makePlainEntityNode(entity: AutosarEntity, icon: string): ModelTreeNode
     id: `model-entity:${entity.id}`,
     label: entity.shortName,
     icon,
-    selectable: false,
+    focusEntityId: entity.id,
+    selectable: true,
+    workspaceTab: makeModelTab(entity, "entityDetails", getEntityDetailTitle(entity), {
+      entityId: entity.id,
+      xmlPath: entity.xmlPath
+    })
   };
+}
+
+function getEntityDetailTitle(entity: AutosarEntity) {
+  const typeLabel = entity.rawTagName
+    ? entity.rawTagName
+        .toLowerCase()
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : "AUTOSAR Element";
+  return `${typeLabel}: ${entity.shortName}`;
 }
 
 function isServicePortInterface(entity: AutosarEntity) {
