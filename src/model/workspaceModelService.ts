@@ -11,6 +11,7 @@ import type {
   WorkspaceProjectInfo,
   WorkspaceSnapshot
 } from "../shared/contracts";
+import { noopAutosarLogger, type AutosarLogger } from "../logger";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
@@ -33,7 +34,7 @@ export class WorkspaceModelService implements vscode.Disposable {
   private singleFilePath?: string;
   private indexingGeneration = 0;
 
-  constructor() {
+  constructor(private readonly logger: AutosarLogger = noopAutosarLogger) {
     const watcher = vscode.workspace.createFileSystemWatcher(modelInputPattern);
     this.disposables.push(
       watcher,
@@ -66,6 +67,7 @@ export class WorkspaceModelService implements vscode.Disposable {
     if (!workspaceFolder) {
       this.workspaceFolder = undefined;
       this.workspace = undefined;
+      this.logger.warning("Workspace indexing skipped because no VS Code workspace folder is open.");
       return null;
     }
 
@@ -85,6 +87,9 @@ export class WorkspaceModelService implements vscode.Disposable {
           if (snapshot && generation === this.indexingGeneration) {
             this.workspace = snapshot;
             this.events.emit("updated", snapshot);
+            this.logger.info(
+              `Workspace indexing complete: ${snapshot.files.length} ARXML file(s), ${snapshot.entities.length} model entity/entities.`
+            );
           }
           return snapshot;
         }
@@ -117,6 +122,9 @@ export class WorkspaceModelService implements vscode.Disposable {
             this.singleFilePath = selectedUri.fsPath;
             this.workspace = snapshot;
             this.events.emit("updated", snapshot);
+            this.logger.info(
+              `Single-file indexing complete: ${snapshot.files.length} ARXML file(s), ${snapshot.entities.length} model entity/entities.`
+            );
           }
           return snapshot;
         }
@@ -142,11 +150,23 @@ export class WorkspaceModelService implements vscode.Disposable {
 
   private async indexWorkspace(workspaceFolder: vscode.WorkspaceFolder, generation: number) {
     const rootPath = workspaceFolder.uri.fsPath;
+    this.logger.info(`Indexing AUTOSAR workspace: ${rootPath}`);
     const explorerEntries = await collectModelExplorerEntries(workspaceFolder);
     const vectorProject = await discoverVectorProject(rootPath, explorerEntries);
     const arxmlEntries = explorerEntries.filter(
       (entry) => entry.kind === "file" && entry.name.toLowerCase().endsWith(".arxml")
     );
+    this.logger.info(`Discovered ${arxmlEntries.length} ARXML file(s) in workspace.`);
+    if (vectorProject) {
+      this.logger.info(
+        `Detected Vector DaVinci project metadata: ${vectorProject.project.metadataFiles
+          .map((file) => file.relativePath)
+          .join(", ")}`
+      );
+      this.logger.info("Workspace project config file found; parsing ARXML inputs from project configuration.");
+    } else {
+      this.logger.info("No workspace project config file found; parsing individual ARXML files discovered in workspace.");
+    }
     const project: WorkspaceProjectInfo = vectorProject?.project ?? {
       kind: "folder",
       displayName: workspaceFolder.name,
@@ -162,11 +182,22 @@ export class WorkspaceModelService implements vscode.Disposable {
     const inputPaths = vectorProject?.projectInputFilePaths ?? arxmlEntries.map((entry) => entry.filePath);
     const documents: ArxmlDocumentData[] = [];
 
+    if (inputPaths.length === 0) {
+      this.logger.warning(`No ARXML files found in workspace: ${rootPath}`);
+    } else {
+      this.logger.info(`Parsing ${inputPaths.length} ARXML file(s) during workspace loading:`);
+      inputPaths
+        .map((filePath) => path.relative(rootPath, filePath))
+        .sort((left, right) => left.localeCompare(right))
+        .forEach((relativePath) => this.logger.info(`  ${relativePath}`));
+    }
+
     for (const filePath of inputPaths) {
       if (generation !== this.indexingGeneration) {
+        this.logger.warning("Workspace indexing was superseded by a newer indexing request.");
         return null;
       }
-      const document = await parseModelDocument(rootPath, filePath, validationScope);
+      const document = await parseModelDocument(rootPath, filePath, validationScope, this.logger);
       if (document) {
         documents.push(document);
       }
@@ -211,11 +242,13 @@ export class WorkspaceModelService implements vscode.Disposable {
 
   private async indexSingleFile(filePath: string, generation: number) {
     if (generation !== this.indexingGeneration) {
+      this.logger.warning("Single-file indexing was superseded by a newer indexing request.");
       return null;
     }
 
     const rootPath = path.dirname(filePath);
-    const document = await parseModelDocument(rootPath, filePath, "single-file");
+    this.logger.info(`Indexing AUTOSAR file: ${filePath}`);
+    const document = await parseModelDocument(rootPath, filePath, "single-file", this.logger);
     if (!document) {
       return null;
     }
@@ -284,7 +317,12 @@ async function collectModelExplorerEntries(workspaceFolder: vscode.WorkspaceFold
     .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 }
 
-async function parseModelDocument(rootPath: string, filePath: string, validationScope: ValidationScope) {
+async function parseModelDocument(
+  rootPath: string,
+  filePath: string,
+  validationScope: ValidationScope,
+  logger: AutosarLogger = noopAutosarLogger
+) {
   try {
     const contentBytes = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath));
     const content = Buffer.from(contentBytes).toString("utf8");
@@ -294,6 +332,9 @@ async function parseModelDocument(rootPath: string, filePath: string, validation
       validation,
       validationScope
     });
+    logger.info(
+      `Parsed ARXML: ${path.relative(rootPath, filePath)} (${model.entities.length} model entity/entities, ${model.connections.length} connection(s)).`
+    );
 
     return {
       filePath,
@@ -311,6 +352,7 @@ async function parseModelDocument(rootPath: string, filePath: string, validation
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const validation = createNotValidatedMetadata(validationScope);
+    logger.error(`Failed to parse ARXML: ${path.relative(rootPath, filePath)}.`, error);
     return {
       filePath,
       content: "",

@@ -37,28 +37,6 @@ and Electron shell code are intentionally out of scope.
 - [x] Copy AUTOSAR schema resources to `resources/autosar-schemas/`.
 - [x] Copy source example ARXML files to `examples/`.
 
-## 4. Source Step 4 - ARXML Syntax, Schema, And Serialization Validation
-
-The extension is model-view focused, so source-app ARXML editor validation UI is
-not part of the first migration. Keep these items as parity/backlog work only
-where diagnostics improve model exploration.
-
-- [ ] Add an explicit ARXML validation service in the extension host, separate from model extraction.
-- [ ] Report XML well-formedness errors before semantic parsing with message, file path, line, column when available, and stable issue code.
-- [ ] Detect AUTOSAR namespace, declared schema location, and release/version hints from the root `AUTOSAR` element.
-- [ ] Warn when the root namespace is missing, non-AUTOSAR, or unsupported for the selected validation mode.
-- [ ] Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files.
-  - [ ] Decide whether the extension should bundle or optionally locate `resources/autosar-schemas/`.
-- [ ] Validate ARXML against selected AUTOSAR XSD and surface structural schema errors.
-- [x] Preserve validation scopes for `single-file` and `workspace` in shared contracts.
-- [ ] Support workspace-level validation of split AUTOSAR projects while preserving per-file results.
-- [ ] Add serialization-rule checks for namespace usage, schema location shape, extra namespaces, and root/schema consistency.
-- [x] Keep validation issue contracts for `syntax`, `namespace`, `schema`, `serialization`, and `semantic`.
-- [x] Carry validation scope and completeness metadata in document/workspace results.
-- [ ] Show syntax/schema/serialization diagnostics in VS Code Problems or a model diagnostics view.
-- [ ] Add fixtures for malformed XML, namespace/schema edge cases, schema-invalid ARXML, and standalone schema-valid SWC extracts.
-- [ ] Add unit tests for validation issue normalization and UI/extension diagnostics.
-
 ## 5. Source Step 5 - AUTOSAR Reference And Semantic Validation
 
 - [x] Build one AUTOSAR model index path for either a single ARXML file or a full workspace.
@@ -201,6 +179,28 @@ References:
 - [ ] Support navigation chain: `System -> ECU -> Composition -> SWC -> Port/Behavior -> XML`.
 - [ ] Add degraded-state handling for incomplete system descriptions and partial extracts.
 - [ ] Add end-to-end tests for a small multi-ECU AUTOSAR system sample.
+
+## 11. Source Step 11 - ARXML Syntax, Schema, And Serialization Validation
+
+The extension is model-view focused, so source-app ARXML editor validation UI is
+not part of the first migration. Keep these items as parity/backlog work only
+where diagnostics improve model exploration.
+
+- [ ] Add an explicit ARXML validation service in the extension host, separate from model extraction.
+- [ ] Report XML well-formedness errors before semantic parsing with message, file path, line, column when available, and stable issue code.
+- [ ] Detect AUTOSAR namespace, declared schema location, and release/version hints from the root `AUTOSAR` element.
+- [ ] Warn when the root namespace is missing, non-AUTOSAR, or unsupported for the selected validation mode.
+- [ ] Add a schema registry abstraction that maps detected or user-selected AUTOSAR releases to local XSD files.
+  - [ ] Decide whether the extension should bundle or optionally locate `resources/autosar-schemas/`.
+- [ ] Validate ARXML against selected AUTOSAR XSD and surface structural schema errors.
+- [x] Preserve validation scopes for `single-file` and `workspace` in shared contracts.
+- [ ] Support workspace-level validation of split AUTOSAR projects while preserving per-file results.
+- [ ] Add serialization-rule checks for namespace usage, schema location shape, extra namespaces, and root/schema consistency.
+- [x] Keep validation issue contracts for `syntax`, `namespace`, `schema`, `serialization`, and `semantic`.
+- [x] Carry validation scope and completeness metadata in document/workspace results.
+- [ ] Show syntax/schema/serialization diagnostics in VS Code Problems or a model diagnostics view.
+- [ ] Add fixtures for malformed XML, namespace/schema edge cases, schema-invalid ARXML, and standalone schema-valid SWC extracts.
+- [ ] Add unit tests for validation issue normalization and UI/extension diagnostics.
 
 ## References:
 - [AUTOSAR_CP_TPS_SystemTemplate.pdf](https://www.autosar.org/fileadmin/standards/R25-11/CP/AUTOSAR_CP_TPS_SystemTemplate.pdf)

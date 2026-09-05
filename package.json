@@ -92,7 +92,7 @@
         {
           "id": "autosarModelView",
           "title": "AUTOSAR",
-          "icon": "resources/autosar.svg"
+          "icon": "resources/autosar.png"
         }
       ]
     },
@@ -101,7 +101,7 @@
         {
           "id": "autosarModelView.tree",
           "name": "Model",
-          "icon": "resources/autosar.svg"
+          "icon": "resources/autosar.png"
         },
         {
           "id": "autosarModelView.filter",

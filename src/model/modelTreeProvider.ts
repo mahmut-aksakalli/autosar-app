@@ -114,6 +114,10 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
       return this.indexing ? [makeIndexingNode()] : [];
     }
 
+    if (!this.indexing && this.snapshot.files.length === 0) {
+      return [makeEmptyWorkspaceNode()];
+    }
+
     const filteredTree = filterModelTree(buildModelTree(this.snapshot, this.groupingMode), this.filterText);
     return this.indexing ? [makeIndexingNode(), ...filteredTree] : filteredTree;
   }
@@ -123,6 +127,15 @@ function makeIndexingNode(): ModelTreeNode {
   return {
     id: "autosar-indexing",
     label: "Indexing AUTOSAR model...",
+    icon: "I",
+    selectable: false
+  };
+}
+
+function makeEmptyWorkspaceNode(): ModelTreeNode {
+  return {
+    id: "autosar-empty-workspace",
+    label: "No ARXML files found",
     icon: "I",
     selectable: false
   };

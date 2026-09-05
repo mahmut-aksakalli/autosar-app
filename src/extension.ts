@@ -3,11 +3,13 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AutosarEntity } from "./shared/contracts";
 import { GraphService } from "./model/graphService";
+import { AutosarOutputLogger } from "./logger";
 import { ModelTreeProvider, type ModelTreeNode, type ModelWorkspaceTab } from "./model/modelTreeProvider";
 import { WorkspaceModelService } from "./model/workspaceModelService";
 
 export function activate(context: vscode.ExtensionContext) {
-  const workspaceModelService = new WorkspaceModelService();
+  const logger = new AutosarOutputLogger();
+  const workspaceModelService = new WorkspaceModelService(logger);
   const graphService = new GraphService(workspaceModelService);
   const treeProvider = new ModelTreeProvider();
   const filterStorageKey = "autosarModelView.filterText";
@@ -20,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
   let initialWorkspaceIndexPromise: Promise<void> | undefined;
 
   context.subscriptions.push(
+    logger,
     workspaceModelService,
     workspaceModelService.onUpdated((snapshot) => {
       treeProvider.update(snapshot);
@@ -62,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (!snapshot) {
         vscode.window.showWarningMessage("Open a VS Code workspace folder before opening AUTOSAR Model View.");
+        logger.warning("Open Model View requested without an open VS Code workspace folder.");
         return;
       }
 
@@ -108,6 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
       const focusEntity = snapshot.entities.find((entity) => entity.id === node.focusEntityId);
       if (!focusEntity) {
         vscode.window.showWarningMessage(`Could not resolve AUTOSAR model node ${node.label}.`);
+        logger.warning(`Could not resolve AUTOSAR model node: ${node.label}.`);
         return;
       }
 
@@ -162,6 +167,7 @@ export function activate(context: vscode.ExtensionContext) {
         const snapshot = await workspaceModelService.refresh();
         treeProvider.update(snapshot);
       } catch (error) {
+        logger.error("Failed to index AUTOSAR model.", error);
         vscode.window.showErrorMessage(
           `Failed to index AUTOSAR model: ${error instanceof Error ? error.message : String(error)}`
         );
