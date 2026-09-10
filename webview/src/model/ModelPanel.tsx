@@ -33,6 +33,11 @@ const CONNECTION_LABEL_STEM_WIDTH = 100;
 const CONNECTION_LABEL_GAP = 6;
 const CONNECTION_PILL_PADDING = 24;
 const CONNECTION_CHAR_WIDTH = 7.2;
+const GRAPH_FOCUS_RETRY_COUNT = 8;
+const GRAPH_FALLBACK_BODY_WIDTH = 430;
+const GRAPH_FALLBACK_BASE_HEIGHT = 280;
+const GRAPH_FALLBACK_PORT_MARGIN = 96;
+const GRAPH_FALLBACK_PORT_SPACING = 52;
 
 interface ModelPanelProps {
   focusEntity?: AutosarEntity;
@@ -107,6 +112,7 @@ export function ModelPanel(props: ModelPanelProps) {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
+  const flowCanvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<{
     getNode: (id: string) => {
       positionAbsolute?: { x: number; y: number };
@@ -290,27 +296,59 @@ export function ModelPanel(props: ModelPanelProps) {
       return;
     }
 
-    const targetNodeExists = flowGraph.nodes.some((node) => node.id === activeCompositionNodeId);
-    if (!targetNodeExists) {
+    const targetFlowNode = flowGraph.nodes.find((node) => node.id === activeCompositionNodeId);
+    if (!targetFlowNode) {
       return;
     }
 
-    const targetNode = reactFlowRef.current.getNode(activeCompositionNodeId);
-    const targetPosition = targetNode?.positionAbsolute;
-    if (!targetPosition) {
-      return;
-    }
+    let cancelled = false;
+    let frameId = 0;
+    let attempt = 0;
 
-    const targetWidth = targetNode?.width ?? 0;
-    const targetHeight = targetNode?.height ?? 0;
-    const centerX = targetPosition.x + targetWidth / 2;
-    const centerY = targetPosition.y + targetHeight / 2;
+    const focusTargetNode = () => {
+      if (cancelled || !reactFlowRef.current) {
+        return;
+      }
 
-    void reactFlowRef.current.setCenter(centerX, centerY, {
-      zoom: shouldIsolateCompositionNode ? 0.72 : 0.82,
-      duration: 220
-    });
-  }, [activeCompositionNodeId, flowGraph.nodes, graphResult, shouldIsolateCompositionNode]);
+      const measuredNode = reactFlowRef.current.getNode(activeCompositionNodeId);
+      const measuredPosition = measuredNode?.positionAbsolute;
+      const fallbackPosition = targetFlowNode.position;
+      const targetPosition = measuredPosition ?? fallbackPosition;
+      const targetWidth = measuredNode?.width ?? getEstimatedFlowNodeWidth(targetFlowNode);
+      const targetHeight = measuredNode?.height ?? getEstimatedFlowNodeHeight(targetFlowNode);
+
+      if (!measuredPosition && attempt < GRAPH_FOCUS_RETRY_COUNT) {
+        attempt += 1;
+        frameId = window.requestAnimationFrame(focusTargetNode);
+        return;
+      }
+
+      const focusBounds = getFocusedNodeBounds(
+        targetFlowNode,
+        targetPosition,
+        targetWidth,
+        targetHeight,
+        activeCompositionPortId
+      );
+      const zoom = getFocusedNodeZoom(
+        focusBounds,
+        flowCanvasRef.current?.getBoundingClientRect(),
+        shouldIsolateCompositionNode
+      );
+
+      void reactFlowRef.current.setCenter(focusBounds.x + focusBounds.width / 2, focusBounds.y + focusBounds.height / 2, {
+        zoom,
+        duration: 220
+      });
+    };
+
+    frameId = window.requestAnimationFrame(focusTargetNode);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeCompositionNodeId, activeCompositionPortId, flowGraph.nodes, graphResult, shouldIsolateCompositionNode]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -362,7 +400,7 @@ export function ModelPanel(props: ModelPanelProps) {
         {!activeWorkspaceTab ? (
           <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>
         ) : activeWorkspaceTab.kind === "graph" ? (
-          <div className="model-canvas-shell">
+          <div className="model-canvas-shell" ref={flowCanvasRef}>
           {warnings.length > 0 && (
             <div className="model-warning-strip">
               {warnings.map((warning) => warning.message).join(" ")}
@@ -4829,7 +4867,7 @@ function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
   const rightRailWidth = getPortRailWidth(providedPorts);
 
   return (
-    <div className={`autosar-node autosar-node-${data.kind} nopan`}>
+    <div className={`autosar-node autosar-node-${data.kind}`}>
       {isPortCard ? (
         <div className="autosar-port-symbol">
           <div className="autosar-node-header autosar-node-header-port">
@@ -5133,6 +5171,105 @@ function estimateConnectionListWidth(
     const pairWidth = componentWidth + portWidth - 1;
     return total + pairWidth + (index > 0 ? CONNECTION_LABEL_GAP : 0);
   }, 0);
+}
+
+function getEstimatedFlowNodeWidth(node: FlowNode) {
+  const requiredPorts = node.data.ports.filter((port) => port.direction === "required");
+  const providedPorts = node.data.ports.filter(
+    (port) => port.direction === "provided" || port.direction === "provided-required"
+  );
+  const style = (node.style ?? {}) as Record<string, string | number | undefined>;
+  const leftRailWidth = readPixelStyleValue(style["--autosar-left-rail-width"]) ?? getPortRailWidth(requiredPorts);
+  const rightRailWidth = readPixelStyleValue(style["--autosar-right-rail-width"]) ?? getPortRailWidth(providedPorts);
+  const bodyWidth = readPixelStyleValue(style["--autosar-body-width"]) ?? GRAPH_FALLBACK_BODY_WIDTH;
+
+  return leftRailWidth + bodyWidth + rightRailWidth;
+}
+
+function getEstimatedFlowNodeHeight(node: FlowNode) {
+  const style = (node.style ?? {}) as Record<string, string | number | undefined>;
+  const styleHeight = readPixelStyleValue(style["--autosar-node-min-height"]);
+  if (styleHeight) {
+    return styleHeight;
+  }
+
+  const leftPorts = node.data.ports.filter((port) => port.direction === "required").length;
+  const rightPorts = node.data.ports.filter((port) => port.direction !== "required").length;
+  const tallestRailCount = Math.max(leftPorts, rightPorts, 1);
+  return Math.max(
+    GRAPH_FALLBACK_BASE_HEIGHT,
+    GRAPH_FALLBACK_PORT_MARGIN * 2 + (tallestRailCount - 1) * GRAPH_FALLBACK_PORT_SPACING + 48
+  );
+}
+
+function getFocusedNodeBounds(
+  node: FlowNode,
+  position: { x: number; y: number },
+  width: number,
+  height: number,
+  highlightedPortId: string | undefined
+) {
+  const highlightedPort = highlightedPortId
+    ? node.data.ports.find((port) => port.id === highlightedPortId)
+    : undefined;
+  const highlightedConnections = highlightedPort ? node.data.portConnections?.[highlightedPort.id] : undefined;
+  const visualExtension = highlightedConnections
+    ? CONNECTION_LABEL_ANCHOR_OFFSET + CONNECTION_LABEL_STEM_WIDTH + estimateConnectionListWidth(highlightedConnections)
+    : 0;
+  const sidePadding = visualExtension > 0 ? Math.min(visualExtension, 520) : 0;
+  const verticalPadding = highlightedPort ? 80 : 40;
+
+  if (highlightedPort?.direction === "required") {
+    return {
+      x: position.x - sidePadding,
+      y: position.y - verticalPadding,
+      width: width + sidePadding + 48,
+      height: height + verticalPadding * 2
+    };
+  }
+
+  if (highlightedPort) {
+    return {
+      x: position.x - 48,
+      y: position.y - verticalPadding,
+      width: width + sidePadding + 48,
+      height: height + verticalPadding * 2
+    };
+  }
+
+  return {
+    x: position.x - 40,
+    y: position.y - 40,
+    width: width + 80,
+    height: height + 80
+  };
+}
+
+function getFocusedNodeZoom(
+  bounds: { width: number; height: number },
+  canvasRect: DOMRect | undefined,
+  shouldIsolateCompositionNode: boolean
+) {
+  const maxZoom = shouldIsolateCompositionNode ? 0.72 : 0.82;
+  const minZoom = 0.35;
+  if (!canvasRect || canvasRect.width <= 0 || canvasRect.height <= 0) {
+    return maxZoom;
+  }
+
+  const horizontalZoom = (canvasRect.width * 0.86) / bounds.width;
+  const verticalZoom = (canvasRect.height * 0.82) / bounds.height;
+  return Math.max(minZoom, Math.min(maxZoom, horizontalZoom, verticalZoom));
+}
+
+function readPixelStyleValue(value: string | number | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function buildPortConnectionLabels(
