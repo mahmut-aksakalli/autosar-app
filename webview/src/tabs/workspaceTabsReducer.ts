@@ -24,28 +24,49 @@ export function workspaceTabsReducer(
     if (state.activeTabId !== action.tabId) {
       return { ...state, tabs };
     }
+
+    // Closing the active tab follows the same deterministic rule as VS Code's
+    // preview area: activate the first tab that remains.
     return { tabs, activeTabId: tabs[0]?.id };
   }
 
-  const tab = { ...action.tab, pinned: action.pinned || action.tab.pinned };
+  let isPinned = action.tab.pinned === true;
+  if (action.pinned) {
+    isPinned = true;
+  }
+  const tab = { ...action.tab, pinned: isPinned };
   const existing = state.tabs.find((entry) => entry.id === tab.id);
   if (existing) {
-    const tabs = existing.pinned || !tab.pinned
-      ? state.tabs
-      : state.tabs.map((entry) => (entry.id === tab.id ? { ...entry, pinned: true } : entry));
+    let tabs = state.tabs;
+    const shouldPinExistingTab = tab.pinned && !existing.pinned;
+    if (shouldPinExistingTab) {
+      tabs = state.tabs.map((entry) => {
+        if (entry.id === tab.id) {
+          return { ...entry, pinned: true };
+        }
+        return entry;
+      });
+    }
     return { tabs, activeTabId: tab.id };
   }
 
+  // Only one unpinned preview tab is kept. Opening another preview replaces
+  // it, while explicitly pinned tabs are preserved.
+  const pinnedTabs = state.tabs.filter((entry) => entry.pinned);
   return {
-    tabs: [...state.tabs.filter((entry) => entry.pinned), tab],
+    tabs: [...pinnedTabs, tab],
     activeTabId: tab.id
   };
 }
 
 export function useWorkspaceTabs(initialTabs: ModelWorkspaceTab[], initialActiveTabId?: string) {
+  let activeTabId = initialActiveTabId;
+  if (!activeTabId) {
+    activeTabId = initialTabs[0]?.id;
+  }
   const [state, dispatch] = useReducer(workspaceTabsReducer, {
     tabs: initialTabs,
-    activeTabId: initialActiveTabId ?? initialTabs[0]?.id
+    activeTabId
   });
   const activeTab = useMemo(
     () => state.tabs.find((tab) => tab.id === state.activeTabId) ?? state.tabs[0],

@@ -35,6 +35,8 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
 
   const message = event.data;
   if (message.type === "graphResult" || message.type === "graphError") {
+    // requestId correlates an asynchronous host response with the Promise
+    // returned to the graph-loading hook.
     const pending = pendingRequests.get(message.requestId);
     if (pending) {
       window.clearTimeout(pending.timeoutId);
@@ -94,21 +96,54 @@ function isHostMessage(message: unknown): message is HostToModelWebviewMessage {
   const candidate = message as Record<string, unknown>;
   switch (candidate.type) {
     case "focusModel":
-      return (
-        (candidate.focusEntityId === undefined || typeof candidate.focusEntityId === "string") &&
-        (candidate.activeWorkspaceTab === undefined || isObject(candidate.activeWorkspaceTab))
-      );
+      return isFocusModelMessage(candidate);
     case "workspaceUpdated":
       return isObject(candidate.workspace);
     case "graphResult":
-      return typeof candidate.requestId === "string" && isObject(candidate.graph);
+      return isGraphResultMessage(candidate);
     case "graphError":
-      return typeof candidate.requestId === "string" && typeof candidate.message === "string";
+      return isGraphErrorMessage(candidate);
     default:
       return false;
   }
 }
 
+function isFocusModelMessage(candidate: Record<string, unknown>) {
+  if (candidate.focusEntityId !== undefined && typeof candidate.focusEntityId !== "string") {
+    return false;
+  }
+  if (candidate.activeWorkspaceTab !== undefined && !isObject(candidate.activeWorkspaceTab)) {
+    return false;
+  }
+  return true;
+}
+
+function isGraphResultMessage(candidate: Record<string, unknown>) {
+  if (typeof candidate.requestId !== "string") {
+    return false;
+  }
+  if (!isObject(candidate.graph)) {
+    return false;
+  }
+  return true;
+}
+
+function isGraphErrorMessage(candidate: Record<string, unknown>) {
+  if (typeof candidate.requestId !== "string") {
+    return false;
+  }
+  if (typeof candidate.message !== "string") {
+    return false;
+  }
+  return true;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return false;
+  }
+  return true;
 }

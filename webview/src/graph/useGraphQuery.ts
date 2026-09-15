@@ -23,9 +23,14 @@ export function useGraphQuery({
   const [cacheVersion, setCacheVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
-  const graphResult = cacheKey ? cacheRef.current.get(cacheKey) : undefined;
+  let graphResult: SwcGraphResult | undefined;
+  if (cacheKey) {
+    graphResult = cacheRef.current.get(cacheKey);
+  }
 
   useEffect(() => {
+    // A workspace revision represents a new model snapshot. Graphs from the
+    // previous revision may contain entities that no longer exist.
     cacheRef.current.clear();
     setCacheVersion((version) => version + 1);
   }, [workspaceRevision]);
@@ -37,10 +42,13 @@ export function useGraphQuery({
       return;
     }
 
-    if (cacheKey && cacheRef.current.has(cacheKey)) {
-      setLoading(false);
-      setError(undefined);
-      return;
+    if (cacheKey) {
+      const cachedGraph = cacheRef.current.get(cacheKey);
+      if (cachedGraph) {
+        setLoading(false);
+        setError(undefined);
+        return;
+      }
     }
 
     let cancelled = false;
@@ -68,7 +76,13 @@ export function useGraphQuery({
         if (cancelled) {
           return;
         }
-        setError(nextError instanceof Error ? nextError.message : String(nextError));
+        let message: string;
+        if (nextError instanceof Error) {
+          message = nextError.message;
+        } else {
+          message = String(nextError);
+        }
+        setError(message);
         setLoading(false);
       });
 

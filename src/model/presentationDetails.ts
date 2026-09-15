@@ -16,6 +16,9 @@ import type {
 } from "../shared/contracts";
 
 export function hydratePresentationDetails(entities: AutosarEntity[]) {
+  // Legacy extraction stores structured values as JSON strings in metadata.
+  // Decode them here, at the model boundary, so React receives typed data and
+  // never needs to understand the serialization format.
   entities.forEach((entity) => {
     entity.details = readEntityDetails(entity);
     entity.inspector?.sections.forEach((section) => {
@@ -30,9 +33,12 @@ function readEntityDetails(entity: AutosarEntity): AutosarEntityDetails | undefi
     return undefined;
   }
 
-  const interfaceMembers = parseArray<InterfaceDetailMember>(
-    metadata["INTERFACE-DATA-ELEMENT-DETAILS"] ?? metadata["INTERFACE-MEMBER-DETAILS"]
-  ).map((member) => ({
+  let serializedInterfaceMembers = metadata["INTERFACE-DATA-ELEMENT-DETAILS"];
+  if (!serializedInterfaceMembers) {
+    serializedInterfaceMembers = metadata["INTERFACE-MEMBER-DETAILS"];
+  }
+
+  const interfaceMembers = parseArray<InterfaceDetailMember>(serializedInterfaceMembers).map((member) => ({
     ...member,
     operationArguments: parseArray<Record<string, string>>(member.metadata?.["ARGUMENT-DETAILS"])
   }));
@@ -45,7 +51,10 @@ function readEntityDetails(entity: AutosarEntity): AutosarEntityDetails | undefi
     communicationSpecs: parseArray<CommunicationSpecDetail>(metadata["COMMUNICATION-SPEC-DETAILS"])
   };
 
-  return hasValues(details) ? details : undefined;
+  if (!hasValues(details)) {
+    return undefined;
+  }
+  return details;
 }
 
 function hydrateInspectorItemDetails(item: SwcInspectorItem) {
@@ -74,7 +83,11 @@ function hydrateInspectorItemDetails(item: SwcInspectorItem) {
     } satisfies ServiceAssignedDataDetail)),
     assignedPorts: parseArray<ServiceAssignedPortDetail>(metadata["ASSIGNED-PORT-DETAILS"])
   };
-  item.details = hasValues(details) ? details : undefined;
+  if (hasValues(details)) {
+    item.details = details;
+  } else {
+    item.details = undefined;
+  }
 }
 
 function parseArray<T>(value: string | undefined): T[] {
@@ -83,7 +96,10 @@ function parseArray<T>(value: string | undefined): T[] {
   }
   try {
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed as T[];
   } catch {
     return [];
   }
@@ -95,20 +111,38 @@ function parseObject<T extends object>(value: string | undefined): T | undefined
   }
   try {
     const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as T) : undefined;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    return parsed as T;
   } catch {
     return undefined;
   }
 }
 
 function hasValues(details: object) {
-  return Object.values(details).some((value) => value !== undefined && (!Array.isArray(value) || value.length > 0));
+  for (const value of Object.values(details)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 function readCell(value: unknown) {
-  return typeof value === "string" && value.trim() ? value : "-";
+  if (typeof value !== "string" || !value.trim()) {
+    return "-";
+  }
+  return value;
 }
 
 function readOptionalCell(value: unknown) {
-  return typeof value === "string" && value.trim() ? value : undefined;
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  return value;
 }

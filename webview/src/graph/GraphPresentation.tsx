@@ -24,13 +24,17 @@ export function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
     (port) => port.direction === "provided" || port.direction === "provided-required"
   );
   const requiredPorts = data.ports.filter((port) => port.direction === "required");
-  const isPortCard = data.kind === "port";
   const leftRailWidth = getPortRailWidth(requiredPorts);
   const rightRailWidth = getPortRailWidth(providedPorts);
 
-  return (
-    <div className={`autosar-node autosar-node-${data.kind}`}>
-      {isPortCard ? (
+  if (data.kind === "port") {
+    let portSide: "left" | "right" = "left";
+    if (data.ports[0]?.direction === "provided") {
+      portSide = "right";
+    }
+
+    return (
+      <div className="autosar-node autosar-node-port">
         <div className="autosar-port-symbol">
           <div className="autosar-node-header autosar-node-header-port">
             <strong>{data.label}</strong>
@@ -42,52 +46,59 @@ export function AutosarFlowNode({ data }: NodeProps<FlowNode>) {
             portConnections={data.portConnections}
             compact
             exposeBothHandles
-            side={data.ports[0]?.direction === "provided" ? "right" : "left"}
+            side={portSide}
             highlightedPortId={data.highlightedPortId}
             onConnectionNavigate={data.onConnectionNavigate}
           />
         </div>
-      ) : (
-        <div className="autosar-symbol">
-          <div className="autosar-symbol-rail autosar-symbol-rail-left">
-            <PortList
-              ports={requiredPorts}
-              portConnections={data.portConnections}
-              side="left"
-              railWidth={leftRailWidth}
-              highlightedPortId={data.highlightedPortId}
-              onConnectionNavigate={data.onConnectionNavigate}
-            />
-          </div>
-          <div className="autosar-symbol-body">
-            <div className="autosar-node-header">
-              {data.kind !== "port" && (
-                <div className="autosar-node-badges">
-                  <span className="autosar-node-badge">
-                    <span className="autosar-family-glyph" aria-hidden="true">
-                      {formatSwcKindGlyph(data.swcKind)}
-                    </span>
-                    {data.kind === "composition" ? "Composition" : formatSwcKindLabel(data.swcKind)}
-                  </span>
-                </div>
-              )}
-              <strong>{data.label}</strong>
-            </div>
-            {data.secondaryLabel && <div className="autosar-node-subtitle">{data.secondaryLabel}</div>}
-            {data.warning && <div className="autosar-node-warning">{data.warning}</div>}
-          </div>
-          <div className="autosar-symbol-rail autosar-symbol-rail-right">
-            <PortList
-              ports={providedPorts}
-              portConnections={data.portConnections}
-              side="right"
-              railWidth={rightRailWidth}
-              highlightedPortId={data.highlightedPortId}
-              onConnectionNavigate={data.onConnectionNavigate}
-            />
-          </div>
+      </div>
+    );
+  }
+
+  let kindLabel = formatSwcKindLabel(data.swcKind);
+  if (data.kind === "composition") {
+    kindLabel = "Composition";
+  }
+
+  return (
+    <div className={`autosar-node autosar-node-${data.kind}`}>
+      <div className="autosar-symbol">
+        <div className="autosar-symbol-rail autosar-symbol-rail-left">
+          <PortList
+            ports={requiredPorts}
+            portConnections={data.portConnections}
+            side="left"
+            railWidth={leftRailWidth}
+            highlightedPortId={data.highlightedPortId}
+            onConnectionNavigate={data.onConnectionNavigate}
+          />
         </div>
-      )}
+        <div className="autosar-symbol-body">
+          <div className="autosar-node-header">
+            <div className="autosar-node-badges">
+              <span className="autosar-node-badge">
+                <span className="autosar-family-glyph" aria-hidden="true">
+                  {formatSwcKindGlyph(data.swcKind)}
+                </span>
+                {kindLabel}
+                  </span>
+            </div>
+            <strong>{data.label}</strong>
+          </div>
+          {data.secondaryLabel && <div className="autosar-node-subtitle">{data.secondaryLabel}</div>}
+          {data.warning && <div className="autosar-node-warning">{data.warning}</div>}
+        </div>
+        <div className="autosar-symbol-rail autosar-symbol-rail-right">
+          <PortList
+            ports={providedPorts}
+            portConnections={data.portConnections}
+            side="right"
+            railWidth={rightRailWidth}
+            highlightedPortId={data.highlightedPortId}
+            onConnectionNavigate={data.onConnectionNavigate}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -114,82 +125,137 @@ function PortList(props: {
   } = props;
 
   if (ports.length === 0) {
-    return <div className="autosar-node-empty">{compact ? "" : ""}</div>;
+    return <div className="autosar-node-empty" />;
+  }
+
+  let listClassName = `autosar-port-list side-${side}`;
+  if (compact) {
+    listClassName += " compact";
+  }
+
+  let portLabelStyle: React.CSSProperties | undefined;
+  if (railWidth && side !== "center") {
+    portLabelStyle = {
+      ["--port-label-width" as string]: `${Math.max(116, railWidth - 54)}px`
+    };
   }
 
   return (
-    <div className={`autosar-port-list ${compact ? "compact" : ""} side-${side}`}>
-      {ports.map((port) => (
-        <button
-          key={port.id}
-          type="button"
-          className={`autosar-port autosar-port-${port.direction} side-${side} ${port.id === highlightedPortId ? "is-highlighted-target" : ""}`}
-          onDoubleClick={(event) => {
-            event.stopPropagation();
-            const primaryConnection = portConnections?.[port.id]?.[0];
-            if (primaryConnection) {
-              onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
-            }
-          }}
-          style={
-            railWidth && side !== "center"
-              ? ({
-                  ["--port-label-width" as string]: `${Math.max(116, railWidth - 54)}px`
-                } as React.CSSProperties)
-              : undefined
-          }
-        >
-          <Handle
-            id={port.id}
-            type={side === "left" || side === "center" ? "target" : "source"}
-            position={side === "right" ? Position.Right : Position.Left}
-          />
-          <span className="autosar-pin-line" aria-hidden="true" />
-          <PortGlyph direction={port.direction} interfaceKind={port.interfaceKind} side={side} />
-          <div className="autosar-port-text">
-            <strong>{port.label}</strong>
-            {(() => {
-              const connections = portConnections?.[port.id];
-              if (!connections || connections.length === 0) {
-                return null;
-              }
+    <div className={listClassName}>
+      {ports.map((port) => {
+        let portClassName = `autosar-port autosar-port-${port.direction} side-${side}`;
+        if (port.id === highlightedPortId) {
+          portClassName += " is-highlighted-target";
+        }
 
-              return (
-                <span className="autosar-port-connection-list">
-                  {connections.map((connection, index) => (
-                    <span
-                      key={`${connection.componentName}:${connection.portName}:${index}`}
-                      className={`autosar-port-connection-label ${port.id === highlightedPortId ? "is-highlighted-target" : ""}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onConnectionNavigate?.(connection.targetNodeId, connection.targetPortId);
-                      }}
-                      onDoubleClick={(event) => {
-                        event.stopPropagation();
-                        onConnectionNavigate?.(connection.targetNodeId, connection.targetPortId);
-                      }}
-                    >
-                      <span className="autosar-port-connection-component">
-                        {connection.componentName}
-                      </span>
-                      <span className="autosar-port-connection-port">{connection.portName}</span>
-                    </span>
-                  ))}
-                </span>
-              );
-            })()}
-          </div>
-          {(!compact || exposeBothHandles) && (
+        const shouldRenderSecondHandle = !compact || exposeBothHandles;
+        return (
+          <button
+            key={port.id}
+            type="button"
+            className={portClassName}
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              const primaryConnection = portConnections?.[port.id]?.[0];
+              if (primaryConnection) {
+                onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
+              }
+            }}
+            style={portLabelStyle}
+          >
             <Handle
               id={port.id}
-              type={side === "left" ? "source" : side === "right" ? "target" : "source"}
-              position={side === "left" ? Position.Right : side === "right" ? Position.Left : Position.Right}
+              type={getPrimaryHandleType(side)}
+              position={getPrimaryHandlePosition(side)}
             />
-          )}
-        </button>
-      ))}
+            <span className="autosar-pin-line" aria-hidden="true" />
+            <PortGlyph direction={port.direction} interfaceKind={port.interfaceKind} side={side} />
+            <div className="autosar-port-text">
+              <strong>{port.label}</strong>
+              <PortConnectionList
+                connections={portConnections?.[port.id]}
+                highlighted={port.id === highlightedPortId}
+                onNavigate={onConnectionNavigate}
+              />
+            </div>
+            {shouldRenderSecondHandle && (
+              <Handle
+                id={port.id}
+                type={getSecondaryHandleType(side)}
+                position={getSecondaryHandlePosition(side)}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
+}
+
+function PortConnectionList(props: {
+  connections: NonNullable<FlowNodeData["portConnections"]>[string] | undefined;
+  highlighted: boolean;
+  onNavigate?: FlowNodeData["onConnectionNavigate"];
+}) {
+  const { connections, highlighted, onNavigate } = props;
+  if (!connections || connections.length === 0) {
+    return null;
+  }
+
+  let labelClassName = "autosar-port-connection-label";
+  if (highlighted) {
+    labelClassName += " is-highlighted-target";
+  }
+
+  return (
+    <span className="autosar-port-connection-list">
+      {connections.map((connection, index) => (
+        <span
+          key={`${connection.componentName}:${connection.portName}:${index}`}
+          className={labelClassName}
+          onClick={(event) => {
+            event.stopPropagation();
+            onNavigate?.(connection.targetNodeId, connection.targetPortId);
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            onNavigate?.(connection.targetNodeId, connection.targetPortId);
+          }}
+        >
+          <span className="autosar-port-connection-component">{connection.componentName}</span>
+          <span className="autosar-port-connection-port">{connection.portName}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function getPrimaryHandleType(side: "left" | "right" | "center") {
+  if (side === "right") {
+    return "source" as const;
+  }
+  return "target" as const;
+}
+
+function getPrimaryHandlePosition(side: "left" | "right" | "center") {
+  if (side === "right") {
+    return Position.Right;
+  }
+  return Position.Left;
+}
+
+function getSecondaryHandleType(side: "left" | "right" | "center") {
+  if (side === "right") {
+    return "target" as const;
+  }
+  return "source" as const;
+}
+
+function getSecondaryHandlePosition(side: "left" | "right" | "center") {
+  if (side === "right") {
+    return Position.Left;
+  }
+  return Position.Right;
 }
 
 function PortGlyph(props: {

@@ -6,7 +6,7 @@ import {
   ReactFlowProvider,
   type Node
 } from "@xyflow/react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { AutosarEntity, SwcGraphScope } from "../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
 import { useGraphQuery } from "../graph/useGraphQuery";
@@ -55,8 +55,8 @@ export function ModelPanel(props: ModelPanelProps) {
     onFocusModelEntity,
     onOpenWorkspaceTab
   } = props;
-  const [graphScope, setGraphScope] = useState<SwcGraphScope>(
-    preferredScope ?? (focusEntity?.type === "composition" ? "composition" : "swc")
+  const [graphScope, setGraphScope] = useState<SwcGraphScope>(() =>
+    preferredScope ?? getDefaultGraphScope(focusEntity)
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
@@ -70,31 +70,36 @@ export function ModelPanel(props: ModelPanelProps) {
     } | undefined;
     setCenter: (x: number, y: number, options?: { zoom?: number; duration?: number }) => unknown;
   } | null>(null);
+  const isCompositionScope = graphScope === "composition";
+  const tabRequestsInternals = activeWorkspaceTab?.includeCompositionInternals === true;
+  const hasFocusedCompositionNode = Boolean(activeCompositionNodeId);
   const includeCompositionInternals =
-    graphScope === "composition" &&
-    (activeWorkspaceTab?.includeCompositionInternals === true || Boolean(activeCompositionNodeId));
-  const graphCacheKey = focusEntity
-    ? makeGraphCacheKey(
-        workspaceRevision,
-        graphScope,
-        focusEntity.semanticPath ?? focusEntity.id,
-        includeCompositionInternals
-      )
-    : undefined;
+    isCompositionScope && (tabRequestsInternals || hasFocusedCompositionNode);
+  let graphCacheKey: string | undefined;
+  if (focusEntity) {
+    const focusId = focusEntity.semanticPath ?? focusEntity.id;
+    graphCacheKey = makeGraphCacheKey(
+      workspaceRevision,
+      graphScope,
+      focusId,
+      includeCompositionInternals
+    );
+  }
+
+  const isGraphSupportedForEntity = focusEntity?.type === "swc" || focusEntity?.type === "composition";
+  const isEntityDetailsTab = activeWorkspaceTab?.kind === "entityDetails";
+  const shouldLoadGraph = Boolean(focusEntity) && isGraphSupportedForEntity && !isEntityDetailsTab;
   const { graphResult, loading, error } = useGraphQuery({
     focusEntity,
     workspaceRevision,
     scope: graphScope,
     includeCompositionInternals,
     cacheKey: graphCacheKey,
-    enabled:
-      Boolean(focusEntity) &&
-      activeWorkspaceTab?.kind !== "entityDetails" &&
-      (focusEntity?.type === "swc" || focusEntity?.type === "composition")
+    enabled: shouldLoadGraph
   });
 
   useEffect(() => {
-    setGraphScope(preferredScope ?? (focusEntity?.type === "composition" ? "composition" : "swc"));
+    setGraphScope(preferredScope ?? getDefaultGraphScope(focusEntity));
   }, [focusEntity?.id, focusEntity?.type, preferredScope]);
 
   useEffect(() => {
@@ -119,11 +124,12 @@ export function ModelPanel(props: ModelPanelProps) {
   const graphNodes = graphResult?.nodes ?? [];
   const selectedGraphNode = graphNodes.find((node) => node.id === selectedNodeId);
   const inspector = selectedGraphNode?.inspector ?? resolveFallbackInspector(graphResult, focusEntity);
-  const shouldIsolateCompositionNode =
-    graphResult?.scope === "composition" &&
-    Boolean(activeCompositionNodeId) &&
-    Boolean(preferredNodeId) &&
-    graphResult.nodes.some((node) => node.id === activeCompositionNodeId && node.kind === "instance");
+  let shouldIsolateCompositionNode = false;
+  if (graphResult?.scope === "composition" && activeCompositionNodeId && preferredNodeId) {
+    shouldIsolateCompositionNode = graphResult.nodes.some((node) => {
+      return node.id === activeCompositionNodeId && node.kind === "instance";
+    });
+  }
 
   const flowGraph = useMemo(() => {
     if (!graphResult) {
@@ -131,42 +137,56 @@ export function ModelPanel(props: ModelPanelProps) {
     }
 
     const baseGraph = layoutSwcGraph(graphResult);
-    const portConnections =
-      graphResult.scope === "composition"
-        ? buildPortConnectionLabels(graphResult)
-        : {};
-    const visibleEdges =
-      shouldIsolateCompositionNode
-        ? []
-        : graphResult.scope === "composition"
-        ? baseGraph.edges.filter(
-            (edge) =>
-              !graphResult.edges.find((graphEdge) => graphEdge.id === edge.id && graphEdge.kind === "assembly")
-          )
-        : baseGraph.edges;
+    let portConnections: ReturnType<typeof buildPortConnectionLabels> = {};
+    if (graphResult.scope === "composition") {
+      portConnections = buildPortConnectionLabels(graphResult);
+    }
+
+    let visibleEdges = baseGraph.edges;
+    if (shouldIsolateCompositionNode) {
+      // An isolated instance shows its ports and connection labels without the
+      // composition-level connector lines competing for the same space.
+      visibleEdges = [];
+    } else if (graphResult.scope === "composition") {
+      visibleEdges = baseGraph.edges.filter((edge) => {
+        const matchingGraphEdge = graphResult.edges.find((graphEdge) => graphEdge.id === edge.id);
+        return matchingGraphEdge?.kind !== "assembly";
+      });
+    }
+
     const visibleNodes = baseGraph.nodes
       .filter((node) => !shouldIsolateCompositionNode || node.id === activeCompositionNodeId)
-      .map((node) => ({
-        ...node,
-        style:
-          shouldIsolateCompositionNode && node.id === activeCompositionNodeId
-            ? ({
-                ...(node.style ?? {}),
-                ["--autosar-left-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "left")}px`,
-                ["--autosar-right-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "right")}px`
-              } as CSSProperties)
-            : node.style,
-        data: {
-          ...node.data,
-          portConnections: portConnections[node.id] ?? {},
-          highlightedPortId: node.id === activeCompositionNodeId ? activeCompositionPortId : undefined,
-          onConnectionNavigate: (nodeId: string, portId: string) => {
-            setActiveCompositionNodeId(nodeId);
-            setActiveCompositionPortId(portId);
-            setSelectedNodeId(nodeId);
-          }
+      .map((node) => {
+        const isActiveCompositionNode = node.id === activeCompositionNodeId;
+        let style = node.style;
+        if (shouldIsolateCompositionNode && isActiveCompositionNode) {
+          style = {
+            ...(node.style ?? {}),
+            ["--autosar-left-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "left")}px`,
+            ["--autosar-right-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "right")}px`
+          } as CSSProperties;
         }
-      }));
+
+        let highlightedPortId: string | undefined;
+        if (isActiveCompositionNode) {
+          highlightedPortId = activeCompositionPortId;
+        }
+
+        return {
+          ...node,
+          style,
+          data: {
+            ...node.data,
+            portConnections: portConnections[node.id] ?? {},
+            highlightedPortId,
+            onConnectionNavigate: (nodeId: string, portId: string) => {
+              setActiveCompositionNodeId(nodeId);
+              setActiveCompositionPortId(portId);
+              setSelectedNodeId(nodeId);
+            }
+          }
+        };
+      });
 
     return {
       nodes: visibleNodes,
@@ -174,12 +194,19 @@ export function ModelPanel(props: ModelPanelProps) {
     };
   }, [activeCompositionNodeId, activeCompositionPortId, graphResult, preferredNodeId]);
 
-  const fitViewOptions = shouldIsolateCompositionNode
-    ? { padding: 0.12, maxZoom: 0.95, minZoom: 0.35 }
-    : { padding: 0.2, maxZoom: 1.1, minZoom: 0.35 };
+  let fitViewOptions = { padding: 0.2, maxZoom: 1.1, minZoom: 0.35 };
+  if (shouldIsolateCompositionNode) {
+    fitViewOptions = { padding: 0.12, maxZoom: 0.95, minZoom: 0.35 };
+  }
 
   useEffect(() => {
-    if (!reactFlowRef.current || !graphResult || graphResult.scope !== "composition" || !activeCompositionNodeId) {
+    if (!reactFlowRef.current) {
+      return;
+    }
+    if (!graphResult || graphResult.scope !== "composition") {
+      return;
+    }
+    if (!activeCompositionNodeId) {
       return;
     }
 
@@ -205,6 +232,8 @@ export function ModelPanel(props: ModelPanelProps) {
       const targetHeight = measuredNode?.height ?? getEstimatedFlowNodeHeight(targetFlowNode);
 
       if (!measuredPosition && attempt < GRAPH_FOCUS_RETRY_COUNT) {
+        // React Flow measures custom nodes asynchronously. Retry for a few
+        // animation frames before falling back to the layout estimate.
         attempt += 1;
         frameId = window.requestAnimationFrame(focusTargetNode);
         return;
@@ -243,7 +272,10 @@ export function ModelPanel(props: ModelPanelProps) {
     }),
     []
   );
-  const flowCanvasKey = graphResult ? `${graphResult.scope}:${graphResult.focusId}:${preferredNodeId ?? ""}` : "empty";
+  let flowCanvasKey = "empty";
+  if (graphResult) {
+    flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${preferredNodeId ?? ""}`;
+  }
 
   function handleNodeClick(_event: React.MouseEvent, node: Node) {
     const graphNode = graphNodes.find((entry) => entry.id === node.id);
@@ -264,15 +296,27 @@ export function ModelPanel(props: ModelPanelProps) {
       return;
     }
 
-    const targetSemanticPath = graphNode.kind === "instance" ? graphNode.typeRef : graphNode.semanticPath;
+    let targetSemanticPath = graphNode.semanticPath;
+    let targetEntityId: string | undefined = graphNode.id;
+    if (graphNode.kind === "instance") {
+      // Instances are graph-only objects. Navigation must target the SWC type
+      // referenced by the instance rather than the instance node itself.
+      targetSemanticPath = graphNode.typeRef;
+      targetEntityId = undefined;
+    }
     if (!targetSemanticPath) {
       return;
     }
 
+    let targetScope: SwcGraphScope = "swc";
+    if (graphNode.swcKind === "composition" || graphNode.kind === "composition") {
+      targetScope = "composition";
+    }
+
     onFocusModelEntity?.({
-      entityId: graphNode.kind === "instance" ? undefined : graphNode.id,
+      entityId: targetEntityId,
       semanticPath: targetSemanticPath,
-      preferredScope: graphNode.swcKind === "composition" || graphNode.kind === "composition" ? "composition" : "swc",
+      preferredScope: targetScope,
       preferredNodeId: undefined,
       includeCompositionInternals: false
     });
@@ -280,72 +324,94 @@ export function ModelPanel(props: ModelPanelProps) {
 
   const warnings = graphResult?.warnings ?? [];
 
+  function renderGraphBody(): ReactNode {
+    if (error) {
+      return <div className="empty-state">Could not build the model graph: {error}</div>;
+    }
+
+    if (loading) {
+      return <div className="empty-state">Building AUTOSAR graph…</div>;
+    }
+
+    if (!graphResult || graphResult.nodes.length === 0) {
+      return <div className="empty-state">Select an SWC or composition to visualize it.</div>;
+    }
+
+    return (
+      <ReactFlowProvider>
+        <ReactFlow
+          key={flowCanvasKey}
+          nodes={flowGraph.nodes}
+          edges={flowGraph.edges}
+          nodeTypes={nodeTypes}
+          onInit={(instance) => {
+            reactFlowRef.current = {
+              getNode: (id) => instance.getNode(id) as {
+                positionAbsolute?: { x: number; y: number };
+                width?: number;
+                height?: number;
+              } | undefined,
+              setCenter: (x, y, options) => instance.setCenter(x, y, options)
+            };
+          }}
+          fitView
+          fitViewOptions={fitViewOptions}
+          minZoom={0.35}
+          maxZoom={1.5}
+          zoomOnDoubleClick={false}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable
+          onNodeClick={handleNodeClick}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onNodesChange={noopNodesChange}
+          onEdgesChange={noopEdgesChange}
+        >
+          <Background color="#d7e2ef" gap={20} />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </ReactFlowProvider>
+    );
+  }
+
+  let activeContent: ReactNode;
+  if (!activeWorkspaceTab) {
+    activeContent = <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>;
+  } else if (activeWorkspaceTab.kind === "graph") {
+    activeContent = (
+      <div className="model-canvas-shell" ref={flowCanvasRef}>
+        {warnings.length > 0 && (
+          <div className="model-warning-strip">
+            {warnings.map((warning) => warning.message).join(" ")}
+          </div>
+        )}
+        {renderGraphBody()}
+      </div>
+    );
+  } else {
+    activeContent = (
+      <ModelSemanticTab
+        tab={activeWorkspaceTab}
+        focusEntity={focusEntity}
+        graphResult={graphResult}
+        inspector={inspector}
+        onOpenWorkspaceTab={onOpenWorkspaceTab}
+      />
+    );
+  }
+
   return (
     <div className="model-workbench">
-      <div className="model-content">
-        {!activeWorkspaceTab ? (
-          <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>
-        ) : activeWorkspaceTab.kind === "graph" ? (
-          <div className="model-canvas-shell" ref={flowCanvasRef}>
-          {warnings.length > 0 && (
-            <div className="model-warning-strip">
-              {warnings.map((warning) => warning.message).join(" ")}
-            </div>
-          )}
-          {error ? (
-            <div className="empty-state">Could not build the model graph: {error}</div>
-          ) : loading ? (
-            <div className="empty-state">Building AUTOSAR graph…</div>
-          ) : graphResult && graphResult.nodes.length > 0 ? (
-            <ReactFlowProvider>
-              <ReactFlow
-                key={flowCanvasKey}
-                nodes={flowGraph.nodes}
-                edges={flowGraph.edges}
-                nodeTypes={nodeTypes}
-                onInit={(instance) => {
-                  reactFlowRef.current = {
-                    getNode: (id) => instance.getNode(id) as {
-                      positionAbsolute?: { x: number; y: number };
-                      width?: number;
-                      height?: number;
-                    } | undefined,
-                    setCenter: (x, y, options) => instance.setCenter(x, y, options)
-                  };
-                }}
-                fitView
-                fitViewOptions={fitViewOptions}
-                minZoom={0.35}
-                maxZoom={1.5}
-                zoomOnDoubleClick={false}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                elementsSelectable
-                onNodeClick={handleNodeClick}
-                onNodeDoubleClick={handleNodeDoubleClick}
-                onNodesChange={noopNodesChange}
-                onEdgesChange={noopEdgesChange}
-              >
-                <Background color="#d7e2ef" gap={20} />
-                <Controls showInteractive={false} />
-              </ReactFlow>
-            </ReactFlowProvider>
-          ) : (
-            <div className="empty-state">Select an SWC or composition to visualize it.</div>
-          )}
-          </div>
-        ) : (
-          <ModelSemanticTab
-            tab={activeWorkspaceTab}
-            focusEntity={focusEntity}
-            graphResult={graphResult}
-            inspector={inspector}
-            onOpenWorkspaceTab={onOpenWorkspaceTab}
-          />
-        )}
-      </div>
+      <div className="model-content">{activeContent}</div>
     </div>
   );
+}
+
+function getDefaultGraphScope(entity: AutosarEntity | undefined): SwcGraphScope {
+  if (entity?.type === "composition") {
+    return "composition";
+  }
+  return "swc";
 }
 
 

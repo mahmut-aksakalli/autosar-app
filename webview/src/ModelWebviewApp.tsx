@@ -26,8 +26,8 @@ export function ModelWebviewApp() {
   const initialState = window.__AUTOSAR_INITIAL_STATE__;
   const [workspace, setWorkspace] = useState(initialState.workspace);
   const modelEntities = useMemo(() => getModelEntities(workspace), [workspace]);
-  const [modelFocusEntityId, setModelFocusEntityId] = useState(
-    initialState.focusEntityId ?? initialState.activeWorkspaceTab?.focusEntityId ?? modelEntities[0]?.id
+  const [modelFocusEntityId, setModelFocusEntityId] = useState(() =>
+    getInitialFocusEntityId(initialState, modelEntities)
   );
   const [modelPreferredScope, setModelPreferredScope] = useState<SwcGraphScope>(
     initialState.activeWorkspaceTab?.preferredScope ?? "swc"
@@ -40,18 +40,23 @@ export function ModelWebviewApp() {
       return [initialState.activeWorkspaceTab];
     }
     const entity = modelEntities[0];
-    return entity ? [makeDefaultModelGraphTab(entity, defaultScope(entity))] : [];
+    if (!entity) {
+      return [];
+    }
+    return [makeDefaultModelGraphTab(entity, defaultScope(entity))];
   }, []);
   const tabs = useWorkspaceTabs(initialTabs, initialState.activeWorkspaceTab?.id);
 
-  const activeModelFocusEntity =
-    modelEntities.find((entity) => entity.id === tabs.activeTab?.focusEntityId) ??
-    modelEntities.find((entity) => entity.id === modelFocusEntityId) ??
-    modelEntities[0];
-  const effectiveModelPreferredScope =
-    tabs.activeTab?.preferredScope ?? modelPreferredScope ?? defaultScope(activeModelFocusEntity);
+  const activeModelFocusEntity = findActiveEntity(modelEntities, tabs.activeTab, modelFocusEntityId);
+  const effectiveModelPreferredScope = getPreferredScope(
+    tabs.activeTab,
+    modelPreferredScope
+  );
 
   useEffect(() => {
+    // The extension owns the workspace snapshot. This listener translates host
+    // events into local UI state and deliberately ignores response messages,
+    // which are handled by modelHost itself.
     return modelHost.onMessage((message: HostToModelWebviewMessage) => {
       if (message.type === "workspaceUpdated") {
         setWorkspace(message.workspace);
@@ -62,11 +67,11 @@ export function ModelWebviewApp() {
         return;
       }
 
-      const targetEntity = modelEntities.find(
-        (entity) => entity.id === message.focusEntityId || entity.id === message.activeWorkspaceTab?.focusEntityId
-      );
-      const tab = message.activeWorkspaceTab ??
-        (targetEntity ? makeDefaultModelGraphTab(targetEntity, defaultScope(targetEntity)) : undefined);
+      const targetEntity = findMessageTargetEntity(modelEntities, message);
+      let tab = message.activeWorkspaceTab;
+      if (!tab && targetEntity) {
+        tab = makeDefaultModelGraphTab(targetEntity, defaultScope(targetEntity));
+      }
       if (!targetEntity || !tab) {
         return;
       }
@@ -145,5 +150,68 @@ function getModelEntities(workspace: WorkspaceSnapshot) {
 }
 
 function defaultScope(entity: AutosarEntity | undefined): SwcGraphScope {
-  return entity?.type === "composition" ? "composition" : "swc";
+  if (entity?.type === "composition") {
+    return "composition";
+  }
+  return "swc";
+}
+
+function getInitialFocusEntityId(
+  initialState: ModelWebviewInitialState,
+  entities: AutosarEntity[]
+) {
+  if (initialState.focusEntityId) {
+    return initialState.focusEntityId;
+  }
+  if (initialState.activeWorkspaceTab?.focusEntityId) {
+    return initialState.activeWorkspaceTab.focusEntityId;
+  }
+  return entities[0]?.id;
+}
+
+function findActiveEntity(
+  entities: AutosarEntity[],
+  activeTab: ModelWorkspaceTab | undefined,
+  fallbackEntityId: string | undefined
+) {
+  if (activeTab) {
+    const tabEntity = entities.find((entity) => entity.id === activeTab.focusEntityId);
+    if (tabEntity) {
+      return tabEntity;
+    }
+  }
+
+  if (fallbackEntityId) {
+    const fallbackEntity = entities.find((entity) => entity.id === fallbackEntityId);
+    if (fallbackEntity) {
+      return fallbackEntity;
+    }
+  }
+
+  return entities[0];
+}
+
+function getPreferredScope(
+  activeTab: ModelWorkspaceTab | undefined,
+  fallbackScope: SwcGraphScope
+) {
+  if (activeTab?.preferredScope) {
+    return activeTab.preferredScope;
+  }
+  return fallbackScope;
+}
+
+function findMessageTargetEntity(
+  entities: AutosarEntity[],
+  message: Extract<HostToModelWebviewMessage, { type: "focusModel" }>
+) {
+  return entities.find((entity) => {
+    if (message.focusEntityId && entity.id === message.focusEntityId) {
+      return true;
+    }
+    if (message.activeWorkspaceTab && entity.id === message.activeWorkspaceTab.focusEntityId) {
+      return true;
+    }
+    return false;
+  });
 }
