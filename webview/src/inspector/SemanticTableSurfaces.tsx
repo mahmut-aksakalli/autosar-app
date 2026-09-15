@@ -5,7 +5,6 @@ import {
   comparePortRows,
   compareRunnableRows,
   compareTableText,
-  formatAssignedPortPrototypeColumn,
   formatBooleanMetadata,
   formatCalibrationAccess,
   formatInitValueTypeOption,
@@ -15,6 +14,7 @@ import {
   normalizeTableSearch,
   SortableTableHeader
 } from "./SemanticSurfaces";
+import { formatAssignedPortPrototypeColumn } from "./ItemSemanticSurfaces";
 import type {
   InspectorTableItem,
   InspectorTableRow,
