@@ -13,33 +13,9 @@ import {
   ModelInitValueDisplay,
   readBooleanMetadata,
   splitMetadataList
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 
-function ModelKeyValueSurface(props: {
-  title: string;
-  rows: Array<[string, string]>;
-  filePath?: string;
-  xmlPath?: string;
-}) {
-  const { title, rows } = props;
-  return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{title}</strong>
-      </div>
-      <div className="model-semantic-kv">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{value || "-"}</strong>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function ModelEntityDetailsSurface(props: { title: string; entity: AutosarEntity }) {
+export function ModelEntityDetails(props: { title: string; entity: AutosarEntity }) {
   const { title, entity } = props;
   const metadata = entity.metadata ?? {};
   const details = entity.details?.entity ?? { fields: [], tables: [] };

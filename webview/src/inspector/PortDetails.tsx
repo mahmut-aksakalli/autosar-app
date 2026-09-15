@@ -21,9 +21,9 @@ import {
   readEnabledMetadata,
   readTransformationErrorHandlingMetadata,
   stringifyAccessPointCell
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 
-export function ModelPortSurface(props: {
+export function ModelPortDetails(props: {
   title: string;
   port?: SwcGraphPort;
   filePath?: string;

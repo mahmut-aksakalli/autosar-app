@@ -15,14 +15,14 @@ import {
   SortableResizableTableHeader,
   splitMetadataList,
   stringifyAccessPointCell
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 import type {
   AccessPointTableColumnKey,
   SortDirection,
   TriggerEventTableColumnKey
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 
-export function ModelRunnableSurface(props: {
+export function ModelRunnableDetails(props: {
   title: string;
   runnable?: SwcInspectorItem;
   filePath?: string;

@@ -7,22 +7,22 @@ import {
   getEmptyLabel,
   getSectionsForTab,
   getSemanticColumns
-} from "./SemanticSurfaces";
-import { ModelEntityDetailsSurface } from "./EntitySemanticSurface";
+} from "./InspectorShared";
+import { ModelEntityDetails } from "./EntityDetails";
 import {
-  ModelInterRunnableVariableSurface,
-  ModelParameterSurface,
-  ModelPerInstanceMemorySurface,
-  ModelServiceDependencySurface
-} from "./ItemSemanticSurfaces";
-import { ModelRunnableSurface } from "./RunnableSemanticSurface";
-import { ModelPortSurface } from "./PortSemanticSurface";
+  ModelInterRunnableVariableDetails,
+  ModelParameterDetails,
+  ModelPerInstanceMemoryDetails,
+  ModelServiceDependencyDetails
+} from "./ItemDetails";
+import { ModelRunnableDetails } from "./RunnableDetails";
+import { ModelPortDetails } from "./PortDetails";
 import {
-  ModelInspectorItemsTableSurface,
-  ModelPortsTableSurface,
-  ModelRunnablesTableSurface,
-  ModelTableSurface
-} from "./SemanticTableSurfaces";
+  ModelInspectorItemsTable,
+  ModelPortsTable,
+  ModelRunnablesTable,
+  ModelTable
+} from "./InspectorTables";
 
 export function ModelSemanticTab(props: {
   tab: ModelWorkspaceTab;
@@ -46,13 +46,13 @@ export function ModelSemanticTab(props: {
   }
 
   if (tab.kind === "entityDetails") {
-    return <ModelEntityDetailsSurface title={tab.title} entity={focusEntity} />;
+    return <ModelEntityDetails title={tab.title} entity={focusEntity} />;
   }
 
   if (tab.kind === "runnables") {
     const runnables = semanticInspector?.sections.find((section) => section.id === "runnables")?.items ?? [];
     return (
-      <ModelRunnablesTableSurface
+      <ModelRunnablesTable
         title={tab.title}
         swcName={focusEntity.shortName}
         runnables={runnables}
@@ -64,7 +64,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "ports") {
     return (
-      <ModelPortsTableSurface
+      <ModelPortsTable
         title={tab.title}
         ports={ports}
         focusEntityId={focusEntity.id}
@@ -75,7 +75,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "parameters") {
     return (
-      <ModelInspectorItemsTableSurface
+      <ModelInspectorItemsTable
         title={tab.title}
         items={collectInspectorItems(semanticInspector, ["calibrationVariables", "interfaceParameters"])}
         focusEntityId={focusEntity.id}
@@ -97,7 +97,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "interRunnableVariables") {
     return (
-      <ModelInspectorItemsTableSurface
+      <ModelInspectorItemsTable
         title={tab.title}
         items={collectInspectorItems(semanticInspector, ["interRunnableVariables"])}
         focusEntityId={focusEntity.id}
@@ -118,7 +118,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "perInstanceMemory") {
     return (
-      <ModelInspectorItemsTableSurface
+      <ModelInspectorItemsTable
         title={tab.title}
         items={collectInspectorItems(semanticInspector, ["perInstanceMemory"])}
         focusEntityId={focusEntity.id}
@@ -142,7 +142,7 @@ export function ModelSemanticTab(props: {
       (entry) => !tab.serviceType || entry.item.metadata?.["SERVICE-TYPE"] === tab.serviceType
     );
     return (
-      <ModelInspectorItemsTableSurface
+      <ModelInspectorItemsTable
         title={tab.title}
         items={serviceItems}
         focusEntityId={focusEntity.id}
@@ -165,7 +165,7 @@ export function ModelSemanticTab(props: {
       ports.find((entry) => entry.id === tab.entityId || entry.xmlPath === tab.xmlPath) ??
       graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === tab.entityId);
     return (
-      <ModelPortSurface
+      <ModelPortDetails
         title={tab.title}
         port={port}
         filePath={port?.filePath ?? focusEntity.filePath}
@@ -179,7 +179,7 @@ export function ModelSemanticTab(props: {
       tab.sectionId && tab.itemId
         ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
         : findInspectorItemInSections(semanticInspector, ["calibrationVariables", "interfaceParameters"], tab.itemId);
-    return <ModelParameterSurface title={tab.title} parameter={item} />;
+    return <ModelParameterDetails title={tab.title} parameter={item} />;
   }
 
   if (tab.kind === "interRunnableVariable") {
@@ -187,7 +187,7 @@ export function ModelSemanticTab(props: {
       tab.sectionId && tab.itemId
         ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
         : findInspectorItemInSections(semanticInspector, ["interRunnableVariables"], tab.itemId);
-    return <ModelInterRunnableVariableSurface title={tab.title} variable={item} />;
+    return <ModelInterRunnableVariableDetails title={tab.title} variable={item} />;
   }
 
   if (tab.kind === "perInstanceMemoryItem") {
@@ -195,7 +195,7 @@ export function ModelSemanticTab(props: {
       tab.sectionId && tab.itemId
         ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
         : findInspectorItemInSections(semanticInspector, ["perInstanceMemory"], tab.itemId);
-    return <ModelPerInstanceMemorySurface title={tab.title} item={item} />;
+    return <ModelPerInstanceMemoryDetails title={tab.title} item={item} />;
   }
 
   if (tab.kind === "serviceDependency") {
@@ -203,13 +203,13 @@ export function ModelSemanticTab(props: {
       tab.sectionId && tab.itemId
         ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
         : findInspectorItemInSections(semanticInspector, ["serviceDependencies"], tab.itemId);
-    return <ModelServiceDependencySurface title={tab.title} item={item} />;
+    return <ModelServiceDependencyDetails title={tab.title} item={item} />;
   }
 
   if (tab.kind === "runnable") {
     const runnable = findInspectorItem(semanticInspector, "runnables", tab.itemId);
     return (
-      <ModelRunnableSurface
+      <ModelRunnableDetails
         title={tab.title}
         runnable={runnable}
         filePath={focusEntity.filePath}
@@ -220,7 +220,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "behavior") {
     return (
-      <ModelTableSurface
+      <ModelTable
         title={tab.title}
         emptyLabel="No behavior details discovered."
         columns={[
@@ -250,7 +250,7 @@ export function ModelSemanticTab(props: {
   });
 
   return (
-    <ModelTableSurface
+    <ModelTable
       title={tab.title}
       emptyLabel={getEmptyLabel(tab.kind)}
       columns={getSemanticColumns(tab.kind)}

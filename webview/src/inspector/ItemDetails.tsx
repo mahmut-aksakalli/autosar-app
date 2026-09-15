@@ -16,9 +16,9 @@ import {
   initValueTypeOptions,
   ModelInitValueDisplay,
   normalizeAutosarEnumToken
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 
-export function ModelParameterSurface(props: { title: string; parameter?: SwcInspectorItem }) {
+export function ModelParameterDetails(props: { title: string; parameter?: SwcInspectorItem }) {
   const { title, parameter } = props;
   const metadata = parameter?.metadata ?? {};
   const scope = formatParameterScopeOption(metadata.SCOPE);
@@ -84,7 +84,7 @@ export function ModelParameterSurface(props: { title: string; parameter?: SwcIns
   );
 }
 
-export function ModelInterRunnableVariableSurface(props: { title: string; variable?: SwcInspectorItem }) {
+export function ModelInterRunnableVariableDetails(props: { title: string; variable?: SwcInspectorItem }) {
   const { title, variable } = props;
   const metadata = variable?.metadata ?? {};
   const accessRows = variable?.details?.interRunnableVariableAccesses ?? [];
@@ -150,7 +150,7 @@ export function ModelInterRunnableVariableSurface(props: { title: string; variab
   );
 }
 
-export function ModelPerInstanceMemorySurface(props: { title: string; item?: SwcInspectorItem }) {
+export function ModelPerInstanceMemoryDetails(props: { title: string; item?: SwcInspectorItem }) {
   const { title, item } = props;
   const metadata = item?.metadata ?? {};
 
@@ -208,7 +208,7 @@ export function ModelPerInstanceMemorySurface(props: { title: string; item?: Swc
   );
 }
 
-export function ModelServiceDependencySurface(props: { title: string; item?: SwcInspectorItem }) {
+export function ModelServiceDependencyDetails(props: { title: string; item?: SwcInspectorItem }) {
   const { title, item } = props;
   const metadata = item?.metadata ?? {};
   const serviceNeedDetails = parseServiceNeedDetailFields(

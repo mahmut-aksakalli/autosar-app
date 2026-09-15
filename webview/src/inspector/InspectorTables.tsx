@@ -12,9 +12,9 @@ import {
   formatReferenceShortName,
   normalizeTableSearch,
   SortableTableHeader
-} from "./SemanticSurfaces";
-import { formatAssignedPortPrototypeColumn } from "./ItemSemanticSurfaces";
-import { formatPortDirectionLabel } from "./PortSemanticSurface";
+} from "./InspectorShared";
+import { formatAssignedPortPrototypeColumn } from "./ItemDetails";
+import { formatPortDirectionLabel } from "./PortDetails";
 import type {
   InspectorTableItem,
   InspectorTableRow,
@@ -23,9 +23,9 @@ import type {
   RunnableTableColumnKey,
   RunnableTableRow,
   SortDirection
-} from "./SemanticSurfaces";
+} from "./InspectorShared";
 
-export function ModelRunnablesTableSurface(props: {
+export function ModelRunnablesTable(props: {
   title: string;
   swcName: string;
   runnables: SwcInspectorItem[];
@@ -164,7 +164,7 @@ export function ModelRunnablesTableSurface(props: {
   );
 }
 
-export function ModelPortsTableSurface(props: {
+export function ModelPortsTable(props: {
   title: string;
   ports: SwcGraphPort[];
   focusEntityId: string;
@@ -277,7 +277,7 @@ export function ModelPortsTableSurface(props: {
   );
 }
 
-export function ModelInspectorItemsTableSurface(props: {
+export function ModelInspectorItemsTable(props: {
   title: string;
   items: InspectorTableItem[];
   focusEntityId: string;
@@ -422,7 +422,7 @@ export function ModelInspectorItemsTableSurface(props: {
   );
 }
 
-export function ModelTableSurface(props: {
+export function ModelTable(props: {
   title: string;
   emptyLabel: string;
   columns: Array<{ key: string; label: string }>;
