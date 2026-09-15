@@ -15,7 +15,18 @@ import {
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type {
   AutosarEntity,
+  CommunicationSpecDetail,
+  EntityDetailPayload,
+  InterfaceDetailMember,
+  InterRunnableVariableAccessDetail,
   PortInterfaceKind,
+  PortDefinedArgumentValueDetail,
+  RunnableAccessPointDetail,
+  RunnableActivationReasonDetail,
+  RunnableTriggerEventDetail,
+  ServiceAssignedDataDetail,
+  ServiceAssignedPortDetail,
+  ServiceNeedField,
   SwcGraphNode,
   SwcGraphPort,
   SwcGraphResult,
@@ -905,7 +916,7 @@ function ModelInspectorItemsTableSurface(props: {
           ...metadata,
           TYPE: formatReferenceShortName(metadata.TYPE),
           "ASSIGNED-PORT-PROTOTYPE": formatAssignedPortPrototypeColumn(
-            metadata["ASSIGNED-PORT-DETAILS"],
+            entry.item.details?.assignedPorts ?? [],
             metadata["ASSIGNED-PORTS"]
           ),
           "INITIAL-VALUE-TYPE": formatInitValueTypeOption(metadata["INITIAL-VALUE-TYPE"] ?? "-"),
@@ -1237,28 +1248,12 @@ function ModelKeyValueSurface(props: {
   );
 }
 
-interface EntityDetailPayload {
-  fields: Array<{ label: string; value: string; valueType?: string }>;
-  tables: Array<{
-    title: string;
-    columns: Array<{ key: string; label: string }>;
-    rows: Array<Record<string, string>>;
-  }>;
-}
-
-interface InterfaceDetailMember {
-  label: string;
-  kind?: string;
-  semanticPath?: string;
-  metadata?: Record<string, string>;
-}
-
 function ModelEntityDetailsSurface(props: { title: string; entity: AutosarEntity }) {
   const { title, entity } = props;
   const metadata = entity.metadata ?? {};
-  const details = parseEntityDetailPayload(metadata["ENTITY-DETAILS"]);
+  const details = entity.details?.entity ?? { fields: [], tables: [] };
   const interfaceMembers = entity.type === "interface"
-    ? parseInterfaceDetailMembers(metadata["INTERFACE-DATA-ELEMENT-DETAILS"])
+    ? entity.details?.interfaceMembers ?? []
     : [];
   const interfaceTables = entity.type === "interface"
     ? buildInterfaceDetailTables(entity, interfaceMembers)
@@ -1575,7 +1570,12 @@ function ModelInterfaceOperationDetails(props: {
   applicationErrors: InterfaceDetailMember[];
 }) {
   const metadata = props.operation.metadata ?? {};
-  const argumentsRows = parseOperationArgumentDetails(metadata["ARGUMENT-DETAILS"]);
+  const argumentsRows = (props.operation.operationArguments ?? []).map((argument) => ({
+    name: argument.name ?? "-",
+    type: argument.type ?? "-",
+    direction: argument.direction ? formatAutosarTagText(argument.direction) : "-",
+    serverPolicy: argument.serverPolicy ? formatAutosarTagText(argument.serverPolicy) : "-"
+  }));
   return (
     <div className="model-communication-spec-details">
       <ModelCommunicationSpecSubsection title="Operation Properties" defaultOpen>
@@ -1645,45 +1645,6 @@ function ModelOperationPossibleErrors(props: {
       ) : <div className="model-list-empty">No application errors discovered.</div>}
     </section>
   );
-}
-
-function parseOperationArgumentDetails(value: string | undefined): Array<Record<string, string>> {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value) as Array<Record<string, unknown>>;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((argument) => ({
-      name: typeof argument.name === "string" ? argument.name : "-",
-      type: typeof argument.type === "string" ? argument.type : "-",
-      direction: typeof argument.direction === "string" ? formatAutosarTagText(argument.direction) : "-",
-      serverPolicy: typeof argument.serverPolicy === "string" ? formatAutosarTagText(argument.serverPolicy) : "-"
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function parseEntityDetailPayload(value: string | undefined): EntityDetailPayload {
-  if (!value) return { fields: [], tables: [] };
-  try {
-    const parsed = JSON.parse(value) as Partial<EntityDetailPayload>;
-    return {
-      fields: Array.isArray(parsed.fields) ? parsed.fields : [],
-      tables: Array.isArray(parsed.tables) ? parsed.tables : []
-    };
-  } catch {
-    return { fields: [], tables: [] };
-  }
-}
-
-function parseInterfaceDetailMembers(value: string | undefined): InterfaceDetailMember[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((entry): entry is InterfaceDetailMember => Boolean(entry && typeof entry === "object")) : [];
-  } catch {
-    return [];
-  }
 }
 
 function buildInterfaceDetailTables(entity: AutosarEntity, members: InterfaceDetailMember[]): EntityDetailPayload["tables"] {
@@ -1832,7 +1793,7 @@ function ModelParameterSurface(props: { title: string; parameter?: SwcInspectorI
 function ModelInterRunnableVariableSurface(props: { title: string; variable?: SwcInspectorItem }) {
   const { title, variable } = props;
   const metadata = variable?.metadata ?? {};
-  const accessRows = parseInterRunnableVariableAccesses(metadata["INTER-RUNNABLE-VARIABLE-ACCESS"]);
+  const accessRows = variable?.details?.interRunnableVariableAccesses ?? [];
 
   return (
     <div className="model-semantic-surface">
@@ -1957,18 +1918,25 @@ function ModelServiceDependencySurface(props: { title: string; item?: SwcInspect
   const { title, item } = props;
   const metadata = item?.metadata ?? {};
   const serviceNeedDetails = parseServiceNeedDetailFields(
-    metadata["SERVICE-NEED-DETAIL-FIELDS"],
+    item?.details?.serviceNeedFields ?? [],
     metadata["SERVICE-NEED-DETAILS"]
   );
   const serviceType = normalizeAutosarEnumToken(metadata["SERVICE-TYPE"] ?? "");
   const isNvBlockNeeds = serviceType === "nvblockneeds";
   const isDiagnosticEnableConditionNeeds = serviceType === "diagnosticenableconditionneeds";
-  const detailRows = getServiceNeedDetailRows(item?.label, metadata, serviceNeedDetails);
-  const assignedData = isNvBlockNeeds ? parseNvmAssignedDataDetails(metadata) : [];
-  const dataAssignments = isDiagnosticEnableConditionNeeds
-    ? parseServiceAssignedDataDetails(metadata["ASSIGNED-DATA-DETAILS"])
+  const detailRows = getServiceNeedDetailRows(
+    item?.label,
+    metadata,
+    serviceNeedDetails,
+    item?.details?.assignedPorts ?? []
+  );
+  const assignedData = isNvBlockNeeds
+    ? parseNvmAssignedDataDetails(metadata, item?.details?.assignedData ?? [])
     : [];
-  const assignedPorts = parseServiceAssignedPortDetails(metadata["ASSIGNED-PORT-DETAILS"]);
+  const dataAssignments = isDiagnosticEnableConditionNeeds
+    ? item?.details?.assignedData ?? []
+    : [];
+  const assignedPorts = item?.details?.assignedPorts ?? [];
 
   return (
     <div className="model-semantic-surface">
@@ -2161,13 +2129,11 @@ function ModelRunnableSurface(props: {
 }) {
   const { title, runnable } = props;
   const concurrent = readBooleanMetadata(runnable?.metadata?.CONCURRENT);
-  const activationReasonDetails = parseRunnableActivationReasonDetails(
-    runnable?.metadata?.["ACTIVATION-REASON-DETAILS"]
-  );
+  const activationReasonDetails = runnable?.details?.activationReasons ?? [];
   const accessPoints = splitMetadataList(runnable?.metadata?.["ACCESS-POINTS"]);
-  const accessPointDetails = parseRunnableAccessPointDetails(runnable?.metadata?.["ACCESS-POINT-DETAILS"]);
+  const accessPointDetails = runnable?.details?.accessPoints ?? [];
   const triggerEvents = splitMetadataList(runnable?.metadata?.["TRIGGER-EVENTS"]);
-  const triggerEventDetails = parseRunnableTriggerEventDetails(runnable?.metadata?.["TRIGGER-EVENT-DETAILS"]);
+  const triggerEventDetails = runnable?.details?.triggerEvents ?? [];
 
   return (
     <div className="model-semantic-surface">
@@ -2218,9 +2184,9 @@ function ModelPortSurface(props: {
   xmlPath?: string;
 }) {
   const { title, port } = props;
-  const argumentValues = parsePortDefinedArgumentValues(port?.metadata?.["PORT-DEFINED-ARGUMENT-VALUES"]);
-  const communicationSpecs = parseCommunicationSpecDetails(port?.metadata?.["COMMUNICATION-SPEC-DETAILS"]);
-  const interfaceMemberDetails = parseInterfaceMemberDetails(port?.metadata?.["INTERFACE-MEMBER-DETAILS"]);
+  const argumentValues = normalizePortDefinedArgumentValues(port?.details?.portDefinedArgumentValues ?? []);
+  const communicationSpecs = normalizeCommunicationSpecDetails(port?.details?.communicationSpecs ?? []);
+  const interfaceMemberDetails = mapInterfaceMemberDetails(port?.details?.interfaceMembers ?? []);
   const displayedSpecs = communicationSpecs.length > 0 ? communicationSpecs : interfaceMemberDetails;
   const specsTitle = communicationSpecs.length > 0 ? "Communication Specs" : "Interface Members";
   const interfaceKind = port?.interfaceKind ?? "unknown";
@@ -2478,45 +2444,6 @@ function formatCommunicationSpecDirectionLabel(direction: string) {
     return "Trigger";
   }
   return "Generic";
-}
-
-interface PortDefinedArgumentValueDetail {
-  index: string;
-  name: string;
-  dataType: string;
-  value: string;
-}
-
-interface CommunicationSpecDetail {
-  index: string;
-  dataElement: string;
-  comSpec: string;
-  comSpecDirection: string;
-  initValue: string;
-  initValueType: string;
-  usesTxAcknowledge: string;
-  transmissionAcknowledgeTimeout: string;
-  usesEndToEndProtection: string;
-  handleOutOfRange: string;
-  transmissionMode: string;
-  dataUpdatePeriod: string;
-  minimumSendInterval: string;
-  aliveTimeout: string;
-  enableUpdate: string;
-  handleNeverReceived: string;
-  usesEndToEndProtectionErrorHandling: string;
-  timeoutSubstitutionValue: string;
-  timeoutSubstitutionValueType: string;
-  handleTimeoutType: string;
-  rxFilter: string;
-  handleDataStatus: string;
-  queueLength: string;
-  dataType: string;
-  dataConstraints: string;
-  addressingMethod: string;
-  useQueuedCommunication: string;
-  measurementCalibration: string;
-  handleInvalid: string;
 }
 
 function ModelPortApiOptionsSection(props: {
@@ -2987,32 +2914,6 @@ function ModelCommunicationSpecSubsection(props: { title: string; defaultOpen?: 
   );
 }
 
-interface RunnableAccessPointDetail {
-  target: string;
-  access: string;
-  name: string;
-}
-
-interface InterRunnableVariableAccessDetail {
-  runnable: string;
-  access: string;
-  accessPoint: string;
-}
-
-interface RunnableActivationReasonDetail {
-  bit: string;
-  name: string;
-  symbol: string;
-}
-
-interface RunnableTriggerEventDetail {
-  trigger: string;
-  type: string;
-  disabledInModes: string;
-  activationReason: string;
-  name: string;
-}
-
 function ModelRunnableActivationReasonsTable(props: { details: RunnableActivationReasonDetail[] }) {
   const { details } = props;
 
@@ -3311,186 +3212,63 @@ function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventD
   );
 }
 
-function parseRunnableAccessPointDetails(value: string | undefined): RunnableAccessPointDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          target: stringifyAccessPointCell(record.target),
-          access: stringifyAccessPointCell(record.access),
-          name: stringifyAccessPointCell(record.name)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
-function parseInterRunnableVariableAccesses(value: string | undefined): InterRunnableVariableAccessDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          runnable: stringifyAccessPointCell(record.runnable),
-          access: stringifyAccessPointCell(record.access),
-          accessPoint: stringifyAccessPointCell(record.accessPoint)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
 function stringifyAccessPointCell(value: unknown) {
   return typeof value === "string" && value.trim() ? value : "-";
 }
 
-function stringifyOptionalCell(value: unknown) {
-  return typeof value === "string" && value.trim() ? value : undefined;
+function normalizePortDefinedArgumentValues(values: PortDefinedArgumentValueDetail[]) {
+  return values.map((value) => ({
+    index: stringifyAccessPointCell(value.index),
+    name: stringifyAccessPointCell(value.name),
+    dataType: stringifyAccessPointCell(value.dataType),
+    value: stringifyAccessPointCell(value.value)
+  }));
 }
 
-function parsePortDefinedArgumentValues(value: string | undefined): PortDefinedArgumentValueDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          index: stringifyAccessPointCell(record.index),
-          name: stringifyAccessPointCell(record.name),
-          dataType: stringifyAccessPointCell(record.dataType),
-          value: stringifyAccessPointCell(record.value)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
+function normalizeCommunicationSpecDetails(values: CommunicationSpecDetail[]) {
+  return values.map((record) => ({
+    index: stringifyAccessPointCell(record.index),
+    dataElement: stringifyAccessPointCell(record.dataElement),
+    comSpec: stringifyAccessPointCell(record.comSpec),
+    comSpecDirection: parseCommunicationSpecDirection(record.comSpecDirection, record.comSpec),
+    initValue: stringifyAccessPointCell(record.initValue),
+    initValueType: stringifyAccessPointCell(record.initValueType),
+    usesTxAcknowledge: stringifyAccessPointCell(record.usesTxAcknowledge),
+    transmissionAcknowledgeTimeout: stringifyAccessPointCell(record.transmissionAcknowledgeTimeout),
+    usesEndToEndProtection: stringifyAccessPointCell(record.usesEndToEndProtection),
+    handleOutOfRange: stringifyAccessPointCell(record.handleOutOfRange),
+    transmissionMode: stringifyAccessPointCell(record.transmissionMode),
+    dataUpdatePeriod: stringifyAccessPointCell(record.dataUpdatePeriod),
+    minimumSendInterval: stringifyAccessPointCell(record.minimumSendInterval),
+    aliveTimeout: stringifyAccessPointCell(record.aliveTimeout),
+    enableUpdate: stringifyAccessPointCell(record.enableUpdate),
+    handleNeverReceived: stringifyAccessPointCell(record.handleNeverReceived),
+    usesEndToEndProtectionErrorHandling: stringifyAccessPointCell(record.usesEndToEndProtectionErrorHandling),
+    timeoutSubstitutionValue: stringifyAccessPointCell(record.timeoutSubstitutionValue),
+    timeoutSubstitutionValueType: stringifyAccessPointCell(record.timeoutSubstitutionValueType),
+    handleTimeoutType: stringifyAccessPointCell(record.handleTimeoutType),
+    rxFilter: stringifyAccessPointCell(record.rxFilter),
+    handleDataStatus: stringifyAccessPointCell(record.handleDataStatus),
+    queueLength: stringifyAccessPointCell(record.queueLength),
+    dataType: stringifyAccessPointCell(record.dataType),
+    dataConstraints: stringifyAccessPointCell(record.dataConstraints),
+    addressingMethod: stringifyAccessPointCell(record.addressingMethod),
+    useQueuedCommunication: stringifyAccessPointCell(record.useQueuedCommunication),
+    measurementCalibration: stringifyAccessPointCell(record.measurementCalibration),
+    handleInvalid: stringifyAccessPointCell(record.handleInvalid)
+  }));
 }
 
-function parseCommunicationSpecDetails(value: string | undefined): CommunicationSpecDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          index: stringifyAccessPointCell(record.index),
-          dataElement: stringifyAccessPointCell(record.dataElement),
-          comSpec: stringifyAccessPointCell(record.comSpec),
-          comSpecDirection: parseCommunicationSpecDirection(record.comSpecDirection, record.comSpec),
-          initValue: stringifyAccessPointCell(record.initValue),
-          initValueType: stringifyAccessPointCell(record.initValueType),
-          usesTxAcknowledge: stringifyAccessPointCell(record.usesTxAcknowledge),
-          transmissionAcknowledgeTimeout: stringifyAccessPointCell(record.transmissionAcknowledgeTimeout),
-          usesEndToEndProtection: stringifyAccessPointCell(record.usesEndToEndProtection),
-          handleOutOfRange: stringifyAccessPointCell(record.handleOutOfRange),
-          transmissionMode: stringifyAccessPointCell(record.transmissionMode),
-          dataUpdatePeriod: stringifyAccessPointCell(record.dataUpdatePeriod),
-          minimumSendInterval: stringifyAccessPointCell(record.minimumSendInterval),
-          aliveTimeout: stringifyAccessPointCell(record.aliveTimeout),
-          enableUpdate: stringifyAccessPointCell(record.enableUpdate),
-          handleNeverReceived: stringifyAccessPointCell(record.handleNeverReceived),
-          usesEndToEndProtectionErrorHandling: stringifyAccessPointCell(
-            record.usesEndToEndProtectionErrorHandling
-          ),
-          timeoutSubstitutionValue: stringifyAccessPointCell(record.timeoutSubstitutionValue),
-          timeoutSubstitutionValueType: stringifyAccessPointCell(record.timeoutSubstitutionValueType),
-          handleTimeoutType: stringifyAccessPointCell(record.handleTimeoutType),
-          rxFilter: stringifyAccessPointCell(record.rxFilter),
-          handleDataStatus: stringifyAccessPointCell(record.handleDataStatus),
-          queueLength: stringifyAccessPointCell(record.queueLength),
-          dataType: stringifyAccessPointCell(record.dataType),
-          dataConstraints: stringifyAccessPointCell(record.dataConstraints),
-          addressingMethod: stringifyAccessPointCell(record.addressingMethod),
-          useQueuedCommunication: stringifyAccessPointCell(record.useQueuedCommunication),
-          measurementCalibration: stringifyAccessPointCell(record.measurementCalibration),
-          handleInvalid: stringifyAccessPointCell(record.handleInvalid)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
-function parseInterfaceMemberDetails(value: string | undefined): CommunicationSpecDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry, index) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      const metadata = record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata)
-        ? (record.metadata as Record<string, unknown>)
-        : {};
-      const semanticPath = stringifyAccessPointCell(record.semanticPath);
-      const label = stringifyAccessPointCell(record.label);
-      return [
-        {
+function mapInterfaceMemberDetails(members: InterfaceDetailMember[]): CommunicationSpecDetail[] {
+  return members.map((member, index) => {
+      const metadata = member.metadata ?? {};
+      const semanticPath = stringifyAccessPointCell(member.semanticPath);
+      const label = stringifyAccessPointCell(member.label);
+      return {
           index: String(index + 1),
           dataElement: semanticPath !== "-" ? semanticPath : label,
-          comSpec: stringifyAccessPointCell(record.kind),
-          comSpecDirection: parseCommunicationSpecDirection(record.kind, record.kind),
+          comSpec: stringifyAccessPointCell(member.kind),
+          comSpecDirection: parseCommunicationSpecDirection(member.kind, member.kind),
           initValue: stringifyAccessPointCell(metadata["INITIAL-VALUE"] ?? metadata["INIT-VALUE"]),
           initValueType: stringifyAccessPointCell(metadata["INITIAL-VALUE-TYPE"] ?? metadata["INIT-VALUE-TYPE"]),
           usesTxAcknowledge: "-",
@@ -3516,12 +3294,8 @@ function parseInterfaceMemberDetails(value: string | undefined): CommunicationSp
           useQueuedCommunication: stringifyAccessPointCell(metadata["IS-QUEUED"]),
           measurementCalibration: stringifyAccessPointCell(metadata["SW-CALIBRATION-ACCESS"]),
           handleInvalid: stringifyAccessPointCell(metadata["HANDLE-INVALID"])
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
+      };
+  });
 }
 
 function parseCommunicationSpecDirection(direction: unknown, comSpec: unknown) {
@@ -3867,25 +3641,6 @@ interface NvmAssignedDataDetail {
   value: string;
 }
 
-interface ServiceAssignedPortDetail {
-  portPrototype: string;
-  portPrototypeRef?: string;
-  portInterface: string;
-  portInterfaceRef?: string;
-  assignedRole: string;
-}
-
-interface ServiceAssignedDataDetail {
-  assignedRole: string;
-  value: string;
-  portPrototype: string;
-  portPrototypeRef?: string;
-  portInterface: string;
-  portInterfaceRef?: string;
-  dataElementPrototype: string;
-  dataElementPrototypeRef?: string;
-}
-
 const nvBlockNeedsDetailOrder: Array<{
   label: string;
   tag?: string;
@@ -4021,7 +3776,8 @@ function getGenericServiceNeedDetailRows(
 function getServiceNeedDetailRows(
   itemLabel: string | undefined,
   metadata: Record<string, string>,
-  details: ServiceNeedDetailField[]
+  details: ServiceNeedDetailField[],
+  assignedPorts: ServiceAssignedPortDetail[]
 ): ServiceNeedDisplayDetail[] {
   const serviceType = normalizeAutosarEnumToken(metadata["SERVICE-TYPE"] ?? "");
   if (serviceType === "nvblockneeds") {
@@ -4033,14 +3789,17 @@ function getServiceNeedDetailRows(
     return getGenericServiceNeedDetailRows(itemLabel, metadata, details);
   }
 
-  return definitions.map((definition) => buildServiceNeedDetailRow(definition, itemLabel, metadata, details));
+  return definitions.map((definition) =>
+    buildServiceNeedDetailRow(definition, itemLabel, metadata, details, assignedPorts)
+  );
 }
 
 function buildServiceNeedDetailRow(
   definition: ServiceNeedDetailDefinition,
   itemLabel: string | undefined,
   metadata: Record<string, string>,
-  details: ServiceNeedDetailField[]
+  details: ServiceNeedDetailField[],
+  assignedPorts: ServiceAssignedPortDetail[]
 ): ServiceNeedDisplayDetail {
   if (definition.label === "Name") {
     return { label: definition.label, value: itemLabel ?? "-", kind: definition.kind };
@@ -4054,7 +3813,7 @@ function buildServiceNeedDetailRow(
   if (definition.label === "Port Assignment") {
     return {
       label: definition.label,
-      value: formatAssignedPortPrototypeColumn(metadata["ASSIGNED-PORT-DETAILS"], metadata["ASSIGNED-PORTS"]),
+      value: formatAssignedPortPrototypeColumn(assignedPorts, metadata["ASSIGNED-PORTS"]),
       kind: definition.kind
     };
   }
@@ -4169,8 +3928,10 @@ function formatNvBlockCyclicWritingPeriod(value: string) {
   return formatTimeInterval(value);
 }
 
-function parseNvmAssignedDataDetails(metadata: Record<string, string>): NvmAssignedDataDetail[] {
-  const assignedData = parseServiceAssignedDataDetails(metadata["ASSIGNED-DATA-DETAILS"]);
+function parseNvmAssignedDataDetails(
+  metadata: Record<string, string>,
+  assignedData: ServiceAssignedDataDetail[]
+): NvmAssignedDataDetail[] {
   return [
     {
       role: "ramBlock",
@@ -4183,48 +3944,14 @@ function parseNvmAssignedDataDetails(metadata: Record<string, string>): NvmAssig
   ];
 }
 
-function parseServiceAssignedDataDetails(value: string | undefined): ServiceAssignedDataDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      const assignedRole = stringifyAccessPointCell(record.role);
-      const dataElementPrototype = stringifyAccessPointCell(record.dataElementPrototype ?? record.value);
-      return [
-        {
-          assignedRole,
-          value: stringifyAccessPointCell(record.value),
-          portPrototype: stringifyAccessPointCell(record.portPrototype),
-          portPrototypeRef: stringifyOptionalCell(record.portPrototypeRef),
-          portInterface: stringifyAccessPointCell(record.portInterface),
-          portInterfaceRef: stringifyOptionalCell(record.portInterfaceRef),
-          dataElementPrototype,
-          dataElementPrototypeRef: stringifyOptionalCell(record.dataElementPrototypeRef)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
 function findAssignedDataValue(assignments: ServiceAssignedDataDetail[], normalizedRole: string) {
   return assignments.find((assignment) => normalizeAutosarEnumToken(assignment.assignedRole) === normalizedRole)?.value;
 }
 
-function formatAssignedPortPrototypeColumn(detailsValue: string | undefined, fallbackSummary: string | undefined) {
-  const details = parseServiceAssignedPortDetails(detailsValue);
+function formatAssignedPortPrototypeColumn(
+  details: ServiceAssignedPortDetail[],
+  fallbackSummary: string | undefined
+) {
   if (details.length > 0) {
     return details.map((detail) => detail.portPrototype).filter((value) => value !== "-").join(", ") || "-";
   }
@@ -4241,45 +3968,13 @@ function formatAssignedPortPrototypeColumn(detailsValue: string | undefined, fal
   return ports.length > 0 ? ports.join(", ") : "-";
 }
 
-function parseServiceAssignedPortDetails(value: string | undefined): ServiceAssignedPortDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          portPrototype: stringifyAccessPointCell(record.portPrototype),
-          portPrototypeRef: stringifyOptionalCell(record.portPrototypeRef),
-          portInterface: stringifyAccessPointCell(record.portInterface),
-          portInterfaceRef: stringifyOptionalCell(record.portInterfaceRef),
-          assignedRole: stringifyAccessPointCell(record.assignedRole)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
 function parseServiceNeedDetailFields(
-  fieldsJson: string | undefined,
+  structuredFields: ServiceNeedField[],
   fallbackSummary: string | undefined
 ): ServiceNeedDetailField[] {
-  const parsedFields = parseStructuredServiceNeedDetailFields(fieldsJson);
-  const fields =
-    parsedFields.length > 0
-      ? parsedFields
+  const fields: Array<{ tag?: string; label: string; value: string }> =
+    structuredFields.length > 0
+      ? structuredFields
       : parseServiceNeedDetailSummary(fallbackSummary).map((detail) => ({
           label: detail.label,
           value: detail.value
@@ -4295,32 +3990,6 @@ function parseServiceNeedDetailFields(
       checked: checked === true
     };
   });
-}
-
-function parseStructuredServiceNeedDetailFields(value: string | undefined) {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      const tag = typeof record.tag === "string" ? record.tag : undefined;
-      const label = typeof record.label === "string" ? record.label : undefined;
-      const detailValue = typeof record.value === "string" ? record.value : undefined;
-      return label && detailValue !== undefined ? [{ tag, label, value: detailValue }] : [];
-    });
-  } catch {
-    return [];
-  }
 }
 
 function parseServiceNeedDetailSummary(value: string | undefined) {
@@ -4348,66 +4017,6 @@ function readBinaryServiceNeedDetailValue(value: string) {
     return false;
   }
   return undefined;
-}
-
-function parseRunnableActivationReasonDetails(value: string | undefined): RunnableActivationReasonDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          bit: stringifyAccessPointCell(record.bit),
-          name: stringifyAccessPointCell(record.name),
-          symbol: stringifyAccessPointCell(record.symbol)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
-}
-
-function parseRunnableTriggerEventDetails(value: string | undefined): RunnableTriggerEventDetail[] {
-  if (!value) {
-    return [];
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((entry) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        return [];
-      }
-      const record = entry as Record<string, unknown>;
-      return [
-        {
-          trigger: stringifyAccessPointCell(record.trigger),
-          type: stringifyAccessPointCell(record.type),
-          disabledInModes: stringifyAccessPointCell(record.disabledInModes),
-          activationReason: stringifyAccessPointCell(record.activationReason),
-          name: stringifyAccessPointCell(record.name)
-        }
-      ];
-    });
-  } catch {
-    return [];
-  }
 }
 
 function ModelListSection(props: { title: string; items: string[] }) {

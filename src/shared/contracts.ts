@@ -31,6 +31,130 @@ export type PortInterfaceKind =
   | "trigger"
   | "unknown";
 
+export interface EntityDetailPayload {
+  fields: Array<{ label: string; value: string; valueType?: string }>;
+  tables: Array<{
+    title: string;
+    columns: Array<{ key: string; label: string }>;
+    rows: Array<Record<string, string>>;
+  }>;
+}
+
+export interface InterfaceDetailMember {
+  label: string;
+  kind?: string;
+  semanticPath?: string;
+  metadata?: Record<string, string>;
+  operationArguments?: Array<Record<string, string>>;
+}
+
+export interface PortDefinedArgumentValueDetail {
+  index: string;
+  name: string;
+  dataType: string;
+  value: string;
+}
+
+export interface CommunicationSpecDetail {
+  index: string;
+  dataElement: string;
+  comSpec: string;
+  comSpecDirection: string;
+  initValue: string;
+  initValueType: string;
+  usesTxAcknowledge: string;
+  transmissionAcknowledgeTimeout: string;
+  usesEndToEndProtection: string;
+  handleOutOfRange: string;
+  transmissionMode: string;
+  dataUpdatePeriod: string;
+  minimumSendInterval: string;
+  aliveTimeout: string;
+  enableUpdate: string;
+  handleNeverReceived: string;
+  usesEndToEndProtectionErrorHandling: string;
+  timeoutSubstitutionValue: string;
+  timeoutSubstitutionValueType: string;
+  handleTimeoutType: string;
+  rxFilter: string;
+  handleDataStatus: string;
+  queueLength: string;
+  dataType: string;
+  dataConstraints: string;
+  addressingMethod: string;
+  useQueuedCommunication: string;
+  measurementCalibration: string;
+  handleInvalid: string;
+}
+
+export interface RunnableAccessPointDetail {
+  target: string;
+  access: string;
+  name: string;
+}
+
+export interface InterRunnableVariableAccessDetail {
+  runnable: string;
+  access: string;
+  accessPoint: string;
+}
+
+export interface RunnableActivationReasonDetail {
+  bit: string;
+  name: string;
+  symbol: string;
+}
+
+export interface RunnableTriggerEventDetail {
+  trigger: string;
+  type: string;
+  disabledInModes: string;
+  activationReason: string;
+  name: string;
+}
+
+export interface ServiceAssignedPortDetail {
+  portPrototype: string;
+  portPrototypeRef?: string;
+  portInterface: string;
+  portInterfaceRef?: string;
+  assignedRole: string;
+}
+
+export interface ServiceAssignedDataDetail {
+  assignedRole: string;
+  value: string;
+  portPrototype: string;
+  portPrototypeRef?: string;
+  portInterface: string;
+  portInterfaceRef?: string;
+  dataElementPrototype: string;
+  dataElementPrototypeRef?: string;
+}
+
+export interface ServiceNeedField {
+  tag: string;
+  label: string;
+  value: string;
+}
+
+export interface AutosarEntityDetails {
+  entity?: EntityDetailPayload;
+  interfaceMembers?: InterfaceDetailMember[];
+  portDefinedArgumentValues?: PortDefinedArgumentValueDetail[];
+  communicationSpecs?: CommunicationSpecDetail[];
+}
+
+export interface SwcInspectorItemDetails {
+  accessPoints?: RunnableAccessPointDetail[];
+  interRunnableVariableAccesses?: InterRunnableVariableAccessDetail[];
+  activationReasons?: RunnableActivationReasonDetail[];
+  triggerEvents?: RunnableTriggerEventDetail[];
+  serviceNeedFields?: ServiceNeedField[];
+  assignedData?: ServiceAssignedDataDetail[];
+  assignedPorts?: ServiceAssignedPortDetail[];
+}
+
 export interface ValidationIssue {
   severity: Severity;
   message: string;
@@ -88,6 +212,7 @@ export interface AutosarEntity {
   typeRef?: string;
   interfaceKind?: PortInterfaceKind;
   metadata?: Record<string, string>;
+  details?: AutosarEntityDetails;
   inspector?: SwcInspectorData;
 }
 
@@ -109,6 +234,7 @@ export interface SwcInspectorItem {
   label: string;
   xmlPath?: string;
   metadata?: Record<string, string>;
+  details?: SwcInspectorItemDetails;
 }
 
 export interface SwcInspectorSection {
@@ -224,6 +350,7 @@ export interface SwcGraphPort {
   filePath: string;
   warning?: string;
   metadata?: Record<string, string>;
+  details?: AutosarEntityDetails;
 }
 
 export interface SwcGraphNode {

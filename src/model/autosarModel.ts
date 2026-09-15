@@ -19,6 +19,7 @@ import {
   type AutosarVersionAdapter
 } from "./autosarVersionAdapters";
 import type { ArxmlValidationMetadata } from "../shared/contracts";
+import { hydratePresentationDetails } from "./presentationDetails";
 
 const PORT_TAGS = new Set(["P-PORT-PROTOTYPE", "R-PORT-PROTOTYPE", "PR-PORT-PROTOTYPE"]);
 const CONNECTION_TAGS = new Set(["ASSEMBLY-SW-CONNECTOR", "DELEGATION-SW-CONNECTOR"]);
@@ -167,6 +168,7 @@ export function buildAutosarModel(
   attachInterfaceDefinitionMetadataToEntities(entities, interfaceDefinitionsByPath);
   enrichPortInterfaceMetadataFromEntities(entities);
   attachInspectorsToEntities(entities, inspectorsByOwner, interfaceDefinitionsByPath, validationIssues);
+  hydratePresentationDetails(entities);
 
   if (entities.length === 0) {
     validationIssues.push({
@@ -878,6 +880,7 @@ export function enrichPortCommunicationSpecsFromEntities(entities: AutosarEntity
       "COMMUNICATION-SPEC-DETAILS": JSON.stringify(enrichedDetails)
     });
   });
+  hydratePresentationDetails(entities);
 }
 
 export function enrichPortInterfaceMetadataFromEntities(entities: AutosarEntity[]) {
@@ -901,6 +904,7 @@ export function enrichPortInterfaceMetadataFromEntities(entities: AutosarEntity[
       "INTERFACE-MEMBER-DETAILS": entity.metadata?.["INTERFACE-MEMBER-DETAILS"] ?? interfaceMembers
     });
   });
+  hydratePresentationDetails(entities);
 }
 
 function resolveInterfaceEntity(interfaceEntities: AutosarEntity[], typeRef: string) {
