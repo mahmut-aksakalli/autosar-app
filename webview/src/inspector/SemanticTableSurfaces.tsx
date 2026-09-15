@@ -9,12 +9,12 @@ import {
   formatCalibrationAccess,
   formatInitValueTypeOption,
   formatOptionalMilliseconds,
-  formatPortDirectionLabel,
   formatReferenceShortName,
   normalizeTableSearch,
   SortableTableHeader
 } from "./SemanticSurfaces";
 import { formatAssignedPortPrototypeColumn } from "./ItemSemanticSurfaces";
+import { formatPortDirectionLabel } from "./PortSemanticSurface";
 import type {
   InspectorTableItem,
   InspectorTableRow,

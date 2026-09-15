@@ -6,8 +6,7 @@ import {
   findInspectorItemInSections,
   getEmptyLabel,
   getSectionsForTab,
-  getSemanticColumns,
-  ModelPortSurface
+  getSemanticColumns
 } from "./SemanticSurfaces";
 import { ModelEntityDetailsSurface } from "./EntitySemanticSurface";
 import {
@@ -17,6 +16,7 @@ import {
   ModelServiceDependencySurface
 } from "./ItemSemanticSurfaces";
 import { ModelRunnableSurface } from "./RunnableSemanticSurface";
+import { ModelPortSurface } from "./PortSemanticSurface";
 import {
   ModelInspectorItemsTableSurface,
   ModelPortsTableSurface,
