@@ -65,25 +65,35 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
   private groupingMode: TreeGroupingMode = "semantic";
   private filterText = "";
   private indexing = false;
+  private roots: ModelTreeNode[] | undefined;
+  private readonly nodesById = new Map<string, ModelTreeNode>();
+  private readonly parentsById = new Map<string, ModelTreeNode>();
+
+  private refresh() {
+    this.roots = undefined;
+    this.nodesById.clear();
+    this.parentsById.clear();
+    this.changeEmitter.fire();
+  }
 
   update(snapshot: WorkspaceSnapshot | null) {
     this.snapshot = snapshot;
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   setIndexing(indexing: boolean) {
     this.indexing = indexing;
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   setGroupingMode(mode: TreeGroupingMode) {
     this.groupingMode = mode;
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   setFilterText(value: string) {
     this.filterText = value.trim();
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   getFilterText() {
@@ -92,6 +102,7 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
 
   getTreeItem(node: ModelTreeNode): vscode.TreeItem {
     const item = new vscode.TreeItem(node.label, getCollapsibleState(node));
+    item.id = node.id;
     item.contextValue = node.selectable ? `autosarModelNode.${node.workspaceTab?.kind ?? "entity"}` : "autosarModelGroup";
     item.iconPath = getNodeIconPath(node);
     item.tooltip = getTreeTooltip(node);
@@ -109,6 +120,34 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     if (node) {
       return node.children ?? [];
     }
+
+    if (!this.roots) {
+      this.roots = this.buildRoots();
+      const indexNodes = (nodes: ModelTreeNode[], parent?: ModelTreeNode) => {
+        for (const child of nodes) {
+          this.nodesById.set(child.id, child);
+          if (parent) {
+            this.parentsById.set(child.id, parent);
+          }
+          indexNodes(child.children ?? [], child);
+        }
+      };
+      indexNodes(this.roots);
+    }
+    return this.roots;
+  }
+
+  getParent(node: ModelTreeNode): ModelTreeNode | undefined {
+    this.getChildren();
+    return this.parentsById.get(node.id);
+  }
+
+  findEntityNode(entityId: string): ModelTreeNode | undefined {
+    this.getChildren();
+    return this.nodesById.get(`software-component:${entityId}`) ?? this.nodesById.get(entityId);
+  }
+
+  private buildRoots(): ModelTreeNode[] {
 
     if (!this.snapshot) {
       return this.indexing ? [makeIndexingNode()] : [];

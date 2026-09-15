@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AutosarEntity, SwcGraphScope, WorkspaceSnapshot } from "./shared/contracts";
 import { ModelPanel, type ModelWorkspaceTab } from "./model/ModelPanel";
+import { vscode } from "./vscodeApi";
 
 interface InitialState {
   workspace: WorkspaceSnapshot;
@@ -154,6 +155,7 @@ export function ModelWebviewApp() {
     setModelPreferredScope(preferredScope);
     setModelPreferredNodeId(selection.preferredNodeId);
     openModelWorkspaceTab(tab);
+    vscode?.postMessage({ type: "revealModelEntity", entityId: targetEntity.id });
   }
 
   if (!activeModelFocusEntity || !activeModelWorkspaceTab) {

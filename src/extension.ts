@@ -237,6 +237,25 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   async function handleWebviewMessage(webview: vscode.Webview | undefined, message: unknown) {
+    if (webview && isRevealModelEntityMessage(message)) {
+      const entity = workspaceModelService.getSnapshot()?.entities.find((candidate) => candidate.id === message.entityId);
+      if (!entity || (entity.type !== "swc" && entity.type !== "composition")) {
+        return;
+      }
+      let node = treeProvider.findEntityNode(entity.id);
+      if (!node && treeProvider.getFilterText()) {
+        setTreeFilter("");
+        node = treeProvider.findEntityNode(entity.id);
+      }
+      if (node) {
+        try {
+          await treeView.reveal(node, { select: true, focus: false });
+        } catch (error) {
+          logger.error(`Failed to reveal AUTOSAR model entity ${entity.shortName}.`, error);
+        }
+      }
+      return;
+    }
     if (!webview || !isBuildGraphMessage(message)) {
       return;
     }
@@ -392,6 +411,15 @@ function makeGraphTab(entity: AutosarEntity | undefined): ModelWorkspaceTab | un
     focusEntityId: entity.id,
     preferredScope
   };
+}
+
+function isRevealModelEntityMessage(message: unknown): message is { type: "revealModelEntity"; entityId: string } {
+  return (
+    Boolean(message) &&
+    typeof message === "object" &&
+    (message as { type?: unknown }).type === "revealModelEntity" &&
+    typeof (message as { entityId?: unknown }).entityId === "string"
+  );
 }
 
 function isBuildGraphMessage(message: unknown): message is {
