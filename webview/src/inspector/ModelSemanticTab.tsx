@@ -8,17 +8,19 @@ import {
   getSectionsForTab,
   getSemanticColumns,
   ModelEntityDetailsSurface,
-  ModelInspectorItemsTableSurface,
   ModelInterRunnableVariableSurface,
   ModelParameterSurface,
   ModelPerInstanceMemorySurface,
-  ModelPortsTableSurface,
   ModelPortSurface,
-  ModelRunnablesTableSurface,
   ModelRunnableSurface,
-  ModelServiceDependencySurface,
-  ModelTableSurface
+  ModelServiceDependencySurface
 } from "./SemanticSurfaces";
+import {
+  ModelInspectorItemsTableSurface,
+  ModelPortsTableSurface,
+  ModelRunnablesTableSurface,
+  ModelTableSurface
+} from "./SemanticTableSurfaces";
 
 export function ModelSemanticTab(props: {
   tab: ModelWorkspaceTab;
