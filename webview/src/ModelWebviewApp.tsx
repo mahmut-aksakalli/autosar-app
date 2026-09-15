@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AutosarEntity, SwcGraphScope, WorkspaceSnapshot } from "./shared/contracts";
-import { ModelPanel, type ModelWorkspaceTab } from "./model/ModelPanel";
+import { ModelPanel } from "./model/ModelPanel";
+import { EditorTabs } from "./tabs/EditorTabs";
+import {
+  makeDefaultModelGraphTab,
+  makeModelTab,
+  type ModelWorkspaceTab
+} from "./tabs/modelWorkspaceTab";
+import { useWorkspaceTabs } from "./tabs/workspaceTabsReducer";
 import { vscode } from "./vscodeApi";
 
 interface InitialState {
@@ -18,14 +25,7 @@ declare global {
 export function ModelWebviewApp() {
   const initialState = window.__AUTOSAR_INITIAL_STATE__;
   const [workspace, setWorkspace] = useState(initialState.workspace);
-  const modelEntities = useMemo(
-    () =>
-      workspace.entities
-        .filter((entity) => !["port", "instance", "connection", "generic"].includes(entity.type))
-        .slice()
-        .sort((left, right) => left.shortName.localeCompare(right.shortName)),
-    [workspace.entities]
-  );
+  const modelEntities = useMemo(() => getModelEntities(workspace), [workspace]);
   const [modelFocusEntityId, setModelFocusEntityId] = useState(
     initialState.focusEntityId ?? initialState.activeWorkspaceTab?.focusEntityId ?? modelEntities[0]?.id
   );
@@ -35,40 +35,27 @@ export function ModelWebviewApp() {
   const [modelPreferredNodeId, setModelPreferredNodeId] = useState<string | undefined>(
     initialState.activeWorkspaceTab?.preferredNodeId
   );
-  const [modelWorkspaceTabs, setModelWorkspaceTabs] = useState<ModelWorkspaceTab[]>(() => {
+  const initialTabs = useMemo(() => {
     if (initialState.activeWorkspaceTab) {
       return [initialState.activeWorkspaceTab];
     }
     const entity = modelEntities[0];
-    return entity ? [makeDefaultModelGraphTab(entity, entity.type === "composition" ? "composition" : "swc")] : [];
-  });
-  const [activeModelWorkspaceTabId, setActiveModelWorkspaceTabId] = useState(
-    initialState.activeWorkspaceTab?.id ?? modelWorkspaceTabs[0]?.id
-  );
+    return entity ? [makeDefaultModelGraphTab(entity, defaultScope(entity))] : [];
+  }, []);
+  const tabs = useWorkspaceTabs(initialTabs, initialState.activeWorkspaceTab?.id);
 
-  const activeModelWorkspaceTab =
-    modelWorkspaceTabs.find((tab) => tab.id === activeModelWorkspaceTabId) ?? modelWorkspaceTabs[0];
   const activeModelFocusEntity =
-    modelEntities.find((entity) => entity.id === activeModelWorkspaceTab?.focusEntityId) ??
+    modelEntities.find((entity) => entity.id === tabs.activeTab?.focusEntityId) ??
     modelEntities.find((entity) => entity.id === modelFocusEntityId) ??
     modelEntities[0];
   const effectiveModelPreferredScope =
-    activeModelWorkspaceTab?.preferredScope ??
-    modelPreferredScope ??
-    (activeModelFocusEntity?.type === "composition" ? "composition" : "swc");
+    tabs.activeTab?.preferredScope ?? modelPreferredScope ?? defaultScope(activeModelFocusEntity);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data as
-        | {
-            type: "focusModel";
-            focusEntityId?: string;
-            activeWorkspaceTab?: ModelWorkspaceTab;
-          }
-        | {
-            type: "workspaceUpdated";
-            workspace?: WorkspaceSnapshot;
-          }
+        | { type: "focusModel"; focusEntityId?: string; activeWorkspaceTab?: ModelWorkspaceTab }
+        | { type: "workspaceUpdated"; workspace?: WorkspaceSnapshot }
         | { type: string };
 
       if (message.type === "workspaceUpdated") {
@@ -85,55 +72,23 @@ export function ModelWebviewApp() {
       const targetEntity = modelEntities.find(
         (entity) => entity.id === message.focusEntityId || entity.id === message.activeWorkspaceTab?.focusEntityId
       );
-      const tab =
-        message.activeWorkspaceTab ??
-        (targetEntity
-          ? makeDefaultModelGraphTab(targetEntity, targetEntity.type === "composition" ? "composition" : "swc")
-          : undefined);
-
+      const tab = message.activeWorkspaceTab ??
+        (targetEntity ? makeDefaultModelGraphTab(targetEntity, defaultScope(targetEntity)) : undefined);
       if (!targetEntity || !tab) {
         return;
       }
 
       setModelFocusEntityId(targetEntity.id);
-      setModelPreferredScope(tab.preferredScope ?? (targetEntity.type === "composition" ? "composition" : "swc"));
+      setModelPreferredScope(tab.preferredScope ?? defaultScope(targetEntity));
       setModelPreferredNodeId(tab.preferredNodeId);
-      openModelWorkspaceTab(tab);
+      tabs.openTab(tab);
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [modelEntities]);
+  }, [modelEntities, tabs.openTab]);
 
-  function openModelWorkspaceTab(tab: ModelWorkspaceTab | undefined, pinned = false) {
-    if (!tab) {
-      return;
-    }
-
-    const nextTab = {
-      ...tab,
-      pinned: pinned || tab.pinned
-    };
-
-    setModelWorkspaceTabs((current) => {
-      const existingTab = current.find((entry) => entry.id === nextTab.id);
-      if (existingTab) {
-        return existingTab.pinned || !nextTab.pinned
-          ? current
-          : current.map((entry) => (entry.id === nextTab.id ? { ...entry, pinned: true } : entry));
-      }
-      return [...current.filter((entry) => entry.pinned), nextTab];
-    });
-    setActiveModelWorkspaceTabId(nextTab.id);
-  }
-
-  function focusModelEntityFromGraph(selection: {
-    entityId?: string;
-    semanticPath?: string;
-    preferredScope?: SwcGraphScope;
-    preferredNodeId?: string;
-    includeCompositionInternals?: boolean;
-  }) {
+  function focusModelEntityFromGraph(selection: ModelEntitySelection) {
     const targetEntity = modelEntities.find(
       (entity) =>
         entity.id === selection.entityId ||
@@ -144,97 +99,61 @@ export function ModelWebviewApp() {
       return;
     }
 
-    const preferredScope = selection.preferredScope ?? (targetEntity.type === "composition" ? "composition" : "swc");
-    const tab = makeModelTab(targetEntity, "graph", "Graph", {
+    const preferredScope = selection.preferredScope ?? defaultScope(targetEntity);
+    tabs.openTab(makeModelTab(targetEntity, "graph", "Graph", {
       preferredScope,
       preferredNodeId: selection.preferredNodeId,
       includeCompositionInternals: selection.includeCompositionInternals
-    });
-
+    }));
     setModelFocusEntityId(targetEntity.id);
     setModelPreferredScope(preferredScope);
     setModelPreferredNodeId(selection.preferredNodeId);
-    openModelWorkspaceTab(tab);
     vscode?.postMessage({ type: "revealModelEntity", entityId: targetEntity.id });
   }
 
-  if (!activeModelFocusEntity || !activeModelWorkspaceTab) {
+  if (!activeModelFocusEntity || !tabs.activeTab) {
     return <div className="empty-state">No AUTOSAR model entity was discovered.</div>;
   }
 
   return (
     <div className="webview-model-shell">
-      <div className="editor-tabs">
-        {modelWorkspaceTabs.map((tab) => (
-          <div key={tab.id} className={`editor-tab ${tab.id === activeModelWorkspaceTab.id ? "active" : ""}`}>
-            <button
-              type="button"
-              className="editor-tab-button"
-              onClick={() => setActiveModelWorkspaceTabId(tab.id)}
-              onDoubleClick={() => openModelWorkspaceTab(tab, true)}
-              title={tab.pinned ? tab.title : `${tab.title} (preview)`}
-            >
-              {tab.title}
-            </button>
-            {modelWorkspaceTabs.length > 1 && (
-              <button
-                type="button"
-                className="editor-tab-close"
-                onClick={() => {
-                  setModelWorkspaceTabs((current) => current.filter((entry) => entry.id !== tab.id));
-                  if (activeModelWorkspaceTabId === tab.id) {
-                    setActiveModelWorkspaceTabId(modelWorkspaceTabs.find((entry) => entry.id !== tab.id)?.id);
-                  }
-                }}
-                aria-label={`Close ${tab.title}`}
-              >
-                x
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
+      <EditorTabs
+        tabs={tabs.tabs}
+        activeTabId={tabs.activeTab.id}
+        onActivate={tabs.activateTab}
+        onPin={(tab) => tabs.openTab(tab, true)}
+        onClose={tabs.closeTab}
+      />
       <div className="editor-view">
         <ModelPanel
           focusEntity={activeModelFocusEntity}
           workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}
-          preferredNodeId={activeModelWorkspaceTab.preferredNodeId ?? modelPreferredNodeId}
-          activeWorkspaceTab={activeModelWorkspaceTab}
+          preferredNodeId={tabs.activeTab.preferredNodeId ?? modelPreferredNodeId}
+          activeWorkspaceTab={tabs.activeTab}
           onFocusModelEntity={focusModelEntityFromGraph}
-          onOpenWorkspaceTab={(tab) => openModelWorkspaceTab(tab)}
+          onOpenWorkspaceTab={tabs.openTab}
         />
       </div>
     </div>
   );
 }
 
-function makeModelTab(
-  entity: AutosarEntity,
-  kind: ModelWorkspaceTab["kind"],
-  titlePrefix: string,
-  options: Partial<ModelWorkspaceTab> = {}
-): ModelWorkspaceTab {
-  return {
-    id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}${
-      options.includeCompositionInternals ? ":internals" : ""
-    }`,
-    title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
-    pinned: options.pinned,
-    kind,
-    focusEntityId: entity.id,
-    preferredScope: options.preferredScope,
-    preferredNodeId: options.preferredNodeId,
-    includeCompositionInternals: options.includeCompositionInternals,
-    entityId: options.entityId,
-    sectionId: options.sectionId,
-    itemId: options.itemId,
-    xmlPath: options.xmlPath
-  };
+interface ModelEntitySelection {
+  entityId?: string;
+  semanticPath?: string;
+  preferredScope?: SwcGraphScope;
+  preferredNodeId?: string;
+  includeCompositionInternals?: boolean;
 }
 
-function makeDefaultModelGraphTab(entity: AutosarEntity, preferredScope: SwcGraphScope): ModelWorkspaceTab {
-  return makeModelTab(entity, "graph", "Graph", {
-    preferredScope
-  });
+function getModelEntities(workspace: WorkspaceSnapshot) {
+  return workspace.entities
+    .filter((entity) => !["port", "instance", "connection", "generic"].includes(entity.type))
+    .slice()
+    .sort((left, right) => left.shortName.localeCompare(right.shortName));
+}
+
+function defaultScope(entity: AutosarEntity | undefined): SwcGraphScope {
+  return entity?.type === "composition" ? "composition" : "swc";
 }

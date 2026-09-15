@@ -25,6 +25,8 @@ import type {
   SwcInspectorSectionId,
   ValidationIssue
 } from "../shared/contracts";
+import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
+import { useGraphQuery } from "../graph/useGraphQuery";
 import { layoutSwcGraph, type FlowNode, type FlowNodeData } from "./graphLayout";
 
 const PORT_WIDTH = 170;
@@ -55,42 +57,6 @@ interface ModelPanelProps {
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
 
-export interface ModelWorkspaceTab {
-  id: string;
-  title: string;
-  pinned?: boolean;
-  kind:
-    | "graph"
-    | "ports"
-    | "runnables"
-    | "events"
-    | "behavior"
-    | "memory"
-    | "parameters"
-    | "interRunnableVariables"
-    | "perInstanceMemory"
-    | "exclusiveAreas"
-    | "serviceDependencies"
-    | "serviceDependencyGroup"
-    | "port"
-    | "parameter"
-    | "interRunnableVariable"
-    | "perInstanceMemoryItem"
-    | "serviceDependency"
-    | "runnable"
-    | "event"
-    | "entityDetails";
-  focusEntityId: string;
-  preferredScope?: SwcGraphScope;
-  preferredNodeId?: string;
-  includeCompositionInternals?: boolean;
-  entityId?: string;
-  sectionId?: SwcInspectorSectionId;
-  itemId?: string;
-  serviceType?: string;
-  xmlPath?: string;
-}
-
 export function ModelPanel(props: ModelPanelProps) {
   const {
     focusEntity,
@@ -104,10 +70,6 @@ export function ModelPanel(props: ModelPanelProps) {
   const [graphScope, setGraphScope] = useState<SwcGraphScope>(
     preferredScope ?? (focusEntity?.type === "composition" ? "composition" : "swc")
   );
-  const graphCacheRef = useRef(new Map<string, SwcGraphResult>());
-  const [, setGraphCacheVersion] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
@@ -132,12 +94,17 @@ export function ModelPanel(props: ModelPanelProps) {
         includeCompositionInternals
       )
     : undefined;
-  const graphResult = graphCacheKey ? graphCacheRef.current.get(graphCacheKey) : undefined;
-
-  useEffect(() => {
-    graphCacheRef.current.clear();
-    setGraphCacheVersion((version) => version + 1);
-  }, [workspaceRevision]);
+  const { graphResult, loading, error } = useGraphQuery({
+    focusEntity,
+    workspaceRevision,
+    scope: graphScope,
+    includeCompositionInternals,
+    cacheKey: graphCacheKey,
+    enabled:
+      Boolean(focusEntity) &&
+      activeWorkspaceTab?.kind !== "entityDetails" &&
+      (focusEntity?.type === "swc" || focusEntity?.type === "composition")
+  });
 
   useEffect(() => {
     setGraphScope(preferredScope ?? (focusEntity?.type === "composition" ? "composition" : "swc"));
@@ -156,75 +123,12 @@ export function ModelPanel(props: ModelPanelProps) {
   }, [activeWorkspaceTab?.kind, activeWorkspaceTab?.preferredNodeId, activeWorkspaceTab?.preferredScope]);
 
   useEffect(() => {
-    if (!focusEntity) {
-      setLoading(false);
+    if (!graphResult) {
       return;
     }
-
-    if (
-      activeWorkspaceTab?.kind === "entityDetails" ||
-      (focusEntity.type !== "swc" && focusEntity.type !== "composition")
-    ) {
-      setLoading(false);
-      setError(undefined);
-      return;
-    }
-
-    if (graphCacheKey) {
-      const cachedGraph = graphCacheRef.current.get(graphCacheKey);
-      if (cachedGraph) {
-        setLoading(false);
-        setError(undefined);
-        setSelectedNodeId(resolveInitialSelection(cachedGraph, activeCompositionNodeId, preferredNodeId));
-        setSelectedEdgeId(undefined);
-        return;
-      }
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(undefined);
-
-    void window.autosarApi
-      .buildGraph({
-        scope: graphScope,
-        focusId: focusEntity.semanticPath ?? focusEntity.id,
-        depth: 1,
-        includeCompositionInternals
-      })
-      .then((graph) => {
-        if (cancelled) {
-          return;
-        }
-        if (graphCacheKey) {
-          graphCacheRef.current.set(graphCacheKey, graph);
-          setGraphCacheVersion((version) => version + 1);
-        }
-        setLoading(false);
-        setSelectedNodeId(resolveInitialSelection(graph, activeCompositionNodeId, preferredNodeId));
-        setSelectedEdgeId(undefined);
-      })
-      .catch((nextError) => {
-        if (cancelled) {
-          return;
-        }
-        setError(nextError instanceof Error ? nextError.message : String(nextError));
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activeCompositionNodeId,
-    activeWorkspaceTab?.kind,
-    focusEntity,
-    graphCacheKey,
-    graphScope,
-    includeCompositionInternals,
-    preferredNodeId,
-    workspaceRevision
-  ]);
+    setSelectedNodeId(resolveInitialSelection(graphResult, activeCompositionNodeId, preferredNodeId));
+    setSelectedEdgeId(undefined);
+  }, [graphResult]);
 
   const graphNodes = graphResult?.nodes ?? [];
   const graphEdges = graphResult?.edges ?? [];
