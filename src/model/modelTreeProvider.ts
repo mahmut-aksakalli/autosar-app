@@ -1,47 +1,14 @@
 import * as vscode from "vscode";
 import type {
   AutosarEntity,
+  ModelWorkspaceTab,
   SwcGraphScope,
   SwcInspectorItem,
   SwcInspectorSectionId,
   WorkspaceSnapshot
 } from "../shared/contracts";
 
-export interface ModelWorkspaceTab {
-  id: string;
-  title: string;
-  pinned?: boolean;
-  kind:
-    | "graph"
-    | "ports"
-    | "runnables"
-    | "events"
-    | "behavior"
-    | "memory"
-    | "parameters"
-    | "interRunnableVariables"
-    | "perInstanceMemory"
-    | "exclusiveAreas"
-    | "serviceDependencies"
-    | "serviceDependencyGroup"
-    | "port"
-    | "parameter"
-    | "interRunnableVariable"
-    | "perInstanceMemoryItem"
-    | "serviceDependency"
-    | "runnable"
-    | "event"
-    | "entityDetails";
-  focusEntityId: string;
-  preferredScope?: SwcGraphScope;
-  preferredNodeId?: string;
-  includeCompositionInternals?: boolean;
-  entityId?: string;
-  sectionId?: SwcInspectorSectionId;
-  itemId?: string;
-  serviceType?: string;
-  xmlPath?: string;
-}
+export type { ModelWorkspaceTab } from "../shared/contracts";
 
 export interface ModelTreeNode {
   id: string;

@@ -229,6 +229,42 @@ export type SwcInspectorSectionId =
   | "interfaceModeGroups"
   | "interfaceTriggers";
 
+export interface ModelWorkspaceTab {
+  id: string;
+  title: string;
+  pinned?: boolean;
+  kind:
+    | "graph"
+    | "ports"
+    | "runnables"
+    | "events"
+    | "behavior"
+    | "memory"
+    | "parameters"
+    | "interRunnableVariables"
+    | "perInstanceMemory"
+    | "exclusiveAreas"
+    | "serviceDependencies"
+    | "serviceDependencyGroup"
+    | "port"
+    | "parameter"
+    | "interRunnableVariable"
+    | "perInstanceMemoryItem"
+    | "serviceDependency"
+    | "runnable"
+    | "event"
+    | "entityDetails";
+  focusEntityId: string;
+  preferredScope?: SwcGraphScope;
+  preferredNodeId?: string;
+  includeCompositionInternals?: boolean;
+  entityId?: string;
+  sectionId?: SwcInspectorSectionId;
+  itemId?: string;
+  serviceType?: string;
+  xmlPath?: string;
+}
+
 export interface SwcInspectorItem {
   id: string;
   label: string;
@@ -331,6 +367,22 @@ export interface WorkspaceSnapshot {
   watched: boolean;
   lastIndexedAt: string;
 }
+
+export interface ModelWebviewInitialState {
+  workspace: WorkspaceSnapshot;
+  focusEntityId?: string;
+  activeWorkspaceTab?: ModelWorkspaceTab;
+}
+
+export type HostToModelWebviewMessage =
+  | { type: "focusModel"; focusEntityId?: string; activeWorkspaceTab?: ModelWorkspaceTab }
+  | { type: "workspaceUpdated"; workspace: WorkspaceSnapshot }
+  | { type: "graphResult"; requestId: string; graph: SwcGraphResult }
+  | { type: "graphError"; requestId: string; message: string };
+
+export type ModelWebviewToHostMessage =
+  | { type: "buildGraph"; requestId: string; query: SwcGraphQuery }
+  | { type: "revealModelEntity"; entityId: string };
 
 export type SwcGraphScope = "swc" | "composition";
 export type SwcGraphNodeKind = "swc" | "composition" | "instance" | "port";

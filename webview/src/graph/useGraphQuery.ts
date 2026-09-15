@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { AutosarEntity, SwcGraphResult, SwcGraphScope } from "../shared/contracts";
+import type { AutosarEntity, SwcGraphResult, SwcGraphScope } from "../../../src/shared/contracts";
+import { modelHost } from "../vscodeApi";
 
 interface UseGraphQueryOptions {
   focusEntity?: AutosarEntity;
@@ -46,7 +47,7 @@ export function useGraphQuery({
     setLoading(true);
     setError(undefined);
 
-    void window.autosarApi
+    void modelHost
       .buildGraph({
         scope,
         focusId: focusEntity.semanticPath ?? focusEntity.id,

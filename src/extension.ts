@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { AutosarEntity } from "./shared/contracts";
+import type { AutosarEntity, ModelWebviewToHostMessage, ModelWorkspaceTab } from "./shared/contracts";
 import { GraphService } from "./model/graphService";
 import { AutosarOutputLogger } from "./logger";
-import { ModelTreeProvider, type ModelTreeNode, type ModelWorkspaceTab } from "./model/modelTreeProvider";
+import { ModelTreeProvider, type ModelTreeNode } from "./model/modelTreeProvider";
 import { WorkspaceModelService } from "./model/workspaceModelService";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -413,7 +413,9 @@ function makeGraphTab(entity: AutosarEntity | undefined): ModelWorkspaceTab | un
   };
 }
 
-function isRevealModelEntityMessage(message: unknown): message is { type: "revealModelEntity"; entityId: string } {
+function isRevealModelEntityMessage(
+  message: unknown
+): message is Extract<ModelWebviewToHostMessage, { type: "revealModelEntity" }> {
   return (
     Boolean(message) &&
     typeof message === "object" &&
@@ -422,16 +424,27 @@ function isRevealModelEntityMessage(message: unknown): message is { type: "revea
   );
 }
 
-function isBuildGraphMessage(message: unknown): message is {
-  type: "buildGraph";
-  requestId: string;
-  query: Parameters<GraphService["buildGraph"]>[0];
-} {
+function isBuildGraphMessage(
+  message: unknown
+): message is Extract<ModelWebviewToHostMessage, { type: "buildGraph" }> {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+  const candidate = message as { type?: unknown; requestId?: unknown; query?: unknown };
+  if (candidate.type !== "buildGraph" || typeof candidate.requestId !== "string") {
+    return false;
+  }
+  if (!candidate.query || typeof candidate.query !== "object") {
+    return false;
+  }
+  const query = candidate.query as Record<string, unknown>;
   return (
-    Boolean(message) &&
-    typeof message === "object" &&
-    (message as { type?: unknown }).type === "buildGraph" &&
-    typeof (message as { requestId?: unknown }).requestId === "string"
+    (query.scope === "swc" || query.scope === "composition") &&
+    typeof query.depth === "number" &&
+    Number.isFinite(query.depth) &&
+    query.depth >= 0 &&
+    (query.focusId === undefined || typeof query.focusId === "string") &&
+    (query.includeCompositionInternals === undefined || typeof query.includeCompositionInternals === "boolean")
   );
 }
 

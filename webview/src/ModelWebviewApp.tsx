@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AutosarEntity, SwcGraphScope, WorkspaceSnapshot } from "./shared/contracts";
+import type {
+  AutosarEntity,
+  HostToModelWebviewMessage,
+  ModelWebviewInitialState,
+  SwcGraphScope,
+  WorkspaceSnapshot
+} from "../../src/shared/contracts";
 import { ModelPanel } from "./model/ModelPanel";
 import { EditorTabs } from "./tabs/EditorTabs";
 import {
@@ -8,17 +14,11 @@ import {
   type ModelWorkspaceTab
 } from "./tabs/modelWorkspaceTab";
 import { useWorkspaceTabs } from "./tabs/workspaceTabsReducer";
-import { vscode } from "./vscodeApi";
-
-interface InitialState {
-  workspace: WorkspaceSnapshot;
-  focusEntityId?: string;
-  activeWorkspaceTab?: ModelWorkspaceTab;
-}
+import { modelHost } from "./vscodeApi";
 
 declare global {
   interface Window {
-    __AUTOSAR_INITIAL_STATE__: InitialState;
+    __AUTOSAR_INITIAL_STATE__: ModelWebviewInitialState;
   }
 }
 
@@ -52,16 +52,9 @@ export function ModelWebviewApp() {
     tabs.activeTab?.preferredScope ?? modelPreferredScope ?? defaultScope(activeModelFocusEntity);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data as
-        | { type: "focusModel"; focusEntityId?: string; activeWorkspaceTab?: ModelWorkspaceTab }
-        | { type: "workspaceUpdated"; workspace?: WorkspaceSnapshot }
-        | { type: string };
-
+    return modelHost.onMessage((message: HostToModelWebviewMessage) => {
       if (message.type === "workspaceUpdated") {
-        if (message.workspace) {
-          setWorkspace(message.workspace);
-        }
+        setWorkspace(message.workspace);
         return;
       }
 
@@ -82,10 +75,7 @@ export function ModelWebviewApp() {
       setModelPreferredScope(tab.preferredScope ?? defaultScope(targetEntity));
       setModelPreferredNodeId(tab.preferredNodeId);
       tabs.openTab(tab);
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    });
   }, [modelEntities, tabs.openTab]);
 
   function focusModelEntityFromGraph(selection: ModelEntitySelection) {
@@ -108,7 +98,7 @@ export function ModelWebviewApp() {
     setModelFocusEntityId(targetEntity.id);
     setModelPreferredScope(preferredScope);
     setModelPreferredNodeId(selection.preferredNodeId);
-    vscode?.postMessage({ type: "revealModelEntity", entityId: targetEntity.id });
+    modelHost.revealModelEntity(targetEntity.id);
   }
 
   if (!activeModelFocusEntity || !tabs.activeTab) {

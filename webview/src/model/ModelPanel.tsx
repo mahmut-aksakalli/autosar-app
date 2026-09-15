@@ -35,7 +35,7 @@ import type {
   SwcInspectorItem,
   SwcInspectorSectionId,
   ValidationIssue
-} from "../shared/contracts";
+} from "../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
 import { useGraphQuery } from "../graph/useGraphQuery";
 import { layoutSwcGraph, type FlowNode, type FlowNodeData } from "./graphLayout";
@@ -635,7 +635,7 @@ function ModelRunnablesTableSurface(props: {
     key: "runnableName",
     direction: "asc"
   });
-  const rows = useMemo(
+  const rows = useMemo<RunnableTableRow[]>(
     () =>
       runnables.map((runnable) => ({
         runnable,
@@ -901,7 +901,7 @@ function ModelInspectorItemsTableSurface(props: {
     key: columns[0]?.key ?? "label",
     direction: "asc"
   });
-  const rows = useMemo(
+  const rows = useMemo<InspectorTableRow[]>(
     () =>
       items.map((entry) => {
         const metadata = entry.item.metadata ?? {};
@@ -1981,13 +1981,7 @@ function ModelServiceNeedDetailRow(props: { detail: ServiceNeedDisplayDetail }) 
           <select value={detail.value || "-"} disabled>
             <option>{detail.value || "-"}</option>
           </select>
-        ) : !graphResult && requiresGraphData(activeWorkspaceTab.kind) ? (
-          <div className="empty-state">
-            {error ? `Could not load AUTOSAR details: ${error}` : "Loading AUTOSAR details..."}
-          </div>
-        ) : (
-          detail.value
-        )}
+        ) : detail.value}
       </strong>
     </div>
   );
@@ -3520,7 +3514,7 @@ function prettyPrintCompositeValue(value: string) {
   let pendingSpace = false;
 
   for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
+    const char = value[index]!;
     if (char === "{" || char === "[") {
       result = trimTrailingSpaces(result);
       if (result.endsWith(":")) {

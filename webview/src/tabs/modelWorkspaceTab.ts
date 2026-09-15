@@ -1,40 +1,6 @@
-import type { AutosarEntity, SwcGraphScope, SwcInspectorSectionId } from "../shared/contracts";
+import type { AutosarEntity, ModelWorkspaceTab, SwcGraphScope } from "../../../src/shared/contracts";
 
-export interface ModelWorkspaceTab {
-  id: string;
-  title: string;
-  pinned?: boolean;
-  kind:
-    | "graph"
-    | "ports"
-    | "runnables"
-    | "events"
-    | "behavior"
-    | "memory"
-    | "parameters"
-    | "interRunnableVariables"
-    | "perInstanceMemory"
-    | "exclusiveAreas"
-    | "serviceDependencies"
-    | "serviceDependencyGroup"
-    | "port"
-    | "parameter"
-    | "interRunnableVariable"
-    | "perInstanceMemoryItem"
-    | "serviceDependency"
-    | "runnable"
-    | "event"
-    | "entityDetails";
-  focusEntityId: string;
-  preferredScope?: SwcGraphScope;
-  preferredNodeId?: string;
-  includeCompositionInternals?: boolean;
-  entityId?: string;
-  sectionId?: SwcInspectorSectionId;
-  itemId?: string;
-  serviceType?: string;
-  xmlPath?: string;
-}
+export type { ModelWorkspaceTab } from "../../../src/shared/contracts";
 
 export function makeModelTab(
   entity: AutosarEntity,

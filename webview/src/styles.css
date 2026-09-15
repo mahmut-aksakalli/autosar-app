@@ -280,8 +280,7 @@ body.is-resizing-sidebar {
 }
 
 .panel-header,
-.editor-toolbar,
-.editor-tabs {
+.editor-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -293,45 +292,6 @@ body.is-resizing-sidebar {
 .panel-header {
   min-height: 35px;
   background: var(--bg-sidebar);
-}
-
-.editor-tabs {
-  min-height: 35px;
-  justify-content: flex-start;
-  overflow-x: auto;
-  background: #f6f9fc;
-}
-
-.editor-tab {
-  display: flex;
-  align-items: center;
-  min-height: 34px;
-  border-right: 1px solid var(--border-subtle);
-  background: var(--bg-tab);
-  color: var(--text-muted);
-}
-
-.editor-tab.active {
-  background: var(--bg-tab-active);
-  color: #2f3944;
-}
-
-.editor-tab-button,
-.editor-tab-close {
-  min-height: 34px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-
-.editor-tab-button {
-  padding: 0 8px 0 12px;
-}
-
-.editor-tab-close {
-  width: 28px;
-  padding: 0;
-  color: #708295;
 }
 
 .editor-toolbar {
