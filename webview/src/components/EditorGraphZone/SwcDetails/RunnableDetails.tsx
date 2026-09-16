@@ -109,6 +109,8 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
     key: "target",
     direction: "asc"
   });
+  // Older or partially parsed models may only expose access points as names in
+  // metadata. Prefer structured details, but retain those names as a fallback.
   const rows =
     details.length > 0
       ? details
@@ -142,6 +144,8 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
 
     const startX = event.clientX;
     const startWidth = columnWidths[columnIndex] ?? 180;
+    // Window-level listeners keep resizing responsive when the pointer moves
+    // outside the narrow column handle.
     const onPointerMove = (moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX;
       setColumnWidths((currentWidths) =>
@@ -237,6 +241,8 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
     key: "trigger",
     direction: "asc"
   });
+  // Trigger names from metadata are the compatibility fallback when detailed
+  // trigger-event records are unavailable.
   const rows =
     details.length > 0
       ? details
@@ -274,6 +280,7 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
 
     const startX = event.clientX;
     const startWidth = columnWidths[columnIndex] ?? 180;
+    // Track outside the header cell so a fast drag cannot interrupt resizing.
     const onPointerMove = (moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX;
       setColumnWidths((currentWidths) =>

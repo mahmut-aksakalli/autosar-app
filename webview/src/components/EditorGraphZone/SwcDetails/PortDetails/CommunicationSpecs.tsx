@@ -60,6 +60,8 @@ function CommunicationSpecsTable(props: {
   );
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const [tableViewportHeight, setTableViewportHeight] = useState<number>();
+  // Use a value-based key instead of object identity because graph refreshes
+  // replace the row objects even when the selected communication spec remains.
   const selectedRow = rows.find((row) => getCommunicationSpecRowKey(row) === selectedKey) ?? rows[0];
 
   useEffect(() => {
@@ -68,6 +70,8 @@ function CommunicationSpecsTable(props: {
       return;
     }
 
+    // Keep the master-detail table within the visible webview. Resize and
+    // scroll events are collapsed into one measurement per animation frame.
     let frameId = 0;
     const updateHeight = () => {
       window.cancelAnimationFrame(frameId);

@@ -26,6 +26,8 @@ export function RunnablesTable(props: {
     key: "runnableName",
     direction: "asc"
   });
+  // Convert parser-oriented inspector items into stable, display-ready rows.
+  // Search and sorting below can then operate without knowing AUTOSAR metadata keys.
   const rows = useMemo<RunnableTableRow[]>(
     () =>
       runnables.map((runnable) => ({
@@ -164,6 +166,8 @@ export function PortsTable(props: {
     key: "portName",
     direction: "asc"
   });
+  // Resolve presentation labels once instead of repeating reference parsing in
+  // every render branch and table cell.
   const rows = useMemo(
     () =>
       ports.map((port) => ({
@@ -292,6 +296,8 @@ export function DetailsItemsTable(props: {
     key: columns[0]?.key ?? "label",
     direction: "asc"
   });
+  // Detail sections have different metadata columns. Flattening metadata into
+  // the row keeps the generic table implementation independent of each section.
   const rows = useMemo<DetailsTableRow[]>(
     () =>
       items.map((entry) => {

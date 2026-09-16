@@ -56,6 +56,8 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   const [graphScope, setGraphScope] = useState<SwcGraphScope>(() =>
     preferredScope ?? getDefaultGraphScope(focusEntity)
   );
+  // Selection controls the details panel. The active composition node and port
+  // additionally control graph isolation and connection-label navigation.
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
@@ -64,6 +66,8 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   const isCompositionScope = graphScope === "composition";
   const tabRequestsInternals = activeWorkspaceTab?.includeCompositionInternals === true;
   const hasFocusedCompositionNode = Boolean(activeCompositionNodeId);
+  // Composition internals are fetched only when the tab requests them or the
+  // user has navigated into a specific composition instance.
   const includeCompositionInternals =
     isCompositionScope && (tabRequestsInternals || hasFocusedCompositionNode);
   let graphCacheKey: string | undefined;
@@ -122,6 +126,8 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     });
   }
 
+  // Start with the pure layout, then decorate it with view-only state such as
+  // isolated nodes, highlighted ports, and connection navigation callbacks.
   const flowGraph = useMemo(() => {
     if (!graphResult) {
       return { nodes: [], edges: [] };
@@ -190,6 +196,8 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     fitViewOptions = { padding: 0.12, maxZoom: 0.95, minZoom: 0.35 };
   }
 
+  // Centering must run after React Flow measures its custom nodes. Estimated
+  // dimensions keep navigation functional if measurement is delayed.
   useEffect(() => {
     if (!reactFlowRef.current) {
       return;
