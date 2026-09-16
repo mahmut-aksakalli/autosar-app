@@ -1,6 +1,6 @@
-import type { AutosarEntity, ModelWorkspaceTab, SwcGraphScope } from "../../../src/shared/contracts";
+import type { AutosarEntity, ModelWorkspaceTab, SwcGraphScope } from "../../../../src/shared/contracts";
 
-export type { ModelWorkspaceTab } from "../../../src/shared/contracts";
+export type { ModelWorkspaceTab } from "../../../../src/shared/contracts";
 
 export function makeModelTab(
   entity: AutosarEntity,

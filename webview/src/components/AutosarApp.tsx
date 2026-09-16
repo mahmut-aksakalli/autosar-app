@@ -5,16 +5,16 @@ import type {
   ModelWebviewInitialState,
   SwcGraphScope,
   WorkspaceSnapshot
-} from "../../src/shared/contracts";
-import { ModelPanel } from "./model/ModelPanel";
+} from "../../../src/shared/contracts";
+import { EditorGraphZone } from "./EditorGraphZone/EditorGraphZone";
 import { EditorTabs } from "./tabs/EditorTabs";
 import {
   makeDefaultModelGraphTab,
   makeModelTab,
   type ModelWorkspaceTab
-} from "./tabs/modelWorkspaceTab";
-import { useWorkspaceTabs } from "./tabs/workspaceTabsReducer";
-import { modelHost } from "./vscodeApi";
+} from "./tabs/workspaceTab";
+import { useWorkspaceTabs } from "./tabs/workspaceTabsHelper";
+import { modelHost } from "../vscodeApi";
 
 declare global {
   interface Window {
@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-export function ModelWebviewApp() {
+export function AutosarApp() {
   const initialState = window.__AUTOSAR_INITIAL_STATE__;
   const [workspace, setWorkspace] = useState(initialState.workspace);
   const modelEntities = useMemo(() => getModelEntities(workspace), [workspace]);
@@ -120,7 +120,7 @@ export function ModelWebviewApp() {
         onClose={tabs.closeTab}
       />
       <div className="editor-view">
-        <ModelPanel
+        <EditorGraphZone
           focusEntity={activeModelFocusEntity}
           workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}

@@ -7,9 +7,9 @@ import {
   type Node
 } from "@xyflow/react";
 import type { CSSProperties, ReactNode } from "react";
-import type { AutosarEntity, SwcGraphScope } from "../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
-import { useGraphQuery } from "../graph/useGraphQuery";
+import type { AutosarEntity, SwcGraphScope } from "../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
+import { useGraphQuery } from "../AutosarSwc/AutosarSwcHelper";
 import {
   AutosarFlowNode,
   buildPortConnectionLabels,
@@ -23,13 +23,13 @@ import {
   noopNodesChange,
   resolveFallbackInspector,
   resolveInitialSelection
-} from "../graph/GraphPresentation";
-import { ModelSemanticTab } from "../inspector/ModelSemanticTab";
-import { layoutSwcGraph } from "./graphLayout";
+} from "../AutosarSwc/AutosarSwc";
+import { ModelSemanticTab } from "../details/ModelSemanticTab";
+import { layoutSwcGraph } from "../AutosarSwc/AutosarSwcLayout";
 
 const GRAPH_FOCUS_RETRY_COUNT = 8;
 
-interface ModelPanelProps {
+interface EditorGraphZoneProps {
   focusEntity?: AutosarEntity;
   workspaceRevision?: string;
   preferredScope?: SwcGraphScope;
@@ -45,7 +45,7 @@ interface ModelPanelProps {
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
 
-export function ModelPanel(props: ModelPanelProps) {
+export function EditorGraphZone(props: EditorGraphZoneProps) {
   const {
     focusEntity,
     workspaceRevision,

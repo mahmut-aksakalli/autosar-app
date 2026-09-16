@@ -2,11 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@xyflow/react/dist/style.css";
 import "./styles.css";
-import "./tabs/tabs.css";
-import { ModelWebviewApp } from "./ModelWebviewApp";
+import "./components/tabs/tabs.css";
+import { AutosarApp } from "./components/AutosarApp";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ModelWebviewApp />
+    <AutosarApp />
   </React.StrictMode>
 );

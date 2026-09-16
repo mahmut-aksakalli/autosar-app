@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import type { SwcGraphPort, SwcInspectorItem } from "../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
+import type { SwcGraphPort, SwcInspectorItem } from "../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
 import {
   comparePortRows,
   compareRunnableRows,

@@ -5,7 +5,7 @@ import type {
   RunnableActivationReasonDetail,
   RunnableTriggerEventDetail,
   SwcInspectorItem
-} from "../../../src/shared/contracts";
+} from "../../../../src/shared/contracts";
 import {
   compareAccessPointRows,
   compareTriggerEventRows,

@@ -1,6 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { CSSProperties } from "react";
-import type { SwcGraphEdge, SwcGraphNode, SwcGraphPort, SwcGraphResult } from "../../../src/shared/contracts";
+import type { SwcGraphEdge, SwcGraphNode, SwcGraphPort, SwcGraphResult } from "../../../../src/shared/contracts";
 
 export interface FlowNodeData extends Record<string, unknown> {
   label: string;

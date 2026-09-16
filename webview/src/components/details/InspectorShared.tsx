@@ -18,8 +18,8 @@ import type {
   SwcInspectorData,
   SwcInspectorItem,
   SwcInspectorSectionId
-} from "../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../tabs/modelWorkspaceTab";
+} from "../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
 
 export type SortDirection = "asc" | "desc";
 export type RunnableTableColumnKey = "swcName" | "runnableName" | "runnableSymbol" | "period";

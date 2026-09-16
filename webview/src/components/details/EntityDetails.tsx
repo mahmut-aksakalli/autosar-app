@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../src/shared/contracts";
+import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../src/shared/contracts";
 import {
   compareTableText,
   formatAutosarTagText,

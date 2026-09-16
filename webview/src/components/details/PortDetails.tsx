@@ -5,7 +5,7 @@ import type {
   PortDefinedArgumentValueDetail,
   PortInterfaceKind,
   SwcGraphPort
-} from "../../../src/shared/contracts";
+} from "../../../../src/shared/contracts";
 import {
   formatBooleanMetadata,
   formatHandleInvalidOption,

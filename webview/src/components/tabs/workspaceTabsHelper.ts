@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer } from "react";
-import type { ModelWorkspaceTab } from "./modelWorkspaceTab";
+import type { ModelWorkspaceTab } from "./workspaceTab";
 
 interface WorkspaceTabsState {
   tabs: ModelWorkspaceTab[];

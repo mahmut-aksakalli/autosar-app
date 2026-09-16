@@ -4,7 +4,7 @@ import type {
   ServiceAssignedPortDetail,
   ServiceNeedField,
   SwcInspectorItem
-} from "../../../src/shared/contracts";
+} from "../../../../src/shared/contracts";
 import {
   formatInterRunnableCommunicationOption,
   formatInitValueTypeOption,

@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { workspaceTabsReducer } = require("../webview/src/tabs/workspaceTabsReducer.ts");
+const { workspaceTabsReducer } = require("../webview/src/components/tabs/workspaceTabsHelper.ts");
 
 function tab(id, pinned = false) {
   return { id, title: id, kind: "graph", focusEntityId: id, pinned };

@@ -5,8 +5,8 @@ import type {
   SwcGraphNode,
   SwcGraphResult,
   SwcGraphScope
-} from "../../../src/shared/contracts";
-import type { FlowNode, FlowNodeData } from "../model/graphLayout";
+} from "../../../../src/shared/contracts";
+import type { FlowNode, FlowNodeData } from "./AutosarSwcLayout";
 
 const PORT_WIDTH = 170;
 const CONNECTION_LABEL_ANCHOR_OFFSET = 220;
