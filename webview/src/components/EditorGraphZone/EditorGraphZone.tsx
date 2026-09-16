@@ -1,32 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./EditorGraphZone.css";
-import {
-  Background,
-  Controls,
-  ReactFlow,
-  ReactFlowProvider,
-  type Node
-} from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import type { CSSProperties, ReactNode } from "react";
 import type { AutosarEntity, SwcGraphScope } from "../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../EditorTabs/EditorTabs";
-import { useGraphQuery } from "./AutosarSwc/AutosarSwcHelper";
 import {
-  AutosarFlowNode,
+  createGraphCacheKey,
+  findFallbackInspector,
+  findInitialNodeId,
+  useAutosarSwcGraph
+} from "./AutosarSwc/AutosarSwcHelper";
+import {
+  AutosarSwc,
+  type AutosarSwcController
+} from "./AutosarSwc/AutosarSwc";
+import {
   buildPortConnectionLabels,
   getEstimatedFlowNodeHeight,
   getEstimatedFlowNodeWidth,
   getFocusedNodeBounds,
   getFocusedNodeZoom,
   getIsolatedRailWidth,
-  makeGraphCacheKey,
-  noopEdgesChange,
-  noopNodesChange,
-  resolveFallbackInspector,
-  resolveInitialSelection
-} from "./AutosarSwc/AutosarSwc";
+  layoutSwcGraph
+} from "./AutosarSwc/AutosarSwcLayout";
 import { SwcDetails } from "./SwcDetails/SwcDetails";
-import { layoutSwcGraph } from "./AutosarSwc/AutosarSwcLayout";
 
 const GRAPH_FOCUS_RETRY_COUNT = 8;
 
@@ -63,14 +60,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
   const flowCanvasRef = useRef<HTMLDivElement>(null);
-  const reactFlowRef = useRef<{
-    getNode: (id: string) => {
-      positionAbsolute?: { x: number; y: number };
-      width?: number;
-      height?: number;
-    } | undefined;
-    setCenter: (x: number, y: number, options?: { zoom?: number; duration?: number }) => unknown;
-  } | null>(null);
+  const reactFlowRef = useRef<AutosarSwcController | null>(null);
   const isCompositionScope = graphScope === "composition";
   const tabRequestsInternals = activeWorkspaceTab?.includeCompositionInternals === true;
   const hasFocusedCompositionNode = Boolean(activeCompositionNodeId);
@@ -79,7 +69,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   let graphCacheKey: string | undefined;
   if (focusEntity) {
     const focusId = focusEntity.semanticPath ?? focusEntity.id;
-    graphCacheKey = makeGraphCacheKey(
+    graphCacheKey = createGraphCacheKey(
       workspaceRevision,
       graphScope,
       focusId,
@@ -90,7 +80,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   const isGraphSupportedForEntity = focusEntity?.type === "swc" || focusEntity?.type === "composition";
   const isEntityDetailsTab = activeWorkspaceTab?.kind === "entityDetails";
   const shouldLoadGraph = Boolean(focusEntity) && isGraphSupportedForEntity && !isEntityDetailsTab;
-  const { graphResult, loading, error } = useGraphQuery({
+  const { graphResult, loading, error } = useAutosarSwcGraph({
     focusEntity,
     workspaceRevision,
     scope: graphScope,
@@ -119,12 +109,12 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     if (!graphResult) {
       return;
     }
-    setSelectedNodeId(resolveInitialSelection(graphResult, activeCompositionNodeId, preferredNodeId));
+    setSelectedNodeId(findInitialNodeId(graphResult, activeCompositionNodeId, preferredNodeId));
   }, [graphResult]);
 
   const graphNodes = graphResult?.nodes ?? [];
   const selectedGraphNode = graphNodes.find((node) => node.id === selectedNodeId);
-  const inspector = selectedGraphNode?.inspector ?? resolveFallbackInspector(graphResult, focusEntity);
+  const inspector = selectedGraphNode?.inspector ?? findFallbackInspector(graphResult, focusEntity);
   let shouldIsolateCompositionNode = false;
   if (graphResult?.scope === "composition" && activeCompositionNodeId && preferredNodeId) {
     shouldIsolateCompositionNode = graphResult.nodes.some((node) => {
@@ -267,12 +257,6 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     };
   }, [activeCompositionNodeId, activeCompositionPortId, flowGraph.nodes, graphResult, shouldIsolateCompositionNode]);
 
-  const nodeTypes = useMemo(
-    () => ({
-      autosarNode: AutosarFlowNode
-    }),
-    []
-  );
   let flowCanvasKey = "empty";
   if (graphResult) {
     flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${preferredNodeId ?? ""}`;
@@ -323,71 +307,27 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     });
   }
 
-  const warnings = graphResult?.warnings ?? [];
-
-  function renderGraphBody(): ReactNode {
-    if (error) {
-      return <div className="empty-state">Could not build the model graph: {error}</div>;
-    }
-
-    if (loading) {
-      return <div className="empty-state">Building AUTOSAR graph…</div>;
-    }
-
-    if (!graphResult || graphResult.nodes.length === 0) {
-      return <div className="empty-state">Select an SWC or composition to visualize it.</div>;
-    }
-
-    return (
-      <ReactFlowProvider>
-        <ReactFlow
-          key={flowCanvasKey}
-          nodes={flowGraph.nodes}
-          edges={flowGraph.edges}
-          nodeTypes={nodeTypes}
-          onInit={(instance) => {
-            reactFlowRef.current = {
-              getNode: (id) => instance.getNode(id) as {
-                positionAbsolute?: { x: number; y: number };
-                width?: number;
-                height?: number;
-              } | undefined,
-              setCenter: (x, y, options) => instance.setCenter(x, y, options)
-            };
-          }}
-          fitView
-          fitViewOptions={fitViewOptions}
-          minZoom={0.35}
-          maxZoom={1.5}
-          zoomOnDoubleClick={false}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable
-          onNodeClick={handleNodeClick}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onNodesChange={noopNodesChange}
-          onEdgesChange={noopEdgesChange}
-        >
-          <Background color="#d7e2ef" gap={20} />
-          <Controls showInteractive={false} />
-        </ReactFlow>
-      </ReactFlowProvider>
-    );
-  }
-
   let activeContent: ReactNode;
   if (!activeWorkspaceTab) {
     activeContent = <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>;
   } else if (activeWorkspaceTab.kind === "graph") {
     activeContent = (
-      <div className="model-canvas-shell" ref={flowCanvasRef}>
-        {warnings.length > 0 && (
-          <div className="model-warning-strip">
-            {warnings.map((warning) => warning.message).join(" ")}
-          </div>
-        )}
-        {renderGraphBody()}
-      </div>
+      <AutosarSwc
+        canvasRef={flowCanvasRef}
+        canvasKey={flowCanvasKey}
+        nodes={flowGraph.nodes}
+        edges={flowGraph.edges}
+        graphResult={graphResult}
+        loading={loading}
+        error={error}
+        warnings={graphResult?.warnings ?? []}
+        fitViewOptions={fitViewOptions}
+        onInit={(controller) => {
+          reactFlowRef.current = controller;
+        }}
+        onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
+      />
     );
   } else {
     activeContent = (

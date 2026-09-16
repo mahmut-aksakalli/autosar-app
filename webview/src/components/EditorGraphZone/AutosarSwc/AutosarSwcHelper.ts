@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AutosarEntity, SwcGraphResult, SwcGraphScope } from "../../../../../src/shared/contracts";
 import { modelHost } from "../../../vscodeApi";
 
-interface UseGraphQueryOptions {
+interface UseAutosarSwcGraphOptions {
   focusEntity?: AutosarEntity;
   workspaceRevision?: string;
   scope: SwcGraphScope;
@@ -11,14 +11,14 @@ interface UseGraphQueryOptions {
   enabled: boolean;
 }
 
-export function useGraphQuery({
+export function useAutosarSwcGraph({
   focusEntity,
   workspaceRevision,
   scope,
   includeCompositionInternals,
   cacheKey,
   enabled
-}: UseGraphQueryOptions) {
+}: UseAutosarSwcGraphOptions) {
   const cacheRef = useRef(new Map<string, SwcGraphResult>());
   const [cacheVersion, setCacheVersion] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -92,4 +92,73 @@ export function useGraphQuery({
   }, [cacheKey, enabled, focusEntity, includeCompositionInternals, scope, cacheVersion]);
 
   return { graphResult, loading, error };
+}
+
+export function findInitialNodeId(
+  graph: SwcGraphResult,
+  activeCompositionNodeId: string | undefined,
+  preferredNodeId: string | undefined
+) {
+  if (activeCompositionNodeId && graph.nodes.some((node) => node.id === activeCompositionNodeId)) {
+    return activeCompositionNodeId;
+  }
+  if (preferredNodeId && graph.nodes.some((node) => node.id === preferredNodeId)) {
+    return preferredNodeId;
+  }
+
+  // Composition graphs should initially select their boundary. SWC graphs
+  // should select the first inspectable SWC. The explicit fallbacks make the
+  // priority order visible and also support incomplete models.
+  if (graph.scope === "composition") {
+    const compositionNode = graph.nodes.find((node) => node.kind === "composition");
+    if (compositionNode) {
+      return compositionNode.id;
+    }
+
+    const inspectableInstance = graph.nodes.find(
+      (node) => node.kind === "instance" && node.inspector
+    );
+    if (inspectableInstance) {
+      return inspectableInstance.id;
+    }
+  } else {
+    const inspectableSwc = graph.nodes.find(
+      (node) => node.kind === "swc" && node.inspector
+    );
+    if (inspectableSwc) {
+      return inspectableSwc.id;
+    }
+  }
+
+  const inspectableNode = graph.nodes.find((node) => node.inspector);
+  if (inspectableNode) {
+    return inspectableNode.id;
+  }
+
+  return graph.nodes[0]?.id;
+}
+
+export function createGraphCacheKey(
+  workspaceRevision: string | undefined,
+  scope: SwcGraphScope,
+  focusId: string,
+  includeCompositionInternals: boolean
+) {
+  const revision = workspaceRevision ?? "workspace";
+  let detailLevel = "surface";
+  if (includeCompositionInternals) {
+    detailLevel = "internals";
+  }
+
+  return `${revision}:${scope}:${detailLevel}:${focusId}`;
+}
+
+export function findFallbackInspector(
+  graphResult: SwcGraphResult | undefined,
+  focusEntity: AutosarEntity | undefined
+) {
+  if (!graphResult) {
+    return focusEntity?.inspector;
+  }
+  return graphResult.nodes.find((node) => node.inspector)?.inspector ?? focusEntity?.inspector;
 }

@@ -1,6 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { CSSProperties } from "react";
-import type { SwcGraphEdge, SwcGraphNode, SwcGraphPort, SwcGraphResult } from "../../../../../src/shared/contracts";
+import type { SwcGraphNode, SwcGraphPort, SwcGraphResult } from "../../../../../src/shared/contracts";
 
 export interface FlowNodeData extends Record<string, unknown> {
   label: string;
@@ -25,6 +25,7 @@ export interface FlowNodeData extends Record<string, unknown> {
 
 export type FlowNode = Node<FlowNodeData>;
 
+const PORT_WIDTH = 170;
 const INSTANCE_TOP_Y = 80;
 const INSTANCE_X = 120;
 const INSTANCE_ROW_GAP = 140;
@@ -196,7 +197,7 @@ function getNodeRailWidth(ports: SwcGraphNode["ports"]) {
   return getPortRailWidth(ports);
 }
 
-function getPortRailWidth(ports: SwcGraphPort[]) {
+export function getPortRailWidth(ports: SwcGraphPort[]) {
   const longestLabelLength = ports.reduce((max, port) => Math.max(max, port.label.length), 0);
   const estimatedTextWidth = longestLabelLength * 8;
   return Math.max(170, Math.min(320, estimatedTextWidth + 54));
@@ -276,7 +277,7 @@ function estimateConnectionListWidth(
   }, 0);
 }
 
-function buildPortConnectionLabels(
+export function buildPortConnectionLabels(
   graph: SwcGraphResult
 ): Record<string, NonNullable<FlowNodeData["portConnections"]>> {
   const labelsByNode: Record<string, NonNullable<FlowNodeData["portConnections"]>> = {};
@@ -316,27 +317,127 @@ function buildPortConnectionLabels(
   return labelsByNode;
 }
 
-export function getInspectableMetadata(node: SwcGraphNode | undefined, edge: SwcGraphEdge | undefined) {
-  if (node) {
-    return [
-      ["Kind", node.kind],
-      ["Semantic Path", node.semanticPath ?? "-"],
-      ["XML Path", node.xmlPath ?? "-"],
-      ["File", node.filePath],
-      ["Ports", String(node.ports.length)],
-      ...Object.entries(node.metadata ?? {})
-    ];
+export function getIsolatedRailWidth(
+  node: FlowNode,
+  portConnectionMap: NonNullable<FlowNodeData["portConnections"]> | undefined,
+  side: "left" | "right"
+) {
+  const ports = node.data.ports.filter((port) =>
+    side === "left" ? port.direction === "required" : port.direction !== "required"
+  );
+  const baseRailWidth = getPortRailWidth(ports);
+  let connectionExtension = 0;
+
+  for (const port of ports) {
+    const connections = portConnectionMap?.[port.id];
+    if (!connections || connections.length === 0) {
+      continue;
+    }
+
+    connectionExtension = Math.max(
+      connectionExtension,
+      CONNECTION_LABEL_ANCHOR_OFFSET + CONNECTION_LABEL_STEM_WIDTH + estimateConnectionListWidth(connections)
+    );
   }
 
-  if (edge) {
-    return [
-      ["Kind", edge.kind],
-      ["Label", edge.label],
-      ["File", edge.filePath],
-      ["XML Path", edge.xmlPath ?? "-"],
-      ["Warning", edge.warning ?? "-"]
-    ];
+  return Math.max(baseRailWidth, PORT_WIDTH + connectionExtension);
+}
+
+export function getEstimatedFlowNodeWidth(node: FlowNode) {
+  const requiredPorts = node.data.ports.filter((port) => port.direction === "required");
+  const providedPorts = node.data.ports.filter(
+    (port) => port.direction === "provided" || port.direction === "provided-required"
+  );
+  const style = (node.style ?? {}) as Record<string, string | number | undefined>;
+  const leftRailWidth = readPixelStyleValue(style["--autosar-left-rail-width"]) ?? getPortRailWidth(requiredPorts);
+  const rightRailWidth = readPixelStyleValue(style["--autosar-right-rail-width"]) ?? getPortRailWidth(providedPorts);
+  const bodyWidth = readPixelStyleValue(style["--autosar-body-width"]) ?? DEFAULT_BODY_WIDTH;
+
+  return leftRailWidth + bodyWidth + rightRailWidth;
+}
+
+export function getEstimatedFlowNodeHeight(node: FlowNode) {
+  const style = (node.style ?? {}) as Record<string, string | number | undefined>;
+  const styleHeight = readPixelStyleValue(style["--autosar-node-min-height"]);
+  if (styleHeight) {
+    return styleHeight;
   }
 
-  return [];
+  const leftPorts = node.data.ports.filter((port) => port.direction === "required").length;
+  const rightPorts = node.data.ports.filter((port) => port.direction !== "required").length;
+  const tallestRailCount = Math.max(leftPorts, rightPorts, 1);
+  return Math.max(
+    INSTANCE_BASE_HEIGHT,
+    INSTANCE_PORT_MARGIN * 2 + (tallestRailCount - 1) * INSTANCE_PORT_SPACING + 48
+  );
+}
+
+export function getFocusedNodeBounds(
+  node: FlowNode,
+  position: { x: number; y: number },
+  width: number,
+  height: number,
+  highlightedPortId: string | undefined
+) {
+  const highlightedPort = highlightedPortId
+    ? node.data.ports.find((port) => port.id === highlightedPortId)
+    : undefined;
+  const highlightedConnections = highlightedPort ? node.data.portConnections?.[highlightedPort.id] : undefined;
+  const visualExtension = highlightedConnections
+    ? CONNECTION_LABEL_ANCHOR_OFFSET + CONNECTION_LABEL_STEM_WIDTH + estimateConnectionListWidth(highlightedConnections)
+    : 0;
+  const sidePadding = visualExtension > 0 ? Math.min(visualExtension, 520) : 0;
+  const verticalPadding = highlightedPort ? 80 : 40;
+
+  if (highlightedPort?.direction === "required") {
+    return {
+      x: position.x - sidePadding,
+      y: position.y - verticalPadding,
+      width: width + sidePadding + 48,
+      height: height + verticalPadding * 2
+    };
+  }
+
+  if (highlightedPort) {
+    return {
+      x: position.x - 48,
+      y: position.y - verticalPadding,
+      width: width + sidePadding + 48,
+      height: height + verticalPadding * 2
+    };
+  }
+
+  return {
+    x: position.x - 40,
+    y: position.y - 40,
+    width: width + 80,
+    height: height + 80
+  };
+}
+
+export function getFocusedNodeZoom(
+  bounds: { width: number; height: number },
+  canvasRect: DOMRect | undefined,
+  shouldIsolateCompositionNode: boolean
+) {
+  const maxZoom = shouldIsolateCompositionNode ? 0.72 : 0.82;
+  const minZoom = 0.35;
+  if (!canvasRect || canvasRect.width <= 0 || canvasRect.height <= 0) {
+    return maxZoom;
+  }
+
+  const horizontalZoom = (canvasRect.width * 0.86) / bounds.width;
+  const verticalZoom = (canvasRect.height * 0.82) / bounds.height;
+  return Math.max(minZoom, Math.min(maxZoom, horizontalZoom, verticalZoom));
+}
+
+function readPixelStyleValue(value: string | number | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

@@ -1,0 +1,414 @@
+.autosar-node {
+  min-width: 360px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.autosar-node-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px 4px;
+  text-align: left;
+}
+
+.autosar-node-header strong {
+  color: #8a1f1f;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+.autosar-node-subtitle,
+.autosar-node-warning {
+  padding: 0 14px 12px;
+  font-size: 10px;
+  word-break: break-word;
+  text-align: left;
+}
+
+.autosar-node-subtitle {
+  color: #c38d80;
+}
+
+.autosar-node-warning {
+  color: #8b3526;
+}
+
+.autosar-node-badges {
+  display: flex;
+  gap: 8px;
+  padding: 0;
+}
+
+.autosar-node-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 10px;
+  border: 1px solid rgba(138, 31, 31, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 253, 246, 0.92);
+  color: #8a1f1f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.autosar-family-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid currentColor;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.autosar-symbol {
+  display: grid;
+  grid-template-columns:
+    var(--autosar-left-rail-width, var(--autosar-rail-width, 170px))
+    minmax(340px, var(--autosar-body-width, 430px))
+    var(--autosar-right-rail-width, var(--autosar-rail-width, 170px));
+  width: calc(
+    var(--autosar-left-rail-width, var(--autosar-rail-width, 170px)) +
+    var(--autosar-body-width, 430px) +
+    var(--autosar-right-rail-width, var(--autosar-rail-width, 170px))
+  );
+  min-width: calc(
+    var(--autosar-left-rail-width, var(--autosar-rail-width, 170px)) +
+    var(--autosar-body-width, 430px) +
+    var(--autosar-right-rail-width, var(--autosar-rail-width, 170px))
+  );
+  align-items: stretch;
+  min-height: var(--autosar-node-min-height, 240px);
+  overflow: visible;
+}
+
+.autosar-symbol-rail {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  z-index: 2;
+}
+
+.autosar-symbol-rail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #a13131;
+}
+
+.autosar-symbol-rail-left::before {
+  right: -1px;
+}
+
+.autosar-symbol-rail-right::before {
+  left: -1px;
+}
+
+.autosar-symbol-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
+  border: 2px solid #a13131;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.autosar-node-composition .autosar-symbol-body {
+  border-width: 2px;
+  outline: 1px solid rgba(161, 49, 49, 0.4);
+  outline-offset: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 244, 0.98) 0%, rgba(248, 242, 227, 0.98) 100%);
+}
+
+.autosar-node-composition .autosar-symbol {
+  filter: drop-shadow(0 10px 20px rgba(138, 31, 31, 0.08));
+}
+
+.autosar-node-composition .autosar-symbol-body::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border: 1px dashed rgba(161, 49, 49, 0.22);
+  pointer-events: none;
+}
+
+.autosar-port-symbol {
+  min-width: 220px;
+  border: 2px solid #a13131;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.autosar-node-header-port {
+  justify-content: center;
+  text-align: center;
+}
+
+.autosar-port-list {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  align-content: start;
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+
+.autosar-port-list.compact {
+  padding: 10px 14px 14px;
+}
+
+.autosar-port-list.side-left {
+  justify-items: end;
+  padding-right: 0;
+}
+
+.autosar-port-list.side-right {
+  justify-items: start;
+  padding-left: 0;
+}
+
+.autosar-port-list.side-center {
+  justify-items: center;
+  padding: 0 18px 18px;
+}
+
+.autosar-port {
+  position: relative;
+  display: block;
+  width: 170px;
+  min-height: 58px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.autosar-port:hover:not(:disabled) {
+  background: transparent;
+}
+
+.autosar-port:active,
+.autosar-port:focus,
+.autosar-port:focus-visible {
+  background: transparent;
+  outline: none;
+}
+
+.autosar-port.side-right {
+  text-align: right;
+}
+
+.autosar-port.side-center {
+  width: 220px;
+  text-align: center;
+}
+
+.autosar-port-symbol-mark {
+  position: absolute;
+  top: 22px;
+  width: 42px;
+  height: 42px;
+  z-index: 1;
+  border: 1.5px solid #a13131;
+  background: #ffffff;
+  padding: 4px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.autosar-port-symbol-mark.side-left {
+  right: -21px;
+}
+
+.autosar-port-symbol-mark.side-right {
+  left: -21px;
+}
+
+.autosar-port-symbol-mark.side-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.autosar-port-symbol-mark path {
+  fill: none;
+  stroke: #1f1f1f;
+  stroke-width: 1.7;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.autosar-port-symbol-mark circle {
+  fill: none;
+  stroke: #1f1f1f;
+  stroke-width: 1.7;
+}
+
+.autosar-pin-line {
+  position: absolute;
+  top: 42px;
+  height: 0;
+  border-top: 1.5px solid #a13131;
+}
+
+.autosar-port.side-left .autosar-pin-line {
+  left: 0;
+  right: 21px;
+}
+
+.autosar-port.side-right .autosar-pin-line {
+  left: 21px;
+  right: 0;
+}
+
+.autosar-port.side-center .autosar-pin-line {
+  left: 21px;
+  right: 21px;
+}
+
+.autosar-port-text {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 2px;
+  min-height: 24px;
+  padding: 0;
+  width: max-content;
+  max-width: none;
+  text-align: left;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.autosar-port-text strong {
+  font-size: 11px;
+  font-weight: 400;
+  color: #8a1f1f;
+  line-height: 1.15;
+  padding-top: 20px;
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+.autosar-port.side-left .autosar-port-text {
+  right: 48px;
+  justify-items: end;
+  text-align: right;
+}
+
+.autosar-port.side-right .autosar-port-text {
+  left: 48px;
+  justify-items: start;
+  text-align: left;
+}
+
+.autosar-port.side-center .autosar-port-text {
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(220px, 100%);
+  justify-items: center;
+  text-align: center;
+}
+
+.autosar-port-text span,
+.autosar-node-empty {
+  color: #5b6e80;
+  font-size: 10px;
+  word-break: break-word;
+}
+
+.autosar-port-connection-list {
+  position: absolute;
+  top: 42px;
+  left: 220px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  transform: translateY(-50%);
+}
+
+.autosar-port-connection-list::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 100px;
+  border-top: 1px solid #a13131;
+  transform: translateY(-50%);
+}
+
+.autosar-port-connection-label {
+  display: inline-flex;
+  align-items: stretch;
+  margin: 0;
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  white-space: nowrap;
+}
+
+.autosar-port.side-left .autosar-port-connection-list {
+  left: auto;
+  right: 220px;
+  align-items: flex-end;
+}
+
+.autosar-port.side-left .autosar-port-connection-list::before {
+  right: auto;
+  left: 100%;
+}
+
+.autosar-port-connection-component,
+.autosar-port-connection-port {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 12px;
+  border: 1px solid #a13131;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  box-sizing: border-box;
+}
+
+.autosar-port-connection-component {
+  background: #9d0404;
+  color: #fffdf6;
+}
+
+.autosar-port-connection-label.is-highlighted-target .autosar-port-connection-component {
+  background: #2f8f58;
+}
+
+.autosar-port-connection-label:hover .autosar-port-connection-component {
+  background: #c01818;
+}
+
+.autosar-port-connection-port {
+  margin-left: -1px;
+  background: #fffdf6;
+  color: #8a1f1f;
+}
+
+.autosar-port-text .autosar-port-connection-component {
+  color: #fffdf6;
+}
+
+.autosar-port-text .autosar-port-connection-port {
+  color: #8a1f1f;
+}
+
+.autosar-node-empty {
+  padding: 12px;
+  text-align: center;
+}
