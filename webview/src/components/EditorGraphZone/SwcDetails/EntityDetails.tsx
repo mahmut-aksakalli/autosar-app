@@ -8,8 +8,11 @@ import {
   readBooleanMetadata
 } from "./DetailsFormatters";
 import { InitValueDisplay } from "./InitValueDisplay";
-import { InterfaceDataElementsSection, InterfaceOperationsSection } from "./InterfaceDetails/InterfaceDetails";
-import { buildInterfaceDetailTables } from "./InterfaceDetails/InterfaceDetailsHelper";
+import {
+  PortInterfaceDataElements,
+  PortInterfaceOperations
+} from "./PortInterfaceDetails/PortInterfaceDetails";
+import { buildPortInterfaceDetailTables } from "./PortInterfaceDetails/PortInterfaceDetailsHelper";
 
 export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
   const { title, entity } = props;
@@ -19,7 +22,7 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
     ? entity.details?.interfaceMembers ?? []
     : [];
   const interfaceTables = entity.type === "interface"
-    ? buildInterfaceDetailTables(entity, interfaceMembers)
+    ? buildPortInterfaceDetailTables(entity, interfaceMembers)
     : [];
   const interfaceType = details.fields.find((field) => field.label === "Interface Type")?.value ?? "-";
   const isService = details.fields.find((field) => field.label === "Is Service")?.value ?? "false";
@@ -68,10 +71,10 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
           ))}
         </div>
         {entity.type === "interface" && entity.interfaceKind === "sender-receiver" ? (
-          <InterfaceDataElementsSection members={interfaceMembers} />
+          <PortInterfaceDataElements members={interfaceMembers} />
         ) : null}
         {entity.type === "interface" && entity.interfaceKind === "client-server" ? (
-          <InterfaceOperationsSection members={interfaceMembers} />
+          <PortInterfaceOperations members={interfaceMembers} />
         ) : null}
         {[...details.tables, ...interfaceTables].map((table) => (
           <EntityDetailTable key={table.title} table={table} />

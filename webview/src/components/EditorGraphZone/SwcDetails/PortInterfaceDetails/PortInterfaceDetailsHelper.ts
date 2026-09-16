@@ -2,7 +2,10 @@ import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "
 import { compareTableText } from "../DetailsTable";
 import { formatCalibrationAccess, formatInitValueTypeOption } from "../DetailsFormatters";
 
-export function buildInterfaceDetailTables(entity: AutosarEntity, members: InterfaceDetailMember[]): EntityDetailPayload["tables"] {
+export function buildPortInterfaceDetailTables(
+  entity: AutosarEntity,
+  members: InterfaceDetailMember[]
+): EntityDetailPayload["tables"] {
   const metadata = (member: InterfaceDetailMember) => member.metadata ?? {};
   if (entity.interfaceKind === "sender-receiver") {
     return [];

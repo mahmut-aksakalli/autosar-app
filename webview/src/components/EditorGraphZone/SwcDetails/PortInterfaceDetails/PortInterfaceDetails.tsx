@@ -11,9 +11,9 @@ import {
   readBooleanMetadata,
   splitMetadataList
 } from "../DetailsFormatters";
-import { compareAutosarErrorCodes } from "./InterfaceDetailsHelper";
+import { compareAutosarErrorCodes } from "./PortInterfaceDetailsHelper";
 
-export function InterfaceDataElementsSection(props: { members: InterfaceDetailMember[] }) {
+export function PortInterfaceDataElements(props: { members: InterfaceDetailMember[] }) {
   const dataElements = props.members.filter((member) => member.kind === "dataElement");
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
     dataElements[0]?.semanticPath ?? dataElements[0]?.label
@@ -93,7 +93,7 @@ export function InterfaceDataElementsSection(props: { members: InterfaceDetailMe
                   <span>Data Element</span>
                   <strong title={selectedElement.semanticPath}>{selectedElement.label}</strong>
                 </div>
-                <InterfaceDataElementDetails member={selectedElement} />
+                <PortInterfaceDataElementDetails member={selectedElement} />
               </>
             ) : <div className="model-list-empty">Select a data element.</div>}
           </aside>
@@ -103,7 +103,7 @@ export function InterfaceDataElementsSection(props: { members: InterfaceDetailMe
   );
 }
 
-function InterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
+function PortInterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
   const metadata = props.member.metadata ?? {};
   return (
     <div className="model-communication-spec-details">
@@ -139,7 +139,7 @@ function InterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
   );
 }
 
-export function InterfaceOperationsSection(props: { members: InterfaceDetailMember[] }) {
+export function PortInterfaceOperations(props: { members: InterfaceDetailMember[] }) {
   const operations = props.members.filter((member) => member.kind === "operation");
   const applicationErrors = props.members
     .filter((member) => member.kind === "applicationError")
@@ -224,7 +224,7 @@ export function InterfaceOperationsSection(props: { members: InterfaceDetailMemb
                   <span>Operation</span>
                   <strong title={selectedOperation.semanticPath}>{selectedOperation.label}</strong>
                 </div>
-                <InterfaceOperationDetails operation={selectedOperation} applicationErrors={applicationErrors} />
+                <PortInterfaceOperationDetails operation={selectedOperation} applicationErrors={applicationErrors} />
               </>
             ) : <div className="model-list-empty">Select an operation.</div>}
           </aside>
@@ -234,7 +234,7 @@ export function InterfaceOperationsSection(props: { members: InterfaceDetailMemb
   );
 }
 
-function InterfaceOperationDetails(props: {
+function PortInterfaceOperationDetails(props: {
   operation: InterfaceDetailMember;
   applicationErrors: InterfaceDetailMember[];
 }) {
