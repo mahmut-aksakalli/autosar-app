@@ -1,31 +1,29 @@
-import type { AutosarEntity, SwcGraphResult, SwcInspectorData } from "../../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
-import "./details.css";
+import type { AutosarEntity, SwcGraphResult, SwcInspectorData } from "../../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
+import "./SwcDetails.css";
 import {
   collectInspectorItems,
   findInspectorItem,
   findInspectorItemInSections,
   getEmptyLabel,
   getSectionsForTab,
-  getSemanticColumns
-} from "./InspectorShared";
-import { ModelEntityDetails } from "./EntityDetails";
+  getDetailsColumns
+} from "./SwcDetailsHelper";
+import { EntityDetails } from "./EntityDetails";
+import { ParameterDetails } from "./ParameterDetails";
+import { InterRunnableVariableDetails } from "./InterRunnableVariableDetails";
+import { PerInstanceMemoryDetails } from "./PerInstanceMemoryDetails";
+import { ServiceDependencyDetails } from "./ServiceDependency/ServiceDependencyDetails";
+import { RunnableDetails } from "./RunnableDetails";
+import { PortDetails } from "./PortDetails/PortDetails";
 import {
-  ModelInterRunnableVariableDetails,
-  ModelParameterDetails,
-  ModelPerInstanceMemoryDetails,
-  ModelServiceDependencyDetails
-} from "./ItemDetails";
-import { ModelRunnableDetails } from "./RunnableDetails";
-import { ModelPortDetails } from "./PortDetails";
-import {
-  ModelInspectorItemsTable,
-  ModelPortsTable,
-  ModelRunnablesTable,
-  ModelTable
-} from "./InspectorTables";
+  DetailsItemsTable,
+  PortsTable,
+  RunnablesTable,
+  DetailsTable
+} from "./DetailsTables";
 
-export function ModelSemanticTab(props: {
+export function SwcDetails(props: {
   tab: ModelWorkspaceTab;
   focusEntity?: AutosarEntity;
   graphResult?: SwcGraphResult;
@@ -39,7 +37,7 @@ export function ModelSemanticTab(props: {
     inspector,
     onOpenWorkspaceTab
   } = props;
-  const semanticInspector = inspector ?? focusEntity?.inspector;
+  const inspectorData = inspector ?? focusEntity?.inspector;
   const ports = graphResult?.nodes.find((node) => node.id === focusEntity?.id)?.ports ?? graphResult?.nodes[0]?.ports ?? [];
 
   if (!focusEntity) {
@@ -47,13 +45,13 @@ export function ModelSemanticTab(props: {
   }
 
   if (tab.kind === "entityDetails") {
-    return <ModelEntityDetails title={tab.title} entity={focusEntity} />;
+    return <EntityDetails title={tab.title} entity={focusEntity} />;
   }
 
   if (tab.kind === "runnables") {
-    const runnables = semanticInspector?.sections.find((section) => section.id === "runnables")?.items ?? [];
+    const runnables = inspectorData?.sections.find((section) => section.id === "runnables")?.items ?? [];
     return (
-      <ModelRunnablesTable
+      <RunnablesTable
         title={tab.title}
         swcName={focusEntity.shortName}
         runnables={runnables}
@@ -65,7 +63,7 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "ports") {
     return (
-      <ModelPortsTable
+      <PortsTable
         title={tab.title}
         ports={ports}
         focusEntityId={focusEntity.id}
@@ -76,9 +74,9 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "parameters") {
     return (
-      <ModelInspectorItemsTable
+      <DetailsItemsTable
         title={tab.title}
-        items={collectInspectorItems(semanticInspector, ["calibrationVariables", "interfaceParameters"])}
+        items={collectInspectorItems(inspectorData, ["calibrationVariables", "interfaceParameters"])}
         focusEntityId={focusEntity.id}
         detailKind="parameter"
         detailTitlePrefix="Parameter"
@@ -98,9 +96,9 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "interRunnableVariables") {
     return (
-      <ModelInspectorItemsTable
+      <DetailsItemsTable
         title={tab.title}
-        items={collectInspectorItems(semanticInspector, ["interRunnableVariables"])}
+        items={collectInspectorItems(inspectorData, ["interRunnableVariables"])}
         focusEntityId={focusEntity.id}
         detailKind="interRunnableVariable"
         detailTitlePrefix="Inter-Runnable Variable"
@@ -119,9 +117,9 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "perInstanceMemory") {
     return (
-      <ModelInspectorItemsTable
+      <DetailsItemsTable
         title={tab.title}
-        items={collectInspectorItems(semanticInspector, ["perInstanceMemory"])}
+        items={collectInspectorItems(inspectorData, ["perInstanceMemory"])}
         focusEntityId={focusEntity.id}
         detailKind="perInstanceMemoryItem"
         detailTitlePrefix="Per-Instance Memory"
@@ -139,11 +137,11 @@ export function ModelSemanticTab(props: {
   }
 
   if (tab.kind === "serviceDependencies" || tab.kind === "serviceDependencyGroup") {
-    const serviceItems = collectInspectorItems(semanticInspector, ["serviceDependencies"]).filter(
+    const serviceItems = collectInspectorItems(inspectorData, ["serviceDependencies"]).filter(
       (entry) => !tab.serviceType || entry.item.metadata?.["SERVICE-TYPE"] === tab.serviceType
     );
     return (
-      <ModelInspectorItemsTable
+      <DetailsItemsTable
         title={tab.title}
         items={serviceItems}
         focusEntityId={focusEntity.id}
@@ -166,7 +164,7 @@ export function ModelSemanticTab(props: {
       ports.find((entry) => entry.id === tab.entityId || entry.xmlPath === tab.xmlPath) ??
       graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === tab.entityId);
     return (
-      <ModelPortDetails
+      <PortDetails
         title={tab.title}
         port={port}
         filePath={port?.filePath ?? focusEntity.filePath}
@@ -178,39 +176,39 @@ export function ModelSemanticTab(props: {
   if (tab.kind === "parameter") {
     const item =
       tab.sectionId && tab.itemId
-        ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(semanticInspector, ["calibrationVariables", "interfaceParameters"], tab.itemId);
-    return <ModelParameterDetails title={tab.title} parameter={item} />;
+        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["calibrationVariables", "interfaceParameters"], tab.itemId);
+    return <ParameterDetails title={tab.title} parameter={item} />;
   }
 
   if (tab.kind === "interRunnableVariable") {
     const item =
       tab.sectionId && tab.itemId
-        ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(semanticInspector, ["interRunnableVariables"], tab.itemId);
-    return <ModelInterRunnableVariableDetails title={tab.title} variable={item} />;
+        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["interRunnableVariables"], tab.itemId);
+    return <InterRunnableVariableDetails title={tab.title} variable={item} />;
   }
 
   if (tab.kind === "perInstanceMemoryItem") {
     const item =
       tab.sectionId && tab.itemId
-        ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(semanticInspector, ["perInstanceMemory"], tab.itemId);
-    return <ModelPerInstanceMemoryDetails title={tab.title} item={item} />;
+        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["perInstanceMemory"], tab.itemId);
+    return <PerInstanceMemoryDetails title={tab.title} item={item} />;
   }
 
   if (tab.kind === "serviceDependency") {
     const item =
       tab.sectionId && tab.itemId
-        ? findInspectorItem(semanticInspector, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(semanticInspector, ["serviceDependencies"], tab.itemId);
-    return <ModelServiceDependencyDetails title={tab.title} item={item} />;
+        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["serviceDependencies"], tab.itemId);
+    return <ServiceDependencyDetails title={tab.title} item={item} />;
   }
 
   if (tab.kind === "runnable") {
-    const runnable = findInspectorItem(semanticInspector, "runnables", tab.itemId);
+    const runnable = findInspectorItem(inspectorData, "runnables", tab.itemId);
     return (
-      <ModelRunnableDetails
+      <RunnableDetails
         title={tab.title}
         runnable={runnable}
         filePath={focusEntity.filePath}
@@ -221,14 +219,14 @@ export function ModelSemanticTab(props: {
 
   if (tab.kind === "behavior") {
     return (
-      <ModelTable
+      <DetailsTable
         title={tab.title}
         emptyLabel="No behavior details discovered."
         columns={[
           { key: "section", label: "Section" },
           { key: "count", label: "Items" }
         ]}
-        rows={(semanticInspector?.sections ?? []).map((section) => ({
+        rows={(inspectorData?.sections ?? []).map((section) => ({
           id: section.id,
           section: section.label,
           count: String(section.items.length)
@@ -239,7 +237,7 @@ export function ModelSemanticTab(props: {
 
   const sectionIds = getSectionsForTab(tab.kind);
   const rows = sectionIds.flatMap((sectionId) => {
-    const section = semanticInspector?.sections.find((entry) => entry.id === sectionId);
+    const section = inspectorData?.sections.find((entry) => entry.id === sectionId);
     return (section?.items ?? []).map((item) => ({
       id: `${sectionId}:${item.id}`,
       label: item.label,
@@ -251,10 +249,10 @@ export function ModelSemanticTab(props: {
   });
 
   return (
-    <ModelTable
+    <DetailsTable
       title={tab.title}
       emptyLabel={getEmptyLabel(tab.kind)}
-      columns={getSemanticColumns(tab.kind)}
+      columns={getDetailsColumns(tab.kind)}
       rows={rows}
     />
   );

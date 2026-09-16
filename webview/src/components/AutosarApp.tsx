@@ -8,13 +8,13 @@ import type {
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
 import { EditorGraphZone } from "./EditorGraphZone/EditorGraphZone";
-import { EditorTabs } from "./tabs/EditorTabs";
+import { EditorTabs } from "./EditorTabs/EditorTabsView";
 import {
   makeDefaultModelGraphTab,
   makeModelTab,
   type ModelWorkspaceTab
-} from "./tabs/workspaceTab";
-import { useWorkspaceTabs } from "./tabs/workspaceTabsHelper";
+} from "./EditorTabs/EditorTabs";
+import { useWorkspaceTabs } from "./EditorTabs/EditorTabsHelper";
 import { modelHost } from "../vscodeApi";
 
 declare global {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { AutosarEntity, SwcGraphResult, SwcGraphScope } from "../../../../src/shared/contracts";
-import { modelHost } from "../../vscodeApi";
+import type { AutosarEntity, SwcGraphResult, SwcGraphScope } from "../../../../../src/shared/contracts";
+import { modelHost } from "../../../vscodeApi";
 
 interface UseGraphQueryOptions {
   focusEntity?: AutosarEntity;

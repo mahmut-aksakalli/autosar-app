@@ -1,117 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../src/shared/contracts";
+import type { InterfaceDetailMember } from "../../../../../../src/shared/contracts";
+import { CollapsibleSection } from "../CollapsibleSection";
+import { EntityDetailTable } from "../EntityDetailTable";
+import { compareTableText } from "../DetailsTable";
 import {
-  compareTableText,
   formatAutosarTagText,
-  formatCalibrationAccess,
   formatHandleInvalidOption,
-  formatInitValueTypeOption,
   formatMeasurementCalibrationOption,
   formatReferenceShortName,
-  initValueTypeOptions,
-  ModelCommunicationSpecSubsection,
-  ModelInitValueDisplay,
   readBooleanMetadata,
   splitMetadataList
-} from "./InspectorShared";
+} from "../DetailsFormatters";
+import { compareAutosarErrorCodes } from "./InterfaceDetailsHelper";
 
-export function ModelEntityDetails(props: { title: string; entity: AutosarEntity }) {
-  const { title, entity } = props;
-  const metadata = entity.metadata ?? {};
-  const details = entity.details?.entity ?? { fields: [], tables: [] };
-  const interfaceMembers = entity.type === "interface"
-    ? entity.details?.interfaceMembers ?? []
-    : [];
-  const interfaceTables = entity.type === "interface"
-    ? buildInterfaceDetailTables(entity, interfaceMembers)
-    : [];
-  const interfaceType = details.fields.find((field) => field.label === "Interface Type")?.value ?? "-";
-  const isService = details.fields.find((field) => field.label === "Is Service")?.value ?? "false";
-  const fields = entity.type === "interface"
-    ? [
-        { label: "Name", value: entity.shortName },
-        { label: "Port Interface Type", value: interfaceType },
-        { label: "Package", value: entity.parentSemanticPath ?? entity.packagePath ?? "-" },
-        { label: "Is Service", value: isService },
-        { label: "Description", value: metadata.DESCRIPTION ?? "-" },
-        ...details.fields.filter(
-          (field) => field.label !== "Interface Type" && field.label !== "Is Service" && field.label !== "Service Kind"
-        )
-      ]
-    : [
-        { label: "Name", value: entity.shortName },
-        { label: "AUTOSAR Type", value: formatAutosarTagText(entity.rawTagName) },
-        { label: "Package Path", value: entity.parentSemanticPath ?? entity.packagePath ?? "-" },
-        ...(metadata.DESCRIPTION ? [{ label: "Description", value: metadata.DESCRIPTION }] : []),
-        ...details.fields
-      ];
-
-  return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{title}</strong>
-      </div>
-      <div className="model-port-detail">
-        <div className="model-semantic-kv model-port-fields">
-          {fields.map((field, index) => (
-            <div key={`${field.label}:${index}`}>
-              <span>{field.label}</span>
-              <strong title={field.value}>
-                {entity.type === "interface" && field.label === "Is Service" ? (
-                  <input type="checkbox" checked={readBooleanMetadata(field.value) === true} disabled readOnly />
-                ) : field.valueType ? (
-                  <span className="model-inline-value-with-select">
-                    <select value={formatInitValueTypeOption(field.valueType)} disabled>
-                      {initValueTypeOptions.map((option) => <option key={option}>{option}</option>)}
-                    </select>
-                    <ModelInitValueDisplay value={field.value} type={field.valueType} />
-                  </span>
-                ) : field.label === "Package Path" || field.label === "Package" ? field.value : field.value.startsWith("/") ? formatReferenceShortName(field.value) : field.value}
-              </strong>
-            </div>
-          ))}
-        </div>
-        {entity.type === "interface" && entity.interfaceKind === "sender-receiver" ? (
-          <ModelInterfaceDataElementsSection members={interfaceMembers} />
-        ) : null}
-        {entity.type === "interface" && entity.interfaceKind === "client-server" ? (
-          <ModelInterfaceOperationsSection members={interfaceMembers} />
-        ) : null}
-        {[...details.tables, ...interfaceTables].map((table) => (
-          <ModelEntityDetailTable key={table.title} table={table} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ModelEntityDetailTable(props: { table: EntityDetailPayload["tables"][number] }) {
-  const { table } = props;
-  return (
-    <section className="model-port-argument-section">
-      <h3>{table.title}</h3>
-      {table.rows.length > 0 ? (
-        <div className="model-runnable-table-scroll">
-          <table className="model-runnable-table">
-            <thead><tr>{table.columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead>
-            <tbody>
-              {table.rows.map((row, index) => (
-                <tr key={`${table.title}:${index}`}>
-                  {table.columns.map((column) => {
-                    const value = row[column.key] || "-";
-                    return <td key={column.key} title={value}>{value.startsWith("/") ? formatReferenceShortName(value) : value}</td>;
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : <div className="model-list-empty">No {table.title.toLowerCase()} discovered.</div>}
-    </section>
-  );
-}
-
-function ModelInterfaceDataElementsSection(props: { members: InterfaceDetailMember[] }) {
+export function InterfaceDataElementsSection(props: { members: InterfaceDetailMember[] }) {
   const dataElements = props.members.filter((member) => member.kind === "dataElement");
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
     dataElements[0]?.semanticPath ?? dataElements[0]?.label
@@ -191,7 +93,7 @@ function ModelInterfaceDataElementsSection(props: { members: InterfaceDetailMemb
                   <span>Data Element</span>
                   <strong title={selectedElement.semanticPath}>{selectedElement.label}</strong>
                 </div>
-                <ModelInterfaceDataElementDetails member={selectedElement} />
+                <InterfaceDataElementDetails member={selectedElement} />
               </>
             ) : <div className="model-list-empty">Select a data element.</div>}
           </aside>
@@ -201,11 +103,11 @@ function ModelInterfaceDataElementsSection(props: { members: InterfaceDetailMemb
   );
 }
 
-function ModelInterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
+function InterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
   const metadata = props.member.metadata ?? {};
   return (
     <div className="model-communication-spec-details">
-      <ModelCommunicationSpecSubsection title="Data Element Properties" defaultOpen>
+      <CollapsibleSection title="Data Element Properties" defaultOpen>
         <div className="model-semantic-kv model-port-fields">
           <div><span>Data Type</span><strong>{formatReferenceShortName(metadata.TYPE)}</strong></div>
           <div><span>Data Constraints</span><strong>{formatReferenceShortName(metadata["DATA-CONSTRAINTS"])}</strong></div>
@@ -232,12 +134,12 @@ function ModelInterfaceDataElementDetails(props: { member: InterfaceDetailMember
           </div>
           <div><span>Description</span><strong>{metadata.DESCRIPTION ?? "-"}</strong></div>
         </div>
-      </ModelCommunicationSpecSubsection>
+      </CollapsibleSection>
     </div>
   );
 }
 
-function ModelInterfaceOperationsSection(props: { members: InterfaceDetailMember[] }) {
+export function InterfaceOperationsSection(props: { members: InterfaceDetailMember[] }) {
   const operations = props.members.filter((member) => member.kind === "operation");
   const applicationErrors = props.members
     .filter((member) => member.kind === "applicationError")
@@ -322,7 +224,7 @@ function ModelInterfaceOperationsSection(props: { members: InterfaceDetailMember
                   <span>Operation</span>
                   <strong title={selectedOperation.semanticPath}>{selectedOperation.label}</strong>
                 </div>
-                <ModelInterfaceOperationDetails operation={selectedOperation} applicationErrors={applicationErrors} />
+                <InterfaceOperationDetails operation={selectedOperation} applicationErrors={applicationErrors} />
               </>
             ) : <div className="model-list-empty">Select an operation.</div>}
           </aside>
@@ -332,7 +234,7 @@ function ModelInterfaceOperationsSection(props: { members: InterfaceDetailMember
   );
 }
 
-function ModelInterfaceOperationDetails(props: {
+function InterfaceOperationDetails(props: {
   operation: InterfaceDetailMember;
   applicationErrors: InterfaceDetailMember[];
 }) {
@@ -345,7 +247,7 @@ function ModelInterfaceOperationDetails(props: {
   }));
   return (
     <div className="model-communication-spec-details">
-      <ModelCommunicationSpecSubsection title="Operation Properties" defaultOpen>
+      <CollapsibleSection title="Operation Properties" defaultOpen>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Fire and Forget</span>
@@ -357,12 +259,12 @@ function ModelInterfaceOperationDetails(props: {
           </div>
           <div><span>Description</span><strong>{metadata.DESCRIPTION ?? "-"}</strong></div>
         </div>
-      </ModelCommunicationSpecSubsection>
-      <ModelOperationPossibleErrors
+      </CollapsibleSection>
+      <OperationPossibleErrors
         applicationErrors={props.applicationErrors}
         selectedErrors={splitMetadataList(metadata.ERRORS)}
       />
-      <ModelEntityDetailTable
+      <EntityDetailTable
         table={{
           title: "Arguments",
           columns: [
@@ -378,7 +280,7 @@ function ModelInterfaceOperationDetails(props: {
   );
 }
 
-function ModelOperationPossibleErrors(props: {
+function OperationPossibleErrors(props: {
   applicationErrors: InterfaceDetailMember[];
   selectedErrors: string[];
 }) {
@@ -412,81 +314,4 @@ function ModelOperationPossibleErrors(props: {
       ) : <div className="model-list-empty">No application errors discovered.</div>}
     </section>
   );
-}
-
-function buildInterfaceDetailTables(entity: AutosarEntity, members: InterfaceDetailMember[]): EntityDetailPayload["tables"] {
-  const metadata = (member: InterfaceDetailMember) => member.metadata ?? {};
-  if (entity.interfaceKind === "sender-receiver") {
-    return [];
-  }
-  if (entity.interfaceKind === "client-server") {
-    const applicationErrors = members
-      .filter((member) => member.kind === "applicationError")
-      .map((member) => ({
-        name: member.label,
-        code: metadata(member)["ERROR-CODE"] ?? "-"
-      }))
-      .sort((left, right) => compareAutosarErrorCodes(left.code, right.code) || compareTableText(left.name, right.name));
-    return [
-      {
-        title: "Application Errors",
-        columns: [{ key: "code", label: "Error Code" }, { key: "name", label: "Error" }],
-        rows: applicationErrors
-      }
-    ];
-  }
-
-  if (entity.interfaceKind === "mode-switch") {
-    return [{
-      title: "Mode Groups",
-      columns: [{ key: "name", label: "Name" }, { key: "type", label: "Mode Declaration Group" }],
-      rows: members.filter((member) => member.kind === "modeGroup").map((member) => ({
-        name: member.label, type: metadata(member).TYPE ?? "-"
-      }))
-    }];
-  }
-
-  if (entity.interfaceKind === "trigger") {
-    return [{
-      title: "Triggers",
-      columns: [
-        { key: "name", label: "Name" }, { key: "policy", label: "Implementation Policy" },
-        { key: "period", label: "Trigger Period" }
-      ],
-      rows: members.filter((member) => member.kind === "trigger").map((member) => ({
-        name: member.label,
-        policy: metadata(member)["SW-IMPL-POLICY"] ?? "-",
-        period: metadata(member)["TRIGGER-PERIOD"] ?? "-"
-      }))
-    }];
-  }
-
-  const expectedKind = entity.interfaceKind === "parameter" ? "parameter" : entity.interfaceKind === "nv-data" ? "nvData" : "dataElement";
-  return [{
-    title: entity.interfaceKind === "parameter" ? "Parameters" : entity.interfaceKind === "nv-data" ? "NV Data" : "Data Elements",
-    columns: [
-      { key: "name", label: "Name" }, { key: "type", label: "Data Type" },
-      { key: "initValue", label: "Init Value" }, { key: "initType", label: "Init Value Type" },
-      { key: "calibration", label: "Measurement&Calibration" }, { key: "addressing", label: "Addressing Method" }
-    ],
-    rows: members.filter((member) => member.kind === expectedKind).map((member) => ({
-      name: member.label,
-      type: metadata(member).TYPE ?? "-",
-      initValue: metadata(member)["INITIAL-VALUE"] ?? "-",
-      initType: formatInitValueTypeOption(metadata(member)["INITIAL-VALUE-TYPE"] ?? "-"),
-      calibration: formatCalibrationAccess(metadata(member)["SW-CALIBRATION-ACCESS"]),
-      addressing: metadata(member)["SW-ADDR-METHOD-REF"] ?? "-"
-    }))
-  }];
-}
-
-function compareAutosarErrorCodes(left: string, right: string) {
-  const leftNumber = Number(left);
-  const rightNumber = Number(right);
-  const leftIsNumeric = Number.isFinite(leftNumber);
-  const rightIsNumeric = Number.isFinite(rightNumber);
-  if (leftIsNumeric && rightIsNumeric) return leftNumber - rightNumber;
-  if (leftIsNumeric) return -1;
-  if (rightIsNumeric) return 1;
-  return compareTableText(left, right);
 }

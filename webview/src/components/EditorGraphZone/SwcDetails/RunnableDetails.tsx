@@ -5,24 +5,12 @@ import type {
   RunnableActivationReasonDetail,
   RunnableTriggerEventDetail,
   SwcInspectorItem
-} from "../../../../src/shared/contracts";
-import {
-  compareAccessPointRows,
-  compareTriggerEventRows,
-  formatTimeInterval,
-  normalizeTableSearch,
-  readBooleanMetadata,
-  SortableResizableTableHeader,
-  splitMetadataList,
-  stringifyAccessPointCell
-} from "./InspectorShared";
-import type {
-  AccessPointTableColumnKey,
-  SortDirection,
-  TriggerEventTableColumnKey
-} from "./InspectorShared";
+} from "../../../../../src/shared/contracts";
+import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch, SortableResizableTableHeader } from "./DetailsTable";
+import { formatTimeInterval, readBooleanMetadata, splitMetadataList, stringifyAccessPointCell } from "./DetailsFormatters";
+import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./DetailsTable";
 
-export function ModelRunnableDetails(props: {
+export function RunnableDetails(props: {
   title: string;
   runnable?: SwcInspectorItem;
   filePath?: string;
@@ -70,15 +58,15 @@ export function ModelRunnableDetails(props: {
             <strong>{runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
-        <ModelRunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
-        <ModelRunnableAccessPointsTable details={accessPointDetails} fallbackItems={accessPoints} />
-        <ModelRunnableActivationReasonsTable details={activationReasonDetails} />
+        <RunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
+        <RunnableAccessPointsTable details={accessPointDetails} fallbackItems={accessPoints} />
+        <RunnableActivationReasonsTable details={activationReasonDetails} />
       </div>
     </div>
   );
 }
 
-function ModelRunnableActivationReasonsTable(props: { details: RunnableActivationReasonDetail[] }) {
+function RunnableActivationReasonsTable(props: { details: RunnableActivationReasonDetail[] }) {
   const { details } = props;
 
   return (
@@ -112,7 +100,7 @@ function ModelRunnableActivationReasonsTable(props: { details: RunnableActivatio
   );
 }
 
-function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]; fallbackItems: string[] }) {
+function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]; fallbackItems: string[] }) {
   const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([280, 180, 260]);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -240,7 +228,7 @@ function ModelRunnableAccessPointsTable(props: { details: RunnableAccessPointDet
   );
 }
 
-function ModelRunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail[]; fallbackItems: string[] }) {
+function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail[]; fallbackItems: string[] }) {
   const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([220, 180, 180, 180, 240]);
   const [isExpanded, setIsExpanded] = useState(true);

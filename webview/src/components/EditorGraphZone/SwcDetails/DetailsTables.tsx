@@ -1,31 +1,19 @@
 import { useMemo, useState } from "react";
-import type { SwcGraphPort, SwcInspectorItem } from "../../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
+import type { SwcGraphPort, SwcInspectorItem } from "../../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
+import { comparePortRows, compareRunnableRows, compareTableText, normalizeTableSearch, SortableTableHeader } from "./DetailsTable";
 import {
-  comparePortRows,
-  compareRunnableRows,
-  compareTableText,
   formatBooleanMetadata,
   formatCalibrationAccess,
   formatInitValueTypeOption,
   formatOptionalMilliseconds,
-  formatReferenceShortName,
-  normalizeTableSearch,
-  SortableTableHeader
-} from "./InspectorShared";
-import { formatAssignedPortPrototypeColumn } from "./ItemDetails";
-import { formatPortDirectionLabel } from "./PortDetails";
-import type {
-  InspectorTableItem,
-  InspectorTableRow,
-  PortTableColumnKey,
-  PortTableRow,
-  RunnableTableColumnKey,
-  RunnableTableRow,
-  SortDirection
-} from "./InspectorShared";
+  formatReferenceShortName
+} from "./DetailsFormatters";
+import { formatAssignedPortPrototypeColumn } from "./DetailsFormatters";
+import { formatPortDirectionLabel } from "./PortDetails/CommunicationSpecHelper";
+import type { DetailsTableItem, DetailsTableRow, PortTableColumnKey, PortTableRow, RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./DetailsTable";
 
-export function ModelRunnablesTable(props: {
+export function RunnablesTable(props: {
   title: string;
   swcName: string;
   runnables: SwcInspectorItem[];
@@ -164,7 +152,7 @@ export function ModelRunnablesTable(props: {
   );
 }
 
-export function ModelPortsTable(props: {
+export function PortsTable(props: {
   title: string;
   ports: SwcGraphPort[];
   focusEntityId: string;
@@ -277,9 +265,9 @@ export function ModelPortsTable(props: {
   );
 }
 
-export function ModelInspectorItemsTable(props: {
+export function DetailsItemsTable(props: {
   title: string;
-  items: InspectorTableItem[];
+  items: DetailsTableItem[];
   focusEntityId: string;
   detailKind: "parameter" | "interRunnableVariable" | "perInstanceMemoryItem" | "serviceDependency";
   detailTitlePrefix: string;
@@ -304,7 +292,7 @@ export function ModelInspectorItemsTable(props: {
     key: columns[0]?.key ?? "label",
     direction: "asc"
   });
-  const rows = useMemo<InspectorTableRow[]>(
+  const rows = useMemo<DetailsTableRow[]>(
     () =>
       items.map((entry) => {
         const metadata = entry.item.metadata ?? {};
@@ -350,7 +338,7 @@ export function ModelInspectorItemsTable(props: {
     }));
   };
 
-  const openItemTab = (row: InspectorTableRow) => {
+  const openItemTab = (row: DetailsTableRow) => {
     onOpenWorkspaceTab?.({
       id: `${focusEntityId}:${detailKind}:${row.sectionId}:${row.item.id}`,
       title: `${detailTitlePrefix}: ${row.item.label}`,
@@ -422,7 +410,7 @@ export function ModelInspectorItemsTable(props: {
   );
 }
 
-export function ModelTable(props: {
+export function DetailsTable(props: {
   title: string;
   emptyLabel: string;
   columns: Array<{ key: string; label: string }>;
