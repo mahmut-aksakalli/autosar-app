@@ -11,7 +11,7 @@ import {
 } from "./DetailsFormatters";
 import { formatAssignedPortPrototypeColumn } from "./DetailsFormatters";
 import { formatPortDirectionLabel } from "./PortDetails/CommunicationSpecHelper";
-import type { DetailsTableItem, DetailsTableRow, PortTableColumnKey, PortTableRow, RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./DetailsTable";
+import type { DetailsTableItem, DetailsTableRow, PortTableColumnKey, RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./DetailsTable";
 
 export function RunnablesTable(props: {
   title: string;

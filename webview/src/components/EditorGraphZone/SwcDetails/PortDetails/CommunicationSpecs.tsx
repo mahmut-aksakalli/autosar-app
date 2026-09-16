@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CommunicationSpecDetail, PortInterfaceKind } from "../../../../../../src/shared/contracts";
 import { CollapsibleSection } from "../CollapsibleSection";
 import {
@@ -9,8 +9,7 @@ import {
   formatReferenceShortName,
   initValueTypeOptions,
   readBooleanMetadata,
-  readEnabledMetadata,
-  stringifyAccessPointCell
+  readEnabledMetadata
 } from "../DetailsFormatters";
 import { InitValueDisplay } from "../InitValueDisplay";
 import {

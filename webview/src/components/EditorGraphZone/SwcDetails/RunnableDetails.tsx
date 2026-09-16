@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type {
   RunnableAccessPointDetail,
@@ -7,7 +7,7 @@ import type {
   SwcInspectorItem
 } from "../../../../../src/shared/contracts";
 import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch, SortableResizableTableHeader } from "./DetailsTable";
-import { formatTimeInterval, readBooleanMetadata, splitMetadataList, stringifyAccessPointCell } from "./DetailsFormatters";
+import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "./DetailsFormatters";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./DetailsTable";
 
 export function RunnableDetails(props: {
