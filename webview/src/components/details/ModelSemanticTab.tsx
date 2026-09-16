@@ -1,5 +1,6 @@
 import type { AutosarEntity, SwcGraphResult, SwcInspectorData } from "../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../tabs/workspaceTab";
+import "./details.css";
 import {
   collectInspectorItems,
   findInspectorItem,

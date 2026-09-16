@@ -2,7 +2,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@xyflow/react/dist/style.css";
 import "./styles.css";
-import "./components/tabs/tabs.css";
 import { AutosarApp } from "./components/AutosarApp";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

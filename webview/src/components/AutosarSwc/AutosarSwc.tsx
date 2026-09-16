@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps, type OnEdgesChange, type OnNodesChange } from "@xyflow/react";
 import type React from "react";
+import "./AutosarSwc.css";
 import type {
   AutosarEntity,
   SwcGraphNode,

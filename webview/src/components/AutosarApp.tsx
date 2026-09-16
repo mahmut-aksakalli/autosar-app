@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import "./AutosarApp.css";
 import type {
   AutosarEntity,
   HostToModelWebviewMessage,

@@ -1,4 +1,5 @@
 import type { ModelWorkspaceTab } from "./workspaceTab";
+import "./tabs.css";
 
 interface EditorTabsProps {
   tabs: ModelWorkspaceTab[];
