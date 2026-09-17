@@ -9,20 +9,19 @@ import {
 import { InitValueDisplay } from "./InitValueDisplay";
 
 export function InterRunnableVariableDetails(props: { title: string; variable?: SwcInspectorItem }) {
-  const { title, variable } = props;
-  const metadata = variable?.metadata ?? {};
-  const accessRows = variable?.details?.interRunnableVariableAccesses ?? [];
+  const metadata = props.variable?.metadata ?? {};
+  const accessRows = props.variable?.details?.interRunnableVariableAccesses ?? [];
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
-            <strong>{variable?.label ?? "-"}</strong>
+            <strong>{props.variable?.label ?? "-"}</strong>
           </div>
           <div>
             <span>Data Type</span>
@@ -75,11 +74,10 @@ export function InterRunnableVariableDetails(props: { title: string; variable?: 
 }
 
 function InterRunnableVariableAccessTable(props: { rows: InterRunnableVariableAccessDetail[] }) {
-  const { rows } = props;
   return (
     <section className="model-port-argument-section">
       <h3>Inter-Runnable Variable Access</h3>
-      {rows.length > 0 ? (
+      {props.rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table className="model-runnable-table">
             <thead>
@@ -90,7 +88,7 @@ function InterRunnableVariableAccessTable(props: { rows: InterRunnableVariableAc
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {props.rows.map((row, index) => (
                 <tr key={`${row.runnable}:${row.access}:${row.accessPoint}:${index}`}>
                   <td title={row.runnable}>{row.runnable}</td>
                   <td title={row.access}>{row.access}</td>

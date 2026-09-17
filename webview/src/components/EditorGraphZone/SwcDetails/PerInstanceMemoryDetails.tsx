@@ -8,19 +8,18 @@ import {
 import { InitValueDisplay } from "./InitValueDisplay";
 
 export function PerInstanceMemoryDetails(props: { title: string; item?: SwcInspectorItem }) {
-  const { title, item } = props;
-  const metadata = item?.metadata ?? {};
+  const metadata = props.item?.metadata ?? {};
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
-            <strong>{item?.label ?? "-"}</strong>
+            <strong>{props.item?.label ?? "-"}</strong>
           </div>
           <div>
             <span>Data Type</span>

@@ -103,11 +103,13 @@ autosar-model-view-0.0.1.vsix
 
 ```bash
 npm run typecheck
+npm test
 npm run compile
 npm run package
 ```
 
-Automated `npm test` coverage is planned but not wired yet.
+The test suite currently covers editor-tab state transitions and extension-host
+presentation-detail hydration.
 
 ## Local AUTOSAR Schemas
 
@@ -126,6 +128,7 @@ npm run compile
 npm run compile:extension
 npm run compile:webview
 npm run typecheck
+npm test
 npm run package
 ```
 
@@ -171,12 +174,18 @@ The webview lives under `webview/` and is responsible for:
 - rendering port, runnable, behavior, memory, parameter, and service detail surfaces
 - sending graph requests to the extension host through VS Code webview messaging
 
-Main files:
+The React components are organized by UI responsibility under
+`webview/src/components/`:
 
-- `webview/src/ModelWebviewApp.tsx`
-- `webview/src/model/ModelPanel.tsx`
-- `webview/src/model/graphLayout.ts`
-- `webview/src/vscodeApi.ts`
+Key responsibilities:
+
+- `main.tsx` mounts the React application and loads global styles.
+- `AutosarApp.tsx` owns the webview message lifecycle and coordinates the active model workspace.
+- `EditorTabs/` contains tab types, tab-state helpers, and tab rendering.
+- `EditorGraphZone.tsx` coordinates graph selection, composition focus, and detail content.
+- `AutosarSwc/` contains the React Flow canvas, SWC node and port components, graph-query state, and layout calculations.
+- `SwcDetails/` contains semantic detail surfaces and shared table/formatting utilities. Feature-specific details are grouped into nested folders.
+- `vscodeApi.ts` is the typed messaging boundary between the webview and extension host.
 
 ### Services
 

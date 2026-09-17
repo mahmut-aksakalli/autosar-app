@@ -28,7 +28,6 @@ export function CommunicationSpecsSection(props: {
   interfaceKind: PortInterfaceKind;
   title?: string;
 }) {
-  const { rows, interfaceKind, title = "Communication Specs" } = props;
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -40,10 +39,10 @@ export function CommunicationSpecsSection(props: {
         onClick={() => setIsExpanded((current) => !current)}
       >
         <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>{title}</span>
-        <span className="model-list-section-count">{rows.length}</span>
+        <span>{props.title ?? "Communication Specs"}</span>
+        <span className="model-list-section-count">{props.rows.length}</span>
       </button>
-      {isExpanded && <CommunicationSpecsTable rows={rows} interfaceKind={interfaceKind} embedded />}
+      {isExpanded && <CommunicationSpecsTable rows={props.rows} interfaceKind={props.interfaceKind} embedded />}
     </section>
   );
 }
@@ -53,16 +52,15 @@ function CommunicationSpecsTable(props: {
   interfaceKind: PortInterfaceKind;
   embedded?: boolean;
 }) {
-  const { rows, interfaceKind, embedded } = props;
-  const itemLabel = getCommunicationSpecItemLabel(interfaceKind);
+  const itemLabel = getCommunicationSpecItemLabel(props.interfaceKind);
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
-    rows[0] ? getCommunicationSpecRowKey(rows[0]) : undefined
+    props.rows[0] ? getCommunicationSpecRowKey(props.rows[0]) : undefined
   );
   const tableWrapRef = useRef<HTMLDivElement>(null);
   const [tableViewportHeight, setTableViewportHeight] = useState<number>();
   // Use a value-based key instead of object identity because graph refreshes
   // replace the row objects even when the selected communication spec remains.
-  const selectedRow = rows.find((row) => getCommunicationSpecRowKey(row) === selectedKey) ?? rows[0];
+  const selectedRow = props.rows.find((row) => getCommunicationSpecRowKey(row) === selectedKey) ?? props.rows[0];
 
   useEffect(() => {
     const tableWrap = tableWrapRef.current;
@@ -92,12 +90,12 @@ function CommunicationSpecsTable(props: {
       window.removeEventListener("resize", updateHeight);
       window.removeEventListener("scroll", updateHeight, true);
     };
-  }, [embedded, rows.length]);
+  }, [props.embedded, props.rows.length]);
 
   return (
-    <section className={embedded ? "model-port-comspec-table-section" : "model-list-section model-port-comspec-section"}>
-      {!embedded && <h3>Communication Specs</h3>}
-      {rows.length > 0 ? (
+    <section className={props.embedded ? "model-port-comspec-table-section" : "model-list-section model-port-comspec-section"}>
+      {!props.embedded && <h3>Communication Specs</h3>}
+      {props.rows.length > 0 ? (
         <div className="model-comspec-master-detail">
           <div
             ref={tableWrapRef}
@@ -112,7 +110,7 @@ function CommunicationSpecsTable(props: {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {props.rows.map((row) => {
                   const rowKey = getCommunicationSpecRowKey(row);
                   const isSelected = selectedRow ? rowKey === getCommunicationSpecRowKey(selectedRow) : false;
                   return (
@@ -160,33 +158,32 @@ function getCommunicationSpecRowKey(row: CommunicationSpecDetail) {
 }
 
 function CommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLabel: string }) {
-  const { row, itemLabel } = props;
   return (
     <div className="model-communication-spec-details">
-      <CollapsibleSection title={`${itemLabel} Properties`} defaultOpen>
+      <CollapsibleSection title={`${props.itemLabel} Properties`} defaultOpen>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Data Type</span>
-            <strong>{formatReferenceShortName(row.dataType)}</strong>
+            <strong>{formatReferenceShortName(props.row.dataType)}</strong>
           </div>
           <div>
             <span>Data Constraints</span>
-            <strong>{formatReferenceShortName(row.dataConstraints)}</strong>
+            <strong>{formatReferenceShortName(props.row.dataConstraints)}</strong>
           </div>
           <div>
             <span>Addressing Method</span>
-            <strong>{formatReferenceShortName(row.addressingMethod)}</strong>
+            <strong>{formatReferenceShortName(props.row.addressingMethod)}</strong>
           </div>
           <div>
             <span>Use queued communication</span>
             <strong>
-              <input type="checkbox" checked={readBooleanMetadata(row.useQueuedCommunication) === true} disabled readOnly />
+              <input type="checkbox" checked={readBooleanMetadata(props.row.useQueuedCommunication) === true} disabled readOnly />
             </strong>
           </div>
           <div>
             <span>Measurement&amp;Calibration</span>
             <strong>
-              <select value={formatMeasurementCalibrationOption(row.measurementCalibration)} disabled>
+              <select value={formatMeasurementCalibrationOption(props.row.measurementCalibration)} disabled>
                 <option>Not Accessible</option>
                 <option>Read</option>
                 <option>Write</option>
@@ -197,7 +194,7 @@ function CommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLab
           <div>
             <span>Handle invalid</span>
             <strong>
-              <select value={formatHandleInvalidOption(row.handleInvalid)} disabled>
+              <select value={formatHandleInvalidOption(props.row.handleInvalid)} disabled>
                 <option>Keep</option>
                 <option>Replace</option>
                 <option>None</option>
@@ -207,51 +204,50 @@ function CommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLab
         </div>
       </CollapsibleSection>
 
-      {row.comSpecDirection === "sender" && <SenderComSpecDetails row={row} />}
-      {row.comSpecDirection === "receiver" && <ReceiverComSpecDetails row={row} />}
-      {row.comSpecDirection !== "sender" && row.comSpecDirection !== "receiver" && (
-        <GenericComSpecDetails row={row} />
+      {props.row.comSpecDirection === "sender" && <SenderComSpecDetails row={props.row} />}
+      {props.row.comSpecDirection === "receiver" && <ReceiverComSpecDetails row={props.row} />}
+      {props.row.comSpecDirection !== "sender" && props.row.comSpecDirection !== "receiver" && (
+        <GenericComSpecDetails row={props.row} />
       )}
     </div>
   );
 }
 
 function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
-  const { row } = props;
   return (
     <CollapsibleSection title="Sender ComSpec" defaultOpen>
       <div className="model-semantic-kv model-port-fields">
         <div>
           <span>Init Value</span>
           <strong className="model-inline-value-with-select">
-            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+            <select value={formatInitValueTypeOption(props.row.initValueType)} disabled>
               {initValueTypeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
-            <InitValueDisplay value={row.initValue} type={row.initValueType} />
+            <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
           </strong>
         </div>
         <div className="model-semantic-kv-three">
           <span>Uses Tx Acknowledge</span>
           <strong>
-            <input type="checkbox" checked={readBooleanMetadata(row.usesTxAcknowledge) === true} disabled readOnly />
+            <input type="checkbox" checked={readBooleanMetadata(props.row.usesTxAcknowledge) === true} disabled readOnly />
           </strong>
           <strong className="model-inline-value-with-label">
             <small>Timeout (ms)</small>
-            {formatOptionalMilliseconds(row.transmissionAcknowledgeTimeout)}
+            {formatOptionalMilliseconds(props.row.transmissionAcknowledgeTimeout)}
           </strong>
         </div>
         <div>
           <span>Uses End-to-End Protection</span>
           <strong>
-            <input type="checkbox" checked={readBooleanMetadata(row.usesEndToEndProtection) === true} disabled readOnly />
+            <input type="checkbox" checked={readBooleanMetadata(props.row.usesEndToEndProtection) === true} disabled readOnly />
           </strong>
         </div>
         <div>
           <span>Handle Out of Range</span>
           <strong>
-            <select value={formatHandleOutOfRangeOption(row.handleOutOfRange)} disabled>
+            <select value={formatHandleOutOfRangeOption(props.row.handleOutOfRange)} disabled>
               {handleOutOfRangeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
@@ -265,7 +261,7 @@ function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
           <div>
             <span>Transmission Mode</span>
             <strong>
-              <select value={formatTransmissionModeOption(row.transmissionMode)} disabled>
+              <select value={formatTransmissionModeOption(props.row.transmissionMode)} disabled>
                 {transmissionModeOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
@@ -274,11 +270,11 @@ function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
           </div>
           <div>
             <span>Data Update Period</span>
-            <strong>{formatOptionalMilliseconds(row.dataUpdatePeriod)}</strong>
+            <strong>{formatOptionalMilliseconds(props.row.dataUpdatePeriod)}</strong>
           </div>
           <div>
             <span>Minimum Send Interval</span>
-            <strong>{formatOptionalMilliseconds(row.minimumSendInterval)}</strong>
+            <strong>{formatOptionalMilliseconds(props.row.minimumSendInterval)}</strong>
           </div>
         </div>
       </section>
@@ -287,26 +283,25 @@ function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
 }
 
 function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
-  const { row } = props;
   return (
     <CollapsibleSection title="Receiver ComSpec" defaultOpen>
       <div className="model-semantic-kv model-port-fields">
         <div>
           <span>Init Value</span>
           <strong className="model-inline-value-with-select">
-            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+            <select value={formatInitValueTypeOption(props.row.initValueType)} disabled>
               {initValueTypeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
-            <InitValueDisplay value={row.initValue} type={row.initValueType} />
+            <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
           </strong>
         </div>
         <div>
           <span>Rx Filter</span>
           <strong>
-            <select value={formatRxFilterOption(row.rxFilter)} disabled>
-              {getRxFilterOptions(row.rxFilter).map((option) => (
+            <select value={formatRxFilterOption(props.row.rxFilter)} disabled>
+              {getRxFilterOptions(props.row.rxFilter).map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
@@ -315,33 +310,33 @@ function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
         <div>
           <span>Uses End-to-End Protection</span>
           <strong>
-            <input type="checkbox" checked={readBooleanMetadata(row.usesEndToEndProtection) === true} disabled readOnly />
+            <input type="checkbox" checked={readBooleanMetadata(props.row.usesEndToEndProtection) === true} disabled readOnly />
           </strong>
         </div>
         <div>
           <span>Handle Never Received</span>
           <strong>
-            <input type="checkbox" checked={readEnabledMetadata(row.handleNeverReceived)} disabled readOnly />
+            <input type="checkbox" checked={readEnabledMetadata(props.row.handleNeverReceived)} disabled readOnly />
           </strong>
         </div>
         <div>
           <span>Enable Update</span>
           <strong>
-            <input type="checkbox" checked={readBooleanMetadata(row.enableUpdate) === true} disabled readOnly />
+            <input type="checkbox" checked={readBooleanMetadata(props.row.enableUpdate) === true} disabled readOnly />
           </strong>
         </div>
         <div>
           <span>Alive Timeout</span>
-          <strong>{formatOptionalMilliseconds(row.aliveTimeout)}</strong>
+          <strong>{formatOptionalMilliseconds(props.row.aliveTimeout)}</strong>
         </div>
         <div>
           <span>Queue Length</span>
-          <strong>{row.queueLength}</strong>
+          <strong>{props.row.queueLength}</strong>
         </div>
         <div>
           <span>Handle Out Of Range</span>
           <strong>
-            <select value={formatHandleOutOfRangeOption(row.handleOutOfRange)} disabled>
+            <select value={formatHandleOutOfRangeOption(props.row.handleOutOfRange)} disabled>
               {handleOutOfRangeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
@@ -354,24 +349,23 @@ function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
 }
 
 function GenericComSpecDetails(props: { row: CommunicationSpecDetail }) {
-  const { row } = props;
   return (
-    <CollapsibleSection title={`${formatCommunicationSpecDirectionLabel(row.comSpecDirection)} ComSpec`} defaultOpen>
+    <CollapsibleSection title={`${formatCommunicationSpecDirectionLabel(props.row.comSpecDirection)} ComSpec`} defaultOpen>
       <div className="model-semantic-kv model-port-fields">
         <div>
           <span>Init Value</span>
           <strong className="model-inline-value-with-select">
-            <select value={formatInitValueTypeOption(row.initValueType)} disabled>
+            <select value={formatInitValueTypeOption(props.row.initValueType)} disabled>
               {initValueTypeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
-            <InitValueDisplay value={row.initValue} type={row.initValueType} />
+            <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
           </strong>
         </div>
         <div>
           <span>Queue Length</span>
-          <strong>{row.queueLength}</strong>
+          <strong>{props.row.queueLength}</strong>
         </div>
       </div>
     </CollapsibleSection>

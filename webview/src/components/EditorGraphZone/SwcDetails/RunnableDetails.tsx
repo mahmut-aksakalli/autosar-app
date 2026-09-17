@@ -16,28 +16,27 @@ export function RunnableDetails(props: {
   filePath?: string;
   xmlPath?: string;
 }) {
-  const { title, runnable } = props;
-  const concurrent = readBooleanMetadata(runnable?.metadata?.CONCURRENT);
-  const activationReasonDetails = runnable?.details?.activationReasons ?? [];
-  const accessPoints = splitMetadataList(runnable?.metadata?.["ACCESS-POINTS"]);
-  const accessPointDetails = runnable?.details?.accessPoints ?? [];
-  const triggerEvents = splitMetadataList(runnable?.metadata?.["TRIGGER-EVENTS"]);
-  const triggerEventDetails = runnable?.details?.triggerEvents ?? [];
+  const concurrent = readBooleanMetadata(props.runnable?.metadata?.CONCURRENT);
+  const activationReasonDetails = props.runnable?.details?.activationReasons ?? [];
+  const accessPoints = splitMetadataList(props.runnable?.metadata?.["ACCESS-POINTS"]);
+  const accessPointDetails = props.runnable?.details?.accessPoints ?? [];
+  const triggerEvents = splitMetadataList(props.runnable?.metadata?.["TRIGGER-EVENTS"]);
+  const triggerEventDetails = props.runnable?.details?.triggerEvents ?? [];
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-runnable-detail">
         <div className="model-semantic-kv model-runnable-fields">
           <div>
             <span>Name</span>
-            <strong>{runnable?.label ?? "-"}</strong>
+            <strong>{props.runnable?.label ?? "-"}</strong>
           </div>
           <div>
             <span>Symbol</span>
-            <strong>{runnable?.metadata?.SYMBOL ?? "-"}</strong>
+            <strong>{props.runnable?.metadata?.SYMBOL ?? "-"}</strong>
           </div>
           <div>
             <span>Can Be Invoked Concurrently</span>
@@ -47,15 +46,15 @@ export function RunnableDetails(props: {
           </div>
           <div>
             <span>Minimum Start Interval</span>
-            <strong>{formatTimeInterval(runnable?.metadata?.["MIN-START-INTERVAL"])}</strong>
+            <strong>{formatTimeInterval(props.runnable?.metadata?.["MIN-START-INTERVAL"])}</strong>
           </div>
           <div>
             <span>Addressing Method</span>
-            <strong>{runnable?.metadata?.["SW-ADDR-METHOD-REF"] ?? "-"}</strong>
+            <strong>{props.runnable?.metadata?.["SW-ADDR-METHOD-REF"] ?? "-"}</strong>
           </div>
           <div>
             <span>Description</span>
-            <strong>{runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
+            <strong>{props.runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
         <RunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
@@ -67,12 +66,10 @@ export function RunnableDetails(props: {
 }
 
 function RunnableActivationReasonsTable(props: { details: RunnableActivationReasonDetail[] }) {
-  const { details } = props;
-
   return (
     <section className="model-list-section model-activation-reasons-section">
       <h3>Activation Reasons</h3>
-      {details.length > 0 ? (
+      {props.details.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table className="model-runnable-table">
             <thead>
@@ -83,7 +80,7 @@ function RunnableActivationReasonsTable(props: { details: RunnableActivationReas
               </tr>
             </thead>
             <tbody>
-              {details.map((row, index) => (
+              {props.details.map((row, index) => (
                 <tr key={`${row.bit}:${row.name}:${row.symbol}:${index}`}>
                   <td title={row.bit}>{row.bit}</td>
                   <td title={row.name}>{row.name}</td>
@@ -101,7 +98,6 @@ function RunnableActivationReasonsTable(props: { details: RunnableActivationReas
 }
 
 function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]; fallbackItems: string[] }) {
-  const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([280, 180, 260]);
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,9 +108,9 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
   // Older or partially parsed models may only expose access points as names in
   // metadata. Prefer structured details, but retain those names as a fallback.
   const rows =
-    details.length > 0
-      ? details
-      : fallbackItems.map((item) => ({
+    props.details.length > 0
+      ? props.details
+      : props.fallbackItems.map((item) => ({
           target: "-",
           access: "-",
           name: item
@@ -233,7 +229,6 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
 }
 
 function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail[]; fallbackItems: string[] }) {
-  const { details, fallbackItems } = props;
   const [columnWidths, setColumnWidths] = useState([220, 180, 180, 180, 240]);
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -244,9 +239,9 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
   // Trigger names from metadata are the compatibility fallback when detailed
   // trigger-event records are unavailable.
   const rows =
-    details.length > 0
-      ? details
-      : fallbackItems.map((item) => ({
+    props.details.length > 0
+      ? props.details
+      : props.fallbackItems.map((item) => ({
           trigger: "-",
           type: "-",
           disabledInModes: "-",

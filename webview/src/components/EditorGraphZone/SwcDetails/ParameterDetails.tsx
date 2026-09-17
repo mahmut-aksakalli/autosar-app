@@ -9,21 +9,20 @@ import {
 import { InitValueDisplay } from "./InitValueDisplay";
 
 export function ParameterDetails(props: { title: string; parameter?: SwcInspectorItem }) {
-  const { title, parameter } = props;
-  const metadata = parameter?.metadata ?? {};
+  const metadata = props.parameter?.metadata ?? {};
   const scope = formatParameterScopeOption(metadata.SCOPE);
   const measurementCalibration = formatMeasurementCalibrationOption(metadata["SW-CALIBRATION-ACCESS"] ?? "-");
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Parameter Name</span>
-            <strong>{parameter?.label ?? "-"}</strong>
+            <strong>{props.parameter?.label ?? "-"}</strong>
           </div>
           <div>
             <span>Type</span>

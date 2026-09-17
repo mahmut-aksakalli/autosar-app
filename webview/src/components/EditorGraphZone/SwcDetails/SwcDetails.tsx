@@ -30,54 +30,47 @@ export function SwcDetails(props: {
   inspector?: SwcInspectorData;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
-  const {
-    tab,
-    focusEntity,
-    graphResult,
-    inspector,
-    onOpenWorkspaceTab
-  } = props;
-  const inspectorData = inspector ?? focusEntity?.inspector;
-  const ports = graphResult?.nodes.find((node) => node.id === focusEntity?.id)?.ports ?? graphResult?.nodes[0]?.ports ?? [];
+  const inspectorData = props.inspector ?? props.focusEntity?.inspector;
+  const ports = props.graphResult?.nodes.find((node) => node.id === props.focusEntity?.id)?.ports ?? props.graphResult?.nodes[0]?.ports ?? [];
 
-  if (!focusEntity) {
+  if (!props.focusEntity) {
     return <div className="empty-state">Select an AUTOSAR model entity.</div>;
   }
 
-  if (tab.kind === "entityDetails") {
-    return <EntityDetails title={tab.title} entity={focusEntity} />;
+  if (props.tab.kind === "entityDetails") {
+    return <EntityDetails title={props.tab.title} entity={props.focusEntity} />;
   }
 
-  if (tab.kind === "runnables") {
+  if (props.tab.kind === "runnables") {
     const runnables = inspectorData?.sections.find((section) => section.id === "runnables")?.items ?? [];
     return (
       <RunnablesTable
-        title={tab.title}
-        swcName={focusEntity.shortName}
+        title={props.tab.title}
+        swcName={props.focusEntity.shortName}
         runnables={runnables}
-        focusEntityId={focusEntity.id}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        focusEntityId={props.focusEntity.id}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "ports") {
+  if (props.tab.kind === "ports") {
     return (
       <PortsTable
-        title={tab.title}
+        title={props.tab.title}
         ports={ports}
-        focusEntityId={focusEntity.id}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        focusEntityId={props.focusEntity.id}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "parameters") {
+  if (props.tab.kind === "parameters") {
     return (
       <DetailsItemsTable
-        title={tab.title}
+        title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["calibrationVariables", "interfaceParameters"])}
-        focusEntityId={focusEntity.id}
+        focusEntityId={props.focusEntity.id}
         detailKind="parameter"
         detailTitlePrefix="Parameter"
         emptyLabel="No parameters discovered."
@@ -89,17 +82,17 @@ export function SwcDetails(props: {
           { key: "SCOPE", label: "Scope" },
           { key: "SW-CALIBRATION-ACCESS", label: "Measurement&Calibration" }
         ]}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "interRunnableVariables") {
+  if (props.tab.kind === "interRunnableVariables") {
     return (
       <DetailsItemsTable
-        title={tab.title}
+        title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["interRunnableVariables"])}
-        focusEntityId={focusEntity.id}
+        focusEntityId={props.focusEntity.id}
         detailKind="interRunnableVariable"
         detailTitlePrefix="Inter-Runnable Variable"
         emptyLabel="No inter-runnable variables discovered."
@@ -110,17 +103,17 @@ export function SwcDetails(props: {
           { key: "INITIAL-VALUE-TYPE", label: "Init Value Type" },
           { key: "SW-CALIBRATION-ACCESS", label: "Measurement&Calibration" }
         ]}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "perInstanceMemory") {
+  if (props.tab.kind === "perInstanceMemory") {
     return (
       <DetailsItemsTable
-        title={tab.title}
+        title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["perInstanceMemory"])}
-        focusEntityId={focusEntity.id}
+        focusEntityId={props.focusEntity.id}
         detailKind="perInstanceMemoryItem"
         detailTitlePrefix="Per-Instance Memory"
         emptyLabel="No per-instance memory discovered."
@@ -131,20 +124,20 @@ export function SwcDetails(props: {
           { key: "INITIAL-VALUE-TYPE", label: "Init Value Type" },
           { key: "SW-CALIBRATION-ACCESS", label: "Measurement&Calibration" }
         ]}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "serviceDependencies" || tab.kind === "serviceDependencyGroup") {
+  if (props.tab.kind === "serviceDependencies" || props.tab.kind === "serviceDependencyGroup") {
     const serviceItems = collectInspectorItems(inspectorData, ["serviceDependencies"]).filter(
-      (entry) => !tab.serviceType || entry.item.metadata?.["SERVICE-TYPE"] === tab.serviceType
+      (entry) => !props.tab.serviceType || entry.item.metadata?.["SERVICE-TYPE"] === props.tab.serviceType
     );
     return (
       <DetailsItemsTable
-        title={tab.title}
+        title={props.tab.title}
         items={serviceItems}
-        focusEntityId={focusEntity.id}
+        focusEntityId={props.focusEntity.id}
         detailKind="serviceDependency"
         detailTitlePrefix="Service Need"
         emptyLabel="No service needs discovered."
@@ -154,73 +147,73 @@ export function SwcDetails(props: {
           { key: "SERVICE-TYPE", label: "Service Type" },
           { key: "ASSIGNED-PORT-PROTOTYPE", label: "Assigned Port" }
         ]}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }
 
-  if (tab.kind === "port") {
+  if (props.tab.kind === "port") {
     const port =
-      ports.find((entry) => entry.id === tab.entityId || entry.xmlPath === tab.xmlPath) ??
-      graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === tab.entityId);
+      ports.find((entry) => entry.id === props.tab.entityId || entry.xmlPath === props.tab.xmlPath) ??
+      props.graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === props.tab.entityId);
     return (
       <PortDetails
-        title={tab.title}
+        title={props.tab.title}
         port={port}
-        filePath={port?.filePath ?? focusEntity.filePath}
-        xmlPath={port?.xmlPath ?? tab.xmlPath}
+        filePath={port?.filePath ?? props.focusEntity.filePath}
+        xmlPath={port?.xmlPath ?? props.tab.xmlPath}
       />
     );
   }
 
-  if (tab.kind === "parameter") {
+  if (props.tab.kind === "parameter") {
     const item =
-      tab.sectionId && tab.itemId
-        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(inspectorData, ["calibrationVariables", "interfaceParameters"], tab.itemId);
-    return <ParameterDetails title={tab.title} parameter={item} />;
+      props.tab.sectionId && props.tab.itemId
+        ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["calibrationVariables", "interfaceParameters"], props.tab.itemId);
+    return <ParameterDetails title={props.tab.title} parameter={item} />;
   }
 
-  if (tab.kind === "interRunnableVariable") {
+  if (props.tab.kind === "interRunnableVariable") {
     const item =
-      tab.sectionId && tab.itemId
-        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(inspectorData, ["interRunnableVariables"], tab.itemId);
-    return <InterRunnableVariableDetails title={tab.title} variable={item} />;
+      props.tab.sectionId && props.tab.itemId
+        ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["interRunnableVariables"], props.tab.itemId);
+    return <InterRunnableVariableDetails title={props.tab.title} variable={item} />;
   }
 
-  if (tab.kind === "perInstanceMemoryItem") {
+  if (props.tab.kind === "perInstanceMemoryItem") {
     const item =
-      tab.sectionId && tab.itemId
-        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(inspectorData, ["perInstanceMemory"], tab.itemId);
-    return <PerInstanceMemoryDetails title={tab.title} item={item} />;
+      props.tab.sectionId && props.tab.itemId
+        ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["perInstanceMemory"], props.tab.itemId);
+    return <PerInstanceMemoryDetails title={props.tab.title} item={item} />;
   }
 
-  if (tab.kind === "serviceDependency") {
+  if (props.tab.kind === "serviceDependency") {
     const item =
-      tab.sectionId && tab.itemId
-        ? findInspectorItem(inspectorData, tab.sectionId, tab.itemId)
-        : findInspectorItemInSections(inspectorData, ["serviceDependencies"], tab.itemId);
-    return <ServiceDependencyDetails title={tab.title} item={item} />;
+      props.tab.sectionId && props.tab.itemId
+        ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
+        : findInspectorItemInSections(inspectorData, ["serviceDependencies"], props.tab.itemId);
+    return <ServiceDependencyDetails title={props.tab.title} item={item} />;
   }
 
-  if (tab.kind === "runnable") {
-    const runnable = findInspectorItem(inspectorData, "runnables", tab.itemId);
+  if (props.tab.kind === "runnable") {
+    const runnable = findInspectorItem(inspectorData, "runnables", props.tab.itemId);
     return (
       <RunnableDetails
-        title={tab.title}
+        title={props.tab.title}
         runnable={runnable}
-        filePath={focusEntity.filePath}
-        xmlPath={runnable?.xmlPath ?? tab.xmlPath}
+        filePath={props.focusEntity.filePath}
+        xmlPath={runnable?.xmlPath ?? props.tab.xmlPath}
       />
     );
   }
 
-  if (tab.kind === "behavior") {
+  if (props.tab.kind === "behavior") {
     return (
       <DetailsTable
-        title={tab.title}
+        title={props.tab.title}
         emptyLabel="No behavior details discovered."
         columns={[
           { key: "section", label: "Section" },
@@ -235,7 +228,7 @@ export function SwcDetails(props: {
     );
   }
 
-  const sectionIds = getSectionsForTab(tab.kind);
+  const sectionIds = getSectionsForTab(props.tab.kind);
   const rows = sectionIds.flatMap((sectionId) => {
     const section = inspectorData?.sections.find((entry) => entry.id === sectionId);
     return (section?.items ?? []).map((item) => ({
@@ -243,16 +236,16 @@ export function SwcDetails(props: {
       label: item.label,
       section: section?.label ?? sectionId,
       ...item.metadata,
-      filePath: focusEntity.filePath,
+      filePath: props.focusEntity?.filePath,
       xmlPath: item.xmlPath
     }));
   });
 
   return (
     <DetailsTable
-      title={tab.title}
-      emptyLabel={getEmptyLabel(tab.kind)}
-      columns={getDetailsColumns(tab.kind)}
+      title={props.tab.title}
+      emptyLabel={getEmptyLabel(props.tab.kind)}
+      columns={getDetailsColumns(props.tab.kind)}
       rows={rows}
     />
   );

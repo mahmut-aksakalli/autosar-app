@@ -4,30 +4,30 @@ import { getPortRailWidth, type FlowNode } from "./AutosarSwcLayout";
 import { AutosarSwcPorts } from "./AutosarSwcPorts";
 import "./AutosarSwcNode.css";
 
-export function AutosarSwcNode({ data }: NodeProps<FlowNode>) {
-  const providedPorts = data.ports.filter(
+export function AutosarSwcNode(props: NodeProps<FlowNode>) {
+  const providedPorts = props.data.ports.filter(
     (port) => port.direction === "provided" || port.direction === "provided-required"
   );
-  const requiredPorts = data.ports.filter((port) => port.direction === "required");
+  const requiredPorts = props.data.ports.filter((port) => port.direction === "required");
   const leftRailWidth = getPortRailWidth(requiredPorts);
   const rightRailWidth = getPortRailWidth(providedPorts);
 
-  let kindLabel = formatSwcKindLabel(data.swcKind);
-  if (data.kind === "composition") {
+  let kindLabel = formatSwcKindLabel(props.data.swcKind);
+  if (props.data.kind === "composition") {
     kindLabel = "Composition";
   }
 
   return (
-    <div className={`autosar-node autosar-node-${data.kind}`}>
+    <div className={`autosar-node autosar-node-${props.data.kind}`}>
       <div className="autosar-symbol">
         <div className="autosar-symbol-rail autosar-symbol-rail-left">
           <AutosarSwcPorts
             ports={requiredPorts}
-            portConnections={data.portConnections}
+            portConnections={props.data.portConnections}
             side="left"
             railWidth={leftRailWidth}
-            highlightedPortId={data.highlightedPortId}
-            onConnectionNavigate={data.onConnectionNavigate}
+            highlightedPortId={props.data.highlightedPortId}
+            onConnectionNavigate={props.data.onConnectionNavigate}
           />
         </div>
         <div className="autosar-symbol-body">
@@ -35,24 +35,24 @@ export function AutosarSwcNode({ data }: NodeProps<FlowNode>) {
             <div className="autosar-node-badges">
               <span className="autosar-node-badge">
                 <span className="autosar-family-glyph" aria-hidden="true">
-                  {formatSwcKindGlyph(data.swcKind)}
+                  {formatSwcKindGlyph(props.data.swcKind)}
                 </span>
                 {kindLabel}
               </span>
             </div>
-            <strong>{data.label}</strong>
+            <strong>{props.data.label}</strong>
           </div>
-          {data.secondaryLabel && <div className="autosar-node-subtitle">{data.secondaryLabel}</div>}
-          {data.warning && <div className="autosar-node-warning">{data.warning}</div>}
+          {props.data.secondaryLabel && <div className="autosar-node-subtitle">{props.data.secondaryLabel}</div>}
+          {props.data.warning && <div className="autosar-node-warning">{props.data.warning}</div>}
         </div>
         <div className="autosar-symbol-rail autosar-symbol-rail-right">
           <AutosarSwcPorts
             ports={providedPorts}
-            portConnections={data.portConnections}
+            portConnections={props.data.portConnections}
             side="right"
             railWidth={rightRailWidth}
-            highlightedPortId={data.highlightedPortId}
-            onConnectionNavigate={data.onConnectionNavigate}
+            highlightedPortId={props.data.highlightedPortId}
+            onConnectionNavigate={props.data.onConnectionNavigate}
           />
         </div>
       </div>

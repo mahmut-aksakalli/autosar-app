@@ -15,22 +15,21 @@ import {
 import { buildPortInterfaceDetailTables } from "./PortInterfaceDetails/PortInterfaceDetailsHelper";
 
 export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
-  const { title, entity } = props;
-  const metadata = entity.metadata ?? {};
-  const details = entity.details?.entity ?? { fields: [], tables: [] };
-  const interfaceMembers = entity.type === "interface"
-    ? entity.details?.interfaceMembers ?? []
+  const metadata = props.entity.metadata ?? {};
+  const details = props.entity.details?.entity ?? { fields: [], tables: [] };
+  const interfaceMembers = props.entity.type === "interface"
+    ? props.entity.details?.interfaceMembers ?? []
     : [];
-  const interfaceTables = entity.type === "interface"
-    ? buildPortInterfaceDetailTables(entity, interfaceMembers)
+  const interfaceTables = props.entity.type === "interface"
+    ? buildPortInterfaceDetailTables(props.entity, interfaceMembers)
     : [];
   const interfaceType = details.fields.find((field) => field.label === "Interface Type")?.value ?? "-";
   const isService = details.fields.find((field) => field.label === "Is Service")?.value ?? "false";
-  const fields = entity.type === "interface"
+  const fields = props.entity.type === "interface"
     ? [
-        { label: "Name", value: entity.shortName },
+        { label: "Name", value: props.entity.shortName },
         { label: "Port Interface Type", value: interfaceType },
-        { label: "Package", value: entity.parentSemanticPath ?? entity.packagePath ?? "-" },
+        { label: "Package", value: props.entity.parentSemanticPath ?? props.entity.packagePath ?? "-" },
         { label: "Is Service", value: isService },
         { label: "Description", value: metadata.DESCRIPTION ?? "-" },
         ...details.fields.filter(
@@ -38,9 +37,9 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
         )
       ]
     : [
-        { label: "Name", value: entity.shortName },
-        { label: "AUTOSAR Type", value: formatAutosarTagText(entity.rawTagName) },
-        { label: "Package Path", value: entity.parentSemanticPath ?? entity.packagePath ?? "-" },
+        { label: "Name", value: props.entity.shortName },
+        { label: "AUTOSAR Type", value: formatAutosarTagText(props.entity.rawTagName) },
+        { label: "Package Path", value: props.entity.parentSemanticPath ?? props.entity.packagePath ?? "-" },
         ...(metadata.DESCRIPTION ? [{ label: "Description", value: metadata.DESCRIPTION }] : []),
         ...details.fields
       ];
@@ -48,7 +47,7 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
@@ -56,7 +55,7 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
             <div key={`${field.label}:${index}`}>
               <span>{field.label}</span>
               <strong title={field.value}>
-                {entity.type === "interface" && field.label === "Is Service" ? (
+                {props.entity.type === "interface" && field.label === "Is Service" ? (
                   <input type="checkbox" checked={readBooleanMetadata(field.value) === true} disabled readOnly />
                 ) : field.valueType ? (
                   <span className="model-inline-value-with-select">
@@ -70,10 +69,10 @@ export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
             </div>
           ))}
         </div>
-        {entity.type === "interface" && entity.interfaceKind === "sender-receiver" ? (
+        {props.entity.type === "interface" && props.entity.interfaceKind === "sender-receiver" ? (
           <PortInterfaceDataElements members={interfaceMembers} />
         ) : null}
-        {entity.type === "interface" && entity.interfaceKind === "client-server" ? (
+        {props.entity.type === "interface" && props.entity.interfaceKind === "client-server" ? (
           <PortInterfaceOperations members={interfaceMembers} />
         ) : null}
         {[...details.tables, ...interfaceTables].map((table) => (

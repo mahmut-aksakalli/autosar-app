@@ -44,49 +44,40 @@ interface EditorGraphZoneProps {
 }
 
 export function EditorGraphZone(props: EditorGraphZoneProps) {
-  const {
-    focusEntity,
-    workspaceRevision,
-    preferredScope,
-    preferredNodeId,
-    activeWorkspaceTab,
-    onFocusModelEntity,
-    onOpenWorkspaceTab
-  } = props;
   const [graphScope, setGraphScope] = useState<SwcGraphScope>(() =>
-    preferredScope ?? getDefaultGraphScope(focusEntity)
+    props.preferredScope ?? getDefaultGraphScope(props.focusEntity)
   );
   // Selection controls the details panel. The active composition node and port
   // additionally control graph isolation and connection-label navigation.
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
-  const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(preferredNodeId);
+  const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(props.preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
   const flowCanvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<AutosarSwcController | null>(null);
   const isCompositionScope = graphScope === "composition";
-  const tabRequestsInternals = activeWorkspaceTab?.includeCompositionInternals === true;
+  const tabRequestsInternals = props.activeWorkspaceTab?.includeCompositionInternals === true;
   const hasFocusedCompositionNode = Boolean(activeCompositionNodeId);
   // Composition internals are fetched only when the tab requests them or the
   // user has navigated into a specific composition instance.
   const includeCompositionInternals =
     isCompositionScope && (tabRequestsInternals || hasFocusedCompositionNode);
   let graphCacheKey: string | undefined;
-  if (focusEntity) {
-    const focusId = focusEntity.semanticPath ?? focusEntity.id;
+  if (props.focusEntity) {
+    const focusId = props.focusEntity.semanticPath ?? props.focusEntity.id;
     graphCacheKey = createGraphCacheKey(
-      workspaceRevision,
+      props.workspaceRevision,
       graphScope,
       focusId,
       includeCompositionInternals
     );
   }
 
-  const isGraphSupportedForEntity = focusEntity?.type === "swc" || focusEntity?.type === "composition";
-  const isEntityDetailsTab = activeWorkspaceTab?.kind === "entityDetails";
-  const shouldLoadGraph = Boolean(focusEntity) && isGraphSupportedForEntity && !isEntityDetailsTab;
+  const isGraphSupportedForEntity = props.focusEntity?.type === "swc" || props.focusEntity?.type === "composition";
+  const isEntityDetailsTab = props.activeWorkspaceTab?.kind === "entityDetails";
+  const shouldLoadGraph = Boolean(props.focusEntity) && isGraphSupportedForEntity && !isEntityDetailsTab;
   const { graphResult, loading, error } = useAutosarSwcGraph({
-    focusEntity,
-    workspaceRevision,
+    focusEntity: props.focusEntity,
+    workspaceRevision: props.workspaceRevision,
     scope: graphScope,
     includeCompositionInternals,
     cacheKey: graphCacheKey,
@@ -94,33 +85,33 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   });
 
   useEffect(() => {
-    setGraphScope(preferredScope ?? getDefaultGraphScope(focusEntity));
-  }, [focusEntity?.id, focusEntity?.type, preferredScope]);
+    setGraphScope(props.preferredScope ?? getDefaultGraphScope(props.focusEntity));
+  }, [props.focusEntity?.id, props.focusEntity?.type, props.preferredScope]);
 
   useEffect(() => {
-    setActiveCompositionNodeId(preferredNodeId);
+    setActiveCompositionNodeId(props.preferredNodeId);
     setActiveCompositionPortId(undefined);
-  }, [preferredNodeId, focusEntity?.id]);
+  }, [props.preferredNodeId, props.focusEntity?.id]);
 
   useEffect(() => {
-    if (activeWorkspaceTab?.kind === "graph" && activeWorkspaceTab.preferredScope) {
-      setGraphScope(activeWorkspaceTab.preferredScope);
-      setActiveCompositionNodeId(activeWorkspaceTab.preferredNodeId);
+    if (props.activeWorkspaceTab?.kind === "graph" && props.activeWorkspaceTab.preferredScope) {
+      setGraphScope(props.activeWorkspaceTab.preferredScope);
+      setActiveCompositionNodeId(props.activeWorkspaceTab.preferredNodeId);
     }
-  }, [activeWorkspaceTab?.kind, activeWorkspaceTab?.preferredNodeId, activeWorkspaceTab?.preferredScope]);
+  }, [props.activeWorkspaceTab?.kind, props.activeWorkspaceTab?.preferredNodeId, props.activeWorkspaceTab?.preferredScope]);
 
   useEffect(() => {
     if (!graphResult) {
       return;
     }
-    setSelectedNodeId(findInitialNodeId(graphResult, activeCompositionNodeId, preferredNodeId));
+    setSelectedNodeId(findInitialNodeId(graphResult, activeCompositionNodeId, props.preferredNodeId));
   }, [graphResult]);
 
   const graphNodes = graphResult?.nodes ?? [];
   const selectedGraphNode = graphNodes.find((node) => node.id === selectedNodeId);
-  const inspector = selectedGraphNode?.inspector ?? findFallbackInspector(graphResult, focusEntity);
+  const inspector = selectedGraphNode?.inspector ?? findFallbackInspector(graphResult, props.focusEntity);
   let shouldIsolateCompositionNode = false;
-  if (graphResult?.scope === "composition" && activeCompositionNodeId && preferredNodeId) {
+  if (graphResult?.scope === "composition" && activeCompositionNodeId && props.preferredNodeId) {
     shouldIsolateCompositionNode = graphResult.nodes.some((node) => {
       return node.id === activeCompositionNodeId && node.kind === "instance";
     });
@@ -189,7 +180,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
       nodes: visibleNodes,
       edges: visibleEdges
     };
-  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, preferredNodeId]);
+  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, props.preferredNodeId]);
 
   let fitViewOptions = { padding: 0.2, maxZoom: 1.1, minZoom: 0.35 };
   if (shouldIsolateCompositionNode) {
@@ -267,7 +258,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
 
   let flowCanvasKey = "empty";
   if (graphResult) {
-    flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${preferredNodeId ?? ""}`;
+    flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${props.preferredNodeId ?? ""}`;
   }
 
   function handleNodeClick(_event: React.MouseEvent, node: Node) {
@@ -302,7 +293,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
       targetScope = "composition";
     }
 
-    onFocusModelEntity?.({
+    props.onFocusModelEntity?.({
       entityId: targetEntityId,
       semanticPath: targetSemanticPath,
       preferredScope: targetScope,
@@ -312,9 +303,9 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   }
 
   let activeContent: ReactNode;
-  if (!activeWorkspaceTab) {
+  if (!props.activeWorkspaceTab) {
     activeContent = <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>;
-  } else if (activeWorkspaceTab.kind === "graph") {
+  } else if (props.activeWorkspaceTab.kind === "graph") {
     activeContent = (
       <AutosarSwc
         canvasRef={flowCanvasRef}
@@ -336,11 +327,11 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   } else {
     activeContent = (
       <SwcDetails
-        tab={activeWorkspaceTab}
-        focusEntity={focusEntity}
+        tab={props.activeWorkspaceTab}
+        focusEntity={props.focusEntity}
         graphResult={graphResult}
         inspector={inspector}
-        onOpenWorkspaceTab={onOpenWorkspaceTab}
+        onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );
   }

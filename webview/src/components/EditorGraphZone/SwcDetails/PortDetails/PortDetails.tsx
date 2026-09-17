@@ -17,30 +17,29 @@ export function PortDetails(props: {
   filePath?: string;
   xmlPath?: string;
 }) {
-  const { title, port } = props;
-  const argumentValues = normalizePortDefinedArgumentValues(port?.details?.portDefinedArgumentValues ?? []);
-  const communicationSpecs = normalizeCommunicationSpecDetails(port?.details?.communicationSpecs ?? []);
-  const interfaceMemberDetails = mapInterfaceMemberDetails(port?.details?.interfaceMembers ?? []);
+  const argumentValues = normalizePortDefinedArgumentValues(props.port?.details?.portDefinedArgumentValues ?? []);
+  const communicationSpecs = normalizeCommunicationSpecDetails(props.port?.details?.communicationSpecs ?? []);
+  const interfaceMemberDetails = mapInterfaceMemberDetails(props.port?.details?.interfaceMembers ?? []);
   const displayedSpecs = communicationSpecs.length > 0 ? communicationSpecs : interfaceMemberDetails;
   const specsTitle = communicationSpecs.length > 0 ? "Communication Specs" : "Interface Members";
-  const interfaceKind = port?.interfaceKind ?? "unknown";
+  const interfaceKind = props.port?.interfaceKind ?? "unknown";
   const directionOptions = getPortDirectionOptions(interfaceKind);
-  const directionLabel = formatPortDirectionLabel(port?.direction, interfaceKind);
+  const directionLabel = formatPortDirectionLabel(props.port?.direction, interfaceKind);
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
-            <strong>{port?.label ?? title.replace(/^Port:\s*/, "")}</strong>
+            <strong>{props.port?.label ?? props.title.replace(/^Port:\s*/, "")}</strong>
           </div>
           <div>
             <span>Port Interface</span>
-            <strong>{formatReferenceShortName(port?.interfaceRef)}</strong>
+            <strong>{formatReferenceShortName(props.port?.interfaceRef)}</strong>
           </div>
           <div>
             <span>Port Interface Type</span>
@@ -58,15 +57,15 @@ export function PortDetails(props: {
           </div>
           <div>
             <span>Is Service Port</span>
-            <strong>{formatBooleanMetadata(port?.metadata?.["IS-SERVICE"])}</strong>
+            <strong>{formatBooleanMetadata(props.port?.metadata?.["IS-SERVICE"])}</strong>
           </div>
           <div>
             <span>Description</span>
-            <strong>{port?.metadata?.DESCRIPTION ?? "-"}</strong>
+            <strong>{props.port?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
 
-        <PortApiOptionsSection port={port} argumentValues={argumentValues} />
+        <PortApiOptionsSection port={props.port} argumentValues={argumentValues} />
         <CommunicationSpecsSection rows={displayedSpecs} interfaceKind={interfaceKind} title={specsTitle} />
       </div>
     </div>

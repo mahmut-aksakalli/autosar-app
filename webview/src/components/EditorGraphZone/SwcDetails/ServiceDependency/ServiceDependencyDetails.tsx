@@ -13,33 +13,32 @@ import {
 import type { NvmAssignedDataDetail, ServiceNeedDisplayDetail } from "./ServiceDependencyHelper";
 
 export function ServiceDependencyDetails(props: { title: string; item?: SwcInspectorItem }) {
-  const { title, item } = props;
-  const metadata = item?.metadata ?? {};
+  const metadata = props.item?.metadata ?? {};
   const serviceNeedDetails = parseServiceNeedDetailFields(
-    item?.details?.serviceNeedFields ?? [],
+    props.item?.details?.serviceNeedFields ?? [],
     metadata["SERVICE-NEED-DETAILS"]
   );
   const serviceType = normalizeAutosarEnumToken(metadata["SERVICE-TYPE"] ?? "");
   const isNvBlockNeeds = serviceType === "nvblockneeds";
   const isDiagnosticEnableConditionNeeds = serviceType === "diagnosticenableconditionneeds";
   const detailRows = getServiceNeedDetailRows(
-    item?.label,
+    props.item?.label,
     metadata,
     serviceNeedDetails,
-    item?.details?.assignedPorts ?? []
+    props.item?.details?.assignedPorts ?? []
   );
   const assignedData = isNvBlockNeeds
-    ? parseNvmAssignedDataDetails(metadata, item?.details?.assignedData ?? [])
+    ? parseNvmAssignedDataDetails(metadata, props.item?.details?.assignedData ?? [])
     : [];
   const dataAssignments = isDiagnosticEnableConditionNeeds
-    ? item?.details?.assignedData ?? []
+    ? props.item?.details?.assignedData ?? []
     : [];
-  const assignedPorts = item?.details?.assignedPorts ?? [];
+  const assignedPorts = props.item?.details?.assignedPorts ?? [];
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
       <div className="model-port-detail">
         <div className="model-semantic-kv model-port-fields">
@@ -59,34 +58,32 @@ export function ServiceDependencyDetails(props: { title: string; item?: SwcInspe
 }
 
 function ServiceNeedDetailRow(props: { detail: ServiceNeedDisplayDetail }) {
-  const { detail } = props;
   return (
     <div>
-      <span>{detail.label}</span>
+      <span>{props.detail.label}</span>
       <strong>
-        {detail.kind === "checkbox" ? (
-          <input type="checkbox" checked={detail.checked === true} disabled readOnly />
-        ) : detail.kind === "checkboxDropdown" ? (
+        {props.detail.kind === "checkbox" ? (
+          <input type="checkbox" checked={props.detail.checked === true} disabled readOnly />
+        ) : props.detail.kind === "checkboxDropdown" ? (
           <span className="model-inline-value-with-select">
-            <input type="checkbox" checked={detail.checked === true} disabled readOnly />
-            <select value={detail.value || "-"} disabled>
-              {getServiceNeedSelectOptions(detail.value || "-", detail.options).map((option) => (
+            <input type="checkbox" checked={props.detail.checked === true} disabled readOnly />
+            <select value={props.detail.value || "-"} disabled>
+              {getServiceNeedSelectOptions(props.detail.value || "-", props.detail.options).map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
           </span>
-        ) : detail.kind === "dropdown" ? (
-          <select value={detail.value || "-"} disabled>
-            <option>{detail.value || "-"}</option>
+        ) : props.detail.kind === "dropdown" ? (
+          <select value={props.detail.value || "-"} disabled>
+            <option>{props.detail.value || "-"}</option>
           </select>
-        ) : detail.value}
+        ) : props.detail.value}
       </strong>
     </div>
   );
 }
 
 function NvmAssignedDataTable(props: { rows: NvmAssignedDataDetail[] }) {
-  const { rows } = props;
   return (
     <section className="model-port-argument-section">
       <h3>NVM Assigned Data</h3>
@@ -99,7 +96,7 @@ function NvmAssignedDataTable(props: { rows: NvmAssignedDataDetail[] }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {props.rows.map((row) => (
               <tr key={row.role}>
                 <td title={row.role}>{row.role}</td>
                 <td title={row.value}>{row.value}</td>
@@ -113,11 +110,10 @@ function NvmAssignedDataTable(props: { rows: NvmAssignedDataDetail[] }) {
 }
 
 function ServiceDataAssignmentsTable(props: { rows: ServiceAssignedDataDetail[] }) {
-  const { rows } = props;
   return (
     <section className="model-port-argument-section">
       <h3>Data Assignments</h3>
-      {rows.length > 0 ? (
+      {props.rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table className="model-runnable-table">
             <thead>
@@ -129,7 +125,7 @@ function ServiceDataAssignmentsTable(props: { rows: ServiceAssignedDataDetail[] 
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {props.rows.map((row, index) => (
                 <tr key={`${row.portPrototype}:${row.dataElementPrototype}:${row.assignedRole}:${index}`}>
                   <td title={row.portPrototypeRef ?? row.portPrototype}>{row.portPrototype}</td>
                   <td title={row.portInterfaceRef ?? row.portInterface}>{row.portInterface}</td>
@@ -148,11 +144,10 @@ function ServiceDataAssignmentsTable(props: { rows: ServiceAssignedDataDetail[] 
 }
 
 function ServiceAssignedPortsTable(props: { rows: ServiceAssignedPortDetail[]; title?: string }) {
-  const { rows, title = "Assigned Ports" } = props;
   return (
     <section className="model-port-argument-section">
-      <h3>{title}</h3>
-      {rows.length > 0 ? (
+      <h3>{props.title ?? "Assigned Ports"}</h3>
+      {props.rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table className="model-runnable-table">
             <thead>
@@ -163,7 +158,7 @@ function ServiceAssignedPortsTable(props: { rows: ServiceAssignedPortDetail[]; t
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
+              {props.rows.map((row, index) => (
                 <tr key={`${row.portPrototype}:${row.assignedRole}:${index}`}>
                   <td title={row.portPrototypeRef ?? row.portPrototype}>{row.portPrototype}</td>
                   <td title={row.portInterfaceRef ?? row.portInterface}>{row.portInterface}</td>

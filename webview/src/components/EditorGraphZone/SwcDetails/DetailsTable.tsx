@@ -54,19 +54,18 @@ export function SortableTableHeader<Key extends string>(props: {
   sort: { key: Key; direction: SortDirection };
   onSort: (key: Key) => void;
 }) {
-  const { label, columnKey, sort, onSort } = props;
-  const isActive = sort.key === columnKey;
-  const indicatorClass = isActive ? `is-${sort.direction}` : "is-unsorted";
+  const isActive = props.sort.key === props.columnKey;
+  const indicatorClass = isActive ? `is-${props.sort.direction}` : "is-unsorted";
 
   return (
-    <th scope="col" aria-sort={isActive ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+    <th scope="col" aria-sort={isActive ? (props.sort.direction === "asc" ? "ascending" : "descending") : "none"}>
       <button
         type="button"
         className="model-sort-header-button"
-        onClick={() => onSort(columnKey)}
-        title={`Sort by ${label}`}
+        onClick={() => props.onSort(props.columnKey)}
+        title={`Sort by ${props.label}`}
       >
-        <span>{label}</span>
+        <span>{props.label}</span>
         <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
       </button>
     </th>
@@ -80,26 +79,25 @@ export function SortableResizableTableHeader<Key extends string>(props: {
   onSort: (key: Key) => void;
   onResize: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
-  const { label, columnKey, sort, onSort, onResize } = props;
-  const isActive = sort.key === columnKey;
-  const indicatorClass = isActive ? `is-${sort.direction}` : "is-unsorted";
+  const isActive = props.sort.key === props.columnKey;
+  const indicatorClass = isActive ? `is-${props.sort.direction}` : "is-unsorted";
 
   return (
-    <th aria-sort={isActive ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+    <th aria-sort={isActive ? (props.sort.direction === "asc" ? "ascending" : "descending") : "none"}>
       <button
         type="button"
         className="model-sort-header-button"
-        onClick={() => onSort(columnKey)}
-        title={`Sort by ${label}`}
+        onClick={() => props.onSort(props.columnKey)}
+        title={`Sort by ${props.label}`}
       >
-        <span>{label}</span>
+        <span>{props.label}</span>
         <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
       </button>
       <button
         type="button"
         className="model-runnable-column-resizer"
-        aria-label={`Resize ${label} column`}
-        onPointerDown={onResize}
+        aria-label={`Resize ${props.label} column`}
+        onPointerDown={props.onResize}
       />
     </th>
   );

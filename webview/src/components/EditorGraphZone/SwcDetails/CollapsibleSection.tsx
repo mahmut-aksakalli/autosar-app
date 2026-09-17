@@ -2,8 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 export function CollapsibleSection(props: { title: string; defaultOpen?: boolean; children: ReactNode }) {
-  const { title, defaultOpen = false, children } = props;
-  const [isExpanded, setIsExpanded] = useState(defaultOpen);
+  const [isExpanded, setIsExpanded] = useState(props.defaultOpen ?? false);
 
   return (
     <section className="model-list-section model-communication-subsection">
@@ -14,9 +13,9 @@ export function CollapsibleSection(props: { title: string; defaultOpen?: boolean
         onClick={() => setIsExpanded((current) => !current)}
       >
         <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>{title}</span>
+        <span>{props.title}</span>
       </button>
-      {isExpanded && children}
+      {isExpanded && props.children}
     </section>
   );
 }

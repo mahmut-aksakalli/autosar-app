@@ -9,7 +9,6 @@ export function PortApiOptionsSection(props: {
   port?: SwcGraphPort;
   argumentValues: PortDefinedArgumentValueDetail[];
 }) {
-  const { port, argumentValues } = props;
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -31,7 +30,7 @@ export function PortApiOptionsSection(props: {
               <strong>
                 <input
                   type="checkbox"
-                  checked={readBooleanMetadata(port?.metadata?.["ENABLE-INDIRECT-API"]) === true}
+                  checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-INDIRECT-API"]) === true}
                   disabled
                   readOnly
                 />
@@ -42,7 +41,7 @@ export function PortApiOptionsSection(props: {
               <strong>
                 <input
                   type="checkbox"
-                  checked={readBooleanMetadata(port?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"]) === true}
+                  checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"]) === true}
                   disabled
                   readOnly
                 />
@@ -53,14 +52,14 @@ export function PortApiOptionsSection(props: {
               <strong>
                 <input
                   type="checkbox"
-                  checked={readTransformationErrorHandlingMetadata(port?.metadata?.["TRANSFORMATION-ERROR-HANDLING"])}
+                  checked={readTransformationErrorHandlingMetadata(props.port?.metadata?.["TRANSFORMATION-ERROR-HANDLING"])}
                   disabled
                   readOnly
                 />
               </strong>
             </div>
           </div>
-          <PortDefinedArgumentTable rows={argumentValues} />
+          <PortDefinedArgumentTable rows={props.argumentValues} />
         </>
       )}
     </section>
@@ -68,11 +67,10 @@ export function PortApiOptionsSection(props: {
 }
 
 function PortDefinedArgumentTable(props: { rows: PortDefinedArgumentValueDetail[] }) {
-  const { rows } = props;
   return (
     <section className="model-port-argument-section">
       <h3>Port defined argument values</h3>
-      {rows.length > 0 ? (
+      {props.rows.length > 0 ? (
         <div className="model-runnable-table-scroll">
           <table className="model-runnable-table">
             <thead>
@@ -84,7 +82,7 @@ function PortDefinedArgumentTable(props: { rows: PortDefinedArgumentValueDetail[
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {props.rows.map((row) => (
                 <tr key={`${row.index}:${row.name}:${row.dataType}:${row.value}`}>
                   <td title={row.index}>{row.index}</td>
                   <td title={row.name}>{row.name}</td>

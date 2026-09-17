@@ -20,7 +20,6 @@ export function RunnablesTable(props: {
   focusEntityId: string;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
-  const { title, swcName, runnables, focusEntityId, onOpenWorkspaceTab } = props;
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: RunnableTableColumnKey; direction: SortDirection }>({
     key: "runnableName",
@@ -30,15 +29,15 @@ export function RunnablesTable(props: {
   // Search and sorting below can then operate without knowing AUTOSAR metadata keys.
   const rows = useMemo<RunnableTableRow[]>(
     () =>
-      runnables.map((runnable) => ({
+      props.runnables.map((runnable) => ({
         runnable,
-        swcName,
+        swcName: props.swcName,
         runnableName: runnable.label,
         runnableSymbol: runnable.metadata?.SYMBOL ?? "-",
         period: formatOptionalMilliseconds(runnable.metadata?.PERIOD),
         periodSortValue: Number(runnable.metadata?.PERIOD)
       })),
-    [runnables, swcName]
+    [props.runnables, props.swcName]
   );
   const visibleRows = useMemo(() => {
     const normalizedQuery = normalizeTableSearch(searchQuery);
@@ -63,7 +62,7 @@ export function RunnablesTable(props: {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
         <label className="model-table-search">
           <span>Search</span>
           <input
@@ -74,7 +73,7 @@ export function RunnablesTable(props: {
           />
         </label>
       </div>
-      {runnables.length > 0 ? (
+      {props.runnables.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table model-clickable-table">
             <thead>
@@ -112,11 +111,11 @@ export function RunnablesTable(props: {
                   tabIndex={0}
                   role="button"
                   onClick={() =>
-                    onOpenWorkspaceTab?.({
-                      id: `${focusEntityId}:runnable:${row.runnable.id}`,
+                    props.onOpenWorkspaceTab?.({
+                      id: `${props.focusEntityId}:runnable:${row.runnable.id}`,
                       title: `Runnable: ${row.runnable.label}`,
                       kind: "runnable",
-                      focusEntityId,
+                      focusEntityId: props.focusEntityId,
                       sectionId: "runnables",
                       itemId: row.runnable.id,
                       xmlPath: row.runnable.xmlPath
@@ -125,11 +124,11 @@ export function RunnablesTable(props: {
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      onOpenWorkspaceTab?.({
-                        id: `${focusEntityId}:runnable:${row.runnable.id}`,
+                      props.onOpenWorkspaceTab?.({
+                        id: `${props.focusEntityId}:runnable:${row.runnable.id}`,
                         title: `Runnable: ${row.runnable.label}`,
                         kind: "runnable",
-                        focusEntityId,
+                        focusEntityId: props.focusEntityId,
                         sectionId: "runnables",
                         itemId: row.runnable.id,
                         xmlPath: row.runnable.xmlPath
@@ -160,7 +159,6 @@ export function PortsTable(props: {
   focusEntityId: string;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
-  const { title, ports, focusEntityId, onOpenWorkspaceTab } = props;
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: PortTableColumnKey; direction: SortDirection }>({
     key: "portName",
@@ -170,7 +168,7 @@ export function PortsTable(props: {
   // every render branch and table cell.
   const rows = useMemo(
     () =>
-      ports.map((port) => ({
+      props.ports.map((port) => ({
         port,
         portName: port.label,
         direction: formatPortDirectionLabel(port.direction, port.interfaceKind),
@@ -178,7 +176,7 @@ export function PortsTable(props: {
         interfaceName: formatReferenceShortName(port.interfaceRef),
         interfaceRef: port.interfaceRef ?? "-"
       })),
-    [ports]
+    [props.ports]
   );
   const visibleRows = useMemo(() => {
     const normalizedQuery = normalizeTableSearch(searchQuery);
@@ -201,11 +199,11 @@ export function PortsTable(props: {
   };
 
   const openPortTab = (port: SwcGraphPort) => {
-    onOpenWorkspaceTab?.({
-      id: `${focusEntityId}:port:${port.id}`,
+    props.onOpenWorkspaceTab?.({
+      id: `${props.focusEntityId}:port:${port.id}`,
       title: `Port: ${port.label}`,
       kind: "port",
-      focusEntityId,
+      focusEntityId: props.focusEntityId,
       entityId: port.id,
       xmlPath: port.xmlPath
     });
@@ -214,7 +212,7 @@ export function PortsTable(props: {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
         <label className="model-table-search">
           <span>Search</span>
           <input
@@ -225,7 +223,7 @@ export function PortsTable(props: {
           />
         </label>
       </div>
-      {ports.length > 0 ? (
+      {props.ports.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table model-clickable-table">
             <thead>
@@ -280,27 +278,16 @@ export function DetailsItemsTable(props: {
   columns: Array<{ key: string; label: string }>;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
-  const {
-    title,
-    items,
-    focusEntityId,
-    detailKind,
-    detailTitlePrefix,
-    emptyLabel,
-    filterPlaceholder,
-    columns,
-    onOpenWorkspaceTab
-  } = props;
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; direction: SortDirection }>({
-    key: columns[0]?.key ?? "label",
+    key: props.columns[0]?.key ?? "label",
     direction: "asc"
   });
   // Detail sections have different metadata columns. Flattening metadata into
   // the row keeps the generic table implementation independent of each section.
   const rows = useMemo<DetailsTableRow[]>(
     () =>
-      items.map((entry) => {
+      props.items.map((entry) => {
         const metadata = entry.item.metadata ?? {};
         return {
           id: `${entry.sectionId}:${entry.item.id}`,
@@ -321,21 +308,21 @@ export function DetailsItemsTable(props: {
           "SW-CALIBRATION-ACCESS": formatCalibrationAccess(metadata["SW-CALIBRATION-ACCESS"])
         };
       }),
-    [items]
+    [props.items]
   );
   const visibleRows = useMemo(() => {
     const normalizedQuery = normalizeTableSearch(searchQuery);
     return rows
       .filter((row) =>
         normalizedQuery
-          ? columns.some((column) => normalizeTableSearch(String(row[column.key] ?? "")).includes(normalizedQuery))
+          ? props.columns.some((column) => normalizeTableSearch(String(row[column.key] ?? "")).includes(normalizedQuery))
           : true
       )
       .sort((left, right) => {
         const direction = sort.direction === "asc" ? 1 : -1;
         return direction * compareTableText(String(left[sort.key] ?? ""), String(right[sort.key] ?? ""));
       });
-  }, [columns, rows, searchQuery, sort]);
+  }, [props.columns, rows, searchQuery, sort]);
 
   const changeSort = (key: string) => {
     setSort((current) => ({
@@ -345,11 +332,11 @@ export function DetailsItemsTable(props: {
   };
 
   const openItemTab = (row: DetailsTableRow) => {
-    onOpenWorkspaceTab?.({
-      id: `${focusEntityId}:${detailKind}:${row.sectionId}:${row.item.id}`,
-      title: `${detailTitlePrefix}: ${row.item.label}`,
-      kind: detailKind,
-      focusEntityId,
+    props.onOpenWorkspaceTab?.({
+      id: `${props.focusEntityId}:${props.detailKind}:${row.sectionId}:${row.item.id}`,
+      title: `${props.detailTitlePrefix}: ${row.item.label}`,
+      kind: props.detailKind,
+      focusEntityId: props.focusEntityId,
       sectionId: row.sectionId,
       itemId: row.item.id,
       xmlPath: row.item.xmlPath
@@ -359,23 +346,23 @@ export function DetailsItemsTable(props: {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
         <label className="model-table-search">
           <span>Search</span>
           <input
             type="search"
             value={searchQuery}
-            placeholder={filterPlaceholder}
+            placeholder={props.filterPlaceholder}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
         </label>
       </div>
-      {items.length > 0 ? (
+      {props.items.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table model-clickable-table">
             <thead>
               <tr>
-                {columns.map((column) => (
+                {props.columns.map((column) => (
                   <SortableTableHeader
                     key={column.key}
                     label={column.label}
@@ -400,7 +387,7 @@ export function DetailsItemsTable(props: {
                     }
                   }}
                 >
-                  {columns.map((column) => (
+                  {props.columns.map((column) => (
                     <td key={column.key}>{String(row[column.key] ?? "-") || "-"}</td>
                   ))}
                 </tr>
@@ -410,7 +397,7 @@ export function DetailsItemsTable(props: {
           {visibleRows.length === 0 && <div className="model-table-filter-empty">No matching items.</div>}
         </div>
       ) : (
-        <div className="empty-state">{emptyLabel}</div>
+        <div className="empty-state">{props.emptyLabel}</div>
       )}
     </div>
   );
@@ -422,18 +409,17 @@ export function DetailsTable(props: {
   columns: Array<{ key: string; label: string }>;
   rows: Array<Record<string, string | undefined>>;
 }) {
-  const { title, emptyLabel, columns, rows } = props;
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{title}</strong>
+        <strong>{props.title}</strong>
       </div>
-      {rows.length > 0 ? (
+      {props.rows.length > 0 ? (
         <div className="model-semantic-table-shell">
           <table className="model-inspector-section-table model-semantic-table">
             <thead>
               <tr>
-                {columns.map((column) => (
+                {props.columns.map((column) => (
                   <th key={column.key} scope="col">
                     {column.label}
                   </th>
@@ -441,9 +427,9 @@ export function DetailsTable(props: {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {props.rows.map((row) => (
                 <tr key={row.id ?? JSON.stringify(row)}>
-                  {columns.map((column) => (
+                  {props.columns.map((column) => (
                     <td key={column.key}>{row[column.key] || "-"}</td>
                   ))}
                 </tr>
@@ -452,7 +438,7 @@ export function DetailsTable(props: {
           </table>
         </div>
       ) : (
-        <div className="empty-state">{emptyLabel}</div>
+        <div className="empty-state">{props.emptyLabel}</div>
       )}
     </div>
   );

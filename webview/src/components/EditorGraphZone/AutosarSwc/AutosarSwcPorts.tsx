@@ -13,31 +13,22 @@ interface AutosarSwcPortsProps {
 
 /** Renders one side of an SWC node, including its React Flow connection handles. */
 export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
-  const {
-    ports,
-    portConnections,
-    side,
-    railWidth,
-    highlightedPortId,
-    onConnectionNavigate
-  } = props;
-
-  if (ports.length === 0) {
+  if (props.ports.length === 0) {
     return <div className="autosar-node-empty" />;
   }
 
   let portLabelStyle: React.CSSProperties | undefined;
-  if (railWidth) {
+  if (props.railWidth) {
     portLabelStyle = {
-      ["--port-label-width" as string]: `${Math.max(116, railWidth - 54)}px`
+      ["--port-label-width" as string]: `${Math.max(116, props.railWidth - 54)}px`
     };
   }
 
   return (
-    <div className={`autosar-port-list side-${side}`}>
-      {ports.map((port) => {
-        let portClassName = `autosar-port autosar-port-${port.direction} side-${side}`;
-        if (port.id === highlightedPortId) {
+    <div className={`autosar-port-list side-${props.side}`}>
+      {props.ports.map((port) => {
+        let portClassName = `autosar-port autosar-port-${port.direction} side-${props.side}`;
+        if (port.id === props.highlightedPortId) {
           portClassName += " is-highlighted-target";
         }
 
@@ -48,32 +39,32 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
             className={portClassName}
             onDoubleClick={(event) => {
               event.stopPropagation();
-              const primaryConnection = portConnections?.[port.id]?.[0];
+              const primaryConnection = props.portConnections?.[port.id]?.[0];
               if (primaryConnection) {
-                onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
+                props.onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
               }
             }}
             style={portLabelStyle}
           >
             <Handle
               id={port.id}
-              type={getPrimaryHandleType(side)}
-              position={getPrimaryHandlePosition(side)}
+              type={getPrimaryHandleType(props.side)}
+              position={getPrimaryHandlePosition(props.side)}
             />
             <span className="autosar-pin-line" aria-hidden="true" />
-            <PortGlyph direction={port.direction} interfaceKind={port.interfaceKind} side={side} />
+            <PortSymbol direction={port.direction} interfaceKind={port.interfaceKind} side={props.side} />
             <div className="autosar-port-text">
               <strong>{port.label}</strong>
               <PortConnectionList
-                connections={portConnections?.[port.id]}
-                highlighted={port.id === highlightedPortId}
-                onNavigate={onConnectionNavigate}
+                connections={props.portConnections?.[port.id]}
+                highlighted={port.id === props.highlightedPortId}
+                onNavigate={props.onConnectionNavigate}
               />
             </div>
             <Handle
               id={port.id}
-              type={getSecondaryHandleType(side)}
-              position={getSecondaryHandlePosition(side)}
+              type={getSecondaryHandleType(props.side)}
+              position={getSecondaryHandlePosition(props.side)}
             />
           </button>
         );
@@ -87,29 +78,28 @@ function PortConnectionList(props: {
   highlighted: boolean;
   onNavigate?: FlowNodeData["onConnectionNavigate"];
 }) {
-  const { connections, highlighted, onNavigate } = props;
-  if (!connections || connections.length === 0) {
+  if (!props.connections || props.connections.length === 0) {
     return null;
   }
 
   let labelClassName = "autosar-port-connection-label";
-  if (highlighted) {
+  if (props.highlighted) {
     labelClassName += " is-highlighted-target";
   }
 
   return (
     <span className="autosar-port-connection-list">
-      {connections.map((connection, index) => (
+      {props.connections.map((connection, index) => (
         <span
           key={`${connection.componentName}:${connection.portName}:${index}`}
           className={labelClassName}
           onClick={(event) => {
             event.stopPropagation();
-            onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
           }}
           onDoubleClick={(event) => {
             event.stopPropagation();
-            onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
           }}
         >
           <span className="autosar-port-connection-component">{connection.componentName}</span>
@@ -148,15 +138,14 @@ function getSecondaryHandlePosition(side: "left" | "right") {
   return Position.Right;
 }
 
-function PortGlyph(props: {
+function PortSymbol(props: {
   direction: "provided" | "required" | "provided-required";
   interfaceKind?: string;
   side: "left" | "right";
 }) {
-  const { direction, interfaceKind, side } = props;
-  const className = `autosar-port-symbol-mark side-${side}`;
+  const className = `autosar-port-symbol-mark side-${props.side}`;
 
-  if (interfaceKind === "nv-data") {
+  if (props.interfaceKind === "nv-data") {
     return (
       <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
         <ellipse cx="16" cy="6" rx="9" ry="3.5" />
@@ -168,7 +157,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (interfaceKind === "parameter") {
+  if (props.interfaceKind === "parameter") {
     return (
       <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
         <path d="M4 6H28" />
@@ -181,7 +170,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (interfaceKind === "mode-switch") {
+  if (props.interfaceKind === "mode-switch") {
     return (
       <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
         <path d="M9 4V20" />
@@ -192,7 +181,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (interfaceKind === "trigger") {
+  if (props.interfaceKind === "trigger") {
     return (
       <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
         <path d="M18 2L8 13H15L13 22L24 10H17L18 2Z" />
@@ -200,7 +189,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (direction === "provided-required") {
+  if (props.direction === "provided-required") {
     return (
       <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
         <path d="M2 12H30" />
@@ -210,7 +199,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (interfaceKind === "client-server" && direction === "provided") {
+  if (props.interfaceKind === "client-server" && props.direction === "provided") {
     return (
       <svg className={className} viewBox="0 0 28 28" aria-hidden="true">
         <circle cx="14" cy="14" r="9.5" />
@@ -218,7 +207,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (interfaceKind === "client-server" && direction === "required") {
+  if (props.interfaceKind === "client-server" && props.direction === "required") {
     return (
       <svg className={className} viewBox="0 0 28 28" aria-hidden="true">
         <path d="M10.25 5.75A9.25 9.25 0 1 1 10.25 22.25" />
@@ -226,7 +215,7 @@ function PortGlyph(props: {
     );
   }
 
-  if (direction === "provided") {
+  if (props.direction === "provided") {
     return (
       <svg className={className} viewBox="0 0 28 22" aria-hidden="true">
         <path d="M3 2L22 11L3 20Z" />

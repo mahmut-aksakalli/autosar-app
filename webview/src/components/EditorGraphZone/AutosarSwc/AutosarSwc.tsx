@@ -57,52 +57,37 @@ interface AutosarSwcProps {
 
 /** Renders the interactive SWC graph and its loading, error, and empty states. */
 export function AutosarSwc(props: AutosarSwcProps) {
-  const {
-    canvasRef,
-    canvasKey,
-    nodes,
-    edges,
-    graphResult,
-    loading,
-    error,
-    warnings,
-    fitViewOptions,
-    onInit,
-    onNodeClick,
-    onNodeDoubleClick
-  } = props;
-
   let graphContent: React.ReactNode;
-  if (error) {
-    graphContent = <div className="empty-state">Could not build the model graph: {error}</div>;
-  } else if (loading) {
+  if (props.error) {
+    graphContent = <div className="empty-state">Could not build the model graph: {props.error}</div>;
+  } else if (props.loading) {
     graphContent = <div className="empty-state">Building AUTOSAR graph…</div>;
-  } else if (!graphResult || graphResult.nodes.length === 0) {
+  } else if (!props.graphResult || props.graphResult.nodes.length === 0) {
     graphContent = <div className="empty-state">Select an SWC or composition to visualize it.</div>;
   } else {
     graphContent = (
       <ReactFlowProvider>
         <ReactFlow
-          key={canvasKey}
-          nodes={nodes}
-          edges={edges}
+          key={props.canvasKey}
+          nodes={props.nodes}
+          edges={props.edges}
           nodeTypes={nodeTypes}
           onInit={(instance) => {
-            onInit({
+            props.onInit({
               getNode: (id) => instance.getNode(id),
               setCenter: (x, y, options) => instance.setCenter(x, y, options)
             });
           }}
           fitView
-          fitViewOptions={fitViewOptions}
+          fitViewOptions={props.fitViewOptions}
           minZoom={0.35}
           maxZoom={1.5}
           zoomOnDoubleClick={false}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable
-          onNodeClick={onNodeClick}
-          onNodeDoubleClick={onNodeDoubleClick}
+          onNodeClick={props.onNodeClick}
+          onNodeDoubleClick={props.onNodeDoubleClick}
           onNodesChange={ignoreNodeChanges}
           onEdgesChange={ignoreEdgeChanges}
         >
@@ -114,10 +99,10 @@ export function AutosarSwc(props: AutosarSwcProps) {
   }
 
   return (
-    <div className="model-canvas-shell" ref={canvasRef}>
-      {warnings.length > 0 && (
+    <div className="model-canvas-shell" ref={props.canvasRef}>
+      {props.warnings.length > 0 && (
         <div className="model-warning-strip">
-          {warnings.map((warning) => warning.message).join(" ")}
+          {props.warnings.map((warning) => warning.message).join(" ")}
         </div>
       )}
       {graphContent}

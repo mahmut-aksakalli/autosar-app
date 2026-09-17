@@ -9,25 +9,25 @@ interface EditorTabsProps {
   onClose: (tabId: string) => void;
 }
 
-export function EditorTabs({ tabs, activeTabId, onActivate, onPin, onClose }: EditorTabsProps) {
+export function EditorTabs(props: EditorTabsProps) {
   return (
     <div className="editor-tabs">
-      {tabs.map((tab) => (
-        <div key={tab.id} className={`editor-tab ${tab.id === activeTabId ? "active" : ""}`}>
+      {props.tabs.map((tab) => (
+        <div key={tab.id} className={`editor-tab ${tab.id === props.activeTabId ? "active" : ""}`}>
           <button
             type="button"
             className="editor-tab-button"
-            onClick={() => onActivate(tab.id)}
-            onDoubleClick={() => onPin(tab)}
+            onClick={() => props.onActivate(tab.id)}
+            onDoubleClick={() => props.onPin(tab)}
             title={tab.pinned ? tab.title : `${tab.title} (preview)`}
           >
             {tab.title}
           </button>
-          {tabs.length > 1 && (
+          {props.tabs.length > 1 && (
             <button
               type="button"
               className="editor-tab-close"
-              onClick={() => onClose(tab.id)}
+              onClick={() => props.onClose(tab.id)}
               aria-label={`Close ${tab.title}`}
             >
               x

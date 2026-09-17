@@ -4,14 +4,13 @@ import { normalizeAutosarEnumToken } from "./DetailsFormatters";
 const INIT_VALUE_PREVIEW_LENGTH = 100;
 
 export function InitValueDisplay(props: { value: string; type: string }) {
-  const { value, type } = props;
   const [isExpanded, setIsExpanded] = useState(false);
-  const canExpand = shouldTruncateInitValue(value, type);
-  const displayValue = formatInitValueDisplay(value, type, isExpanded);
+  const canExpand = shouldTruncateInitValue(props.value, props.type);
+  const displayValue = formatInitValueDisplay(props.value, props.type, isExpanded);
   const isMultiline = displayValue.includes("\n");
 
   return (
-    <span className="model-init-value-display" title={value}>
+    <span className="model-init-value-display" title={props.value}>
       <span className={isMultiline ? "model-init-value-text is-multiline" : "model-init-value-text"}>
         {displayValue}
       </span>
