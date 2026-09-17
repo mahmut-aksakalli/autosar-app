@@ -285,10 +285,6 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
       return;
     }
 
-    if (graphNode.kind === "port") {
-      return;
-    }
-
     let targetSemanticPath = graphNode.semanticPath;
     let targetEntityId: string | undefined = graphNode.id;
     if (graphNode.kind === "instance") {

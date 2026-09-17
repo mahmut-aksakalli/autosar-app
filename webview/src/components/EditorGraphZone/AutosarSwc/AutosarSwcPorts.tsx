@@ -5,9 +5,7 @@ import type { FlowNodeData } from "./AutosarSwcLayout";
 interface AutosarSwcPortsProps {
   ports: FlowNodeData["ports"];
   portConnections?: FlowNodeData["portConnections"];
-  compact?: boolean;
-  exposeBothHandles?: boolean;
-  side?: "left" | "right" | "center";
+  side: "left" | "right";
   railWidth?: number;
   highlightedPortId?: string;
   onConnectionNavigate?: FlowNodeData["onConnectionNavigate"];
@@ -18,9 +16,7 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
   const {
     ports,
     portConnections,
-    compact = false,
-    exposeBothHandles = false,
-    side = "left",
+    side,
     railWidth,
     highlightedPortId,
     onConnectionNavigate
@@ -30,27 +26,21 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
     return <div className="autosar-node-empty" />;
   }
 
-  let listClassName = `autosar-port-list side-${side}`;
-  if (compact) {
-    listClassName += " compact";
-  }
-
   let portLabelStyle: React.CSSProperties | undefined;
-  if (railWidth && side !== "center") {
+  if (railWidth) {
     portLabelStyle = {
       ["--port-label-width" as string]: `${Math.max(116, railWidth - 54)}px`
     };
   }
 
   return (
-    <div className={listClassName}>
+    <div className={`autosar-port-list side-${side}`}>
       {ports.map((port) => {
         let portClassName = `autosar-port autosar-port-${port.direction} side-${side}`;
         if (port.id === highlightedPortId) {
           portClassName += " is-highlighted-target";
         }
 
-        const shouldRenderSecondHandle = !compact || exposeBothHandles;
         return (
           <button
             key={port.id}
@@ -80,13 +70,11 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
                 onNavigate={onConnectionNavigate}
               />
             </div>
-            {shouldRenderSecondHandle && (
-              <Handle
-                id={port.id}
-                type={getSecondaryHandleType(side)}
-                position={getSecondaryHandlePosition(side)}
-              />
-            )}
+            <Handle
+              id={port.id}
+              type={getSecondaryHandleType(side)}
+              position={getSecondaryHandlePosition(side)}
+            />
           </button>
         );
       })}
@@ -132,28 +120,28 @@ function PortConnectionList(props: {
   );
 }
 
-function getPrimaryHandleType(side: "left" | "right" | "center") {
+function getPrimaryHandleType(side: "left" | "right") {
   if (side === "right") {
     return "source" as const;
   }
   return "target" as const;
 }
 
-function getPrimaryHandlePosition(side: "left" | "right" | "center") {
+function getPrimaryHandlePosition(side: "left" | "right") {
   if (side === "right") {
     return Position.Right;
   }
   return Position.Left;
 }
 
-function getSecondaryHandleType(side: "left" | "right" | "center") {
+function getSecondaryHandleType(side: "left" | "right") {
   if (side === "right") {
     return "target" as const;
   }
   return "source" as const;
 }
 
-function getSecondaryHandlePosition(side: "left" | "right" | "center") {
+function getSecondaryHandlePosition(side: "left" | "right") {
   if (side === "right") {
     return Position.Left;
   }
@@ -163,7 +151,7 @@ function getSecondaryHandlePosition(side: "left" | "right" | "center") {
 function PortGlyph(props: {
   direction: "provided" | "required" | "provided-required";
   interfaceKind?: string;
-  side: "left" | "right" | "center";
+  side: "left" | "right";
 }) {
   const { direction, interfaceKind, side } = props;
   const className = `autosar-port-symbol-mark side-${side}`;

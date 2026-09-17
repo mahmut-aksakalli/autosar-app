@@ -144,17 +144,6 @@
   pointer-events: none;
 }
 
-.autosar-port-symbol {
-  min-width: 220px;
-  border: 2px solid #a13131;
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.autosar-node-header-port {
-  justify-content: center;
-  text-align: center;
-}
-
 .autosar-port-list {
   display: grid;
   gap: 10px;
@@ -162,10 +151,6 @@
   align-content: start;
   padding-top: 60px;
   padding-bottom: 40px;
-}
-
-.autosar-port-list.compact {
-  padding: 10px 14px 14px;
 }
 
 .autosar-port-list.side-left {
@@ -176,11 +161,6 @@
 .autosar-port-list.side-right {
   justify-items: start;
   padding-left: 0;
-}
-
-.autosar-port-list.side-center {
-  justify-items: center;
-  padding: 0 18px 18px;
 }
 
 .autosar-port {
@@ -210,11 +190,6 @@
   text-align: right;
 }
 
-.autosar-port.side-center {
-  width: 220px;
-  text-align: center;
-}
-
 .autosar-port-symbol-mark {
   position: absolute;
   top: 22px;
@@ -234,11 +209,6 @@
 
 .autosar-port-symbol-mark.side-right {
   left: -21px;
-}
-
-.autosar-port-symbol-mark.side-center {
-  left: 50%;
-  transform: translateX(-50%);
 }
 
 .autosar-port-symbol-mark path {
@@ -270,11 +240,6 @@
 .autosar-port.side-right .autosar-pin-line {
   left: 21px;
   right: 0;
-}
-
-.autosar-port.side-center .autosar-pin-line {
-  left: 21px;
-  right: 21px;
 }
 
 .autosar-port-text {
@@ -310,14 +275,6 @@
   left: 48px;
   justify-items: start;
   text-align: left;
-}
-
-.autosar-port.side-center .autosar-port-text {
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(220px, 100%);
-  justify-items: center;
-  text-align: center;
 }
 
 .autosar-port-text span,

@@ -385,7 +385,7 @@ export type ModelWebviewToHostMessage =
   | { type: "revealModelEntity"; entityId: string };
 
 export type SwcGraphScope = "swc" | "composition";
-export type SwcGraphNodeKind = "swc" | "composition" | "instance" | "port";
+export type SwcGraphNodeKind = "swc" | "composition" | "instance";
 export type SwcGraphEdgeKind = "assembly" | "delegation";
 
 export interface SwcGraphPort {

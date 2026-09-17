@@ -12,34 +12,6 @@ export function AutosarSwcNode({ data }: NodeProps<FlowNode>) {
   const leftRailWidth = getPortRailWidth(requiredPorts);
   const rightRailWidth = getPortRailWidth(providedPorts);
 
-  if (data.kind === "port") {
-    let portSide: "left" | "right" = "left";
-    if (data.ports[0]?.direction === "provided") {
-      portSide = "right";
-    }
-
-    return (
-      <div className="autosar-node autosar-node-port">
-        <div className="autosar-port-symbol">
-          <div className="autosar-node-header autosar-node-header-port">
-            <strong>{data.label}</strong>
-          </div>
-          {data.secondaryLabel && <div className="autosar-node-subtitle">{data.secondaryLabel}</div>}
-          {data.warning && <div className="autosar-node-warning">{data.warning}</div>}
-          <AutosarSwcPorts
-            ports={data.ports}
-            portConnections={data.portConnections}
-            compact
-            exposeBothHandles
-            side={portSide}
-            highlightedPortId={data.highlightedPortId}
-            onConnectionNavigate={data.onConnectionNavigate}
-          />
-        </div>
-      </div>
-    );
-  }
-
   let kindLabel = formatSwcKindLabel(data.swcKind);
   if (data.kind === "composition") {
     kindLabel = "Composition";
