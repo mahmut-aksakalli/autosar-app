@@ -43,6 +43,8 @@ const CONNECTION_LABEL_STEM_WIDTH = 100;
 const CONNECTION_LABEL_GAP = 6;
 const CONNECTION_PILL_PADDING = 24;
 const CONNECTION_CHAR_WIDTH = 7.2;
+const HEADER_FIXED_WIDTH = 230;
+const HEADER_LABEL_CHAR_WIDTH = 11;
 
 export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edges: Edge[] } {
   const instanceNodes = graph.nodes.filter((node) => node.kind === "instance");
@@ -85,7 +87,11 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
   componentNodes.forEach((node) => {
     const compositionRailWidth = getNodeRailWidth(node.ports);
     const compositionWidth = compositionBounds ? compositionBounds.width : getEstimatedNodeWidth(node);
-    const compositionBodyWidth = Math.max(340, compositionWidth - compositionRailWidth * 2);
+    const compositionBodyWidth = Math.max(
+      340,
+      compositionWidth - compositionRailWidth * 2,
+      getEstimatedBodyWidth(node)
+    );
     const position =
       shouldRenderCompositionContainer && node.kind === "composition"
         ? { x: compositionBounds?.x ?? 40, y: compositionBounds?.y ?? 140 }
@@ -103,7 +109,8 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
               ["--autosar-node-min-height" as string]: `${compositionBounds?.height ?? INSTANCE_BASE_HEIGHT}px`
             } as CSSProperties)
           : ({
-              zIndex: 2
+              zIndex: 2,
+              ["--autosar-body-width" as string]: `${getEstimatedBodyWidth(node)}px`
             } as CSSProperties),
       data: {
         label: node.label,
@@ -130,7 +137,8 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
         y: metrics?.y ?? nextInstanceY
       },
       style: {
-        zIndex: 2
+        zIndex: 2,
+        ["--autosar-body-width" as string]: `${getEstimatedBodyWidth(node)}px`
       },
       data: {
         label: node.label,
@@ -247,7 +255,12 @@ function getEstimatedNodeWidth(node: SwcGraphNode) {
   const providedPorts = node.ports.filter(
     (port) => port.direction === "provided" || port.direction === "provided-required"
   );
-  return getPortRailWidth(requiredPorts) + DEFAULT_BODY_WIDTH + getPortRailWidth(providedPorts);
+  return getPortRailWidth(requiredPorts) + getEstimatedBodyWidth(node) + getPortRailWidth(providedPorts);
+}
+
+function getEstimatedBodyWidth(node: SwcGraphNode) {
+  const estimatedHeaderWidth = HEADER_FIXED_WIDTH + node.label.length * HEADER_LABEL_CHAR_WIDTH;
+  return Math.max(DEFAULT_BODY_WIDTH, estimatedHeaderWidth);
 }
 
 function getNodeRailWidth(ports: SwcGraphNode["ports"]) {

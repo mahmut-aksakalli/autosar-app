@@ -7,15 +7,17 @@
 .autosar-node-header {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 10px 14px 4px;
   text-align: left;
+  white-space: nowrap;
 }
 
 .autosar-node-header strong {
+  flex-shrink: 0;
   color: #8a1f1f;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.2px;
   font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
@@ -24,7 +26,7 @@
 .autosar-node-subtitle,
 .autosar-node-warning {
   padding: 0 14px 12px;
-  font-size: 10px;
+  font-size: 16px;
   word-break: break-word;
   text-align: left;
 }
@@ -39,6 +41,7 @@
 
 .autosar-node-badges {
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
   padding: 0;
 }
@@ -53,13 +56,13 @@
   border-radius: 999px;
   background: rgba(255, 253, 246, 0.92);
   color: #8a1f1f;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
-.autosar-family-glyph {
+.autosar-family-symbol {
   display: inline-grid;
   place-items: center;
   width: 15px;
@@ -73,13 +76,9 @@
   display: grid;
   grid-template-columns:
     var(--autosar-left-rail-width, var(--autosar-rail-width, 170px))
-    minmax(340px, var(--autosar-body-width, 430px))
+    minmax(var(--autosar-body-width, 430px), max-content)
     var(--autosar-right-rail-width, var(--autosar-rail-width, 170px));
-  width: calc(
-    var(--autosar-left-rail-width, var(--autosar-rail-width, 170px)) +
-    var(--autosar-body-width, 430px) +
-    var(--autosar-right-rail-width, var(--autosar-rail-width, 170px))
-  );
+  width: max-content;
   min-width: calc(
     var(--autosar-left-rail-width, var(--autosar-rail-width, 170px)) +
     var(--autosar-body-width, 430px) +
@@ -280,11 +279,11 @@
 }
 
 .autosar-port-text strong {
-  font-size: 11px;
+  font-size: 20px;
   font-weight: 400;
   color: #8a1f1f;
   line-height: 1.15;
-  padding-top: 20px;
+  padding-top: 16px;
   font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
 }
 
@@ -309,7 +308,7 @@
 
 .autosar-port-connection-list {
   position: absolute;
-  top: 42px;
+  top: 52px;
   left: 220px;
   display: inline-flex;
   flex-direction: row;
@@ -340,7 +339,7 @@
   min-height: 24px;
   padding: 0 12px;
   border: 1px solid #a13131;
-  font-size: 11px;
+  font-size: 16px;
   line-height: 1;
   letter-spacing: 0.01em;
   box-sizing: border-box;

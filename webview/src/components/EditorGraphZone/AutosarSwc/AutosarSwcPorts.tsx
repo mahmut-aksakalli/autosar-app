@@ -148,10 +148,10 @@ function getPortConnectionHandleType(direction: "provided" | "required" | "provi
 
 function getPortConnectionHandlePosition(side: "left" | "right") {
   if (side === "left") {
-    return Position.Left;
+    return Position.Right;
   }
 
-  return Position.Right;
+  return Position.Left;
 }
 
 function PortSymbol(props: {

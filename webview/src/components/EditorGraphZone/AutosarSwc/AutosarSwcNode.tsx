@@ -34,8 +34,8 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
           <div className="autosar-node-header">
             <div className="autosar-node-badges">
               <span className="autosar-node-badge">
-                <span className="autosar-family-glyph" aria-hidden="true">
-                  {formatSwcKindGlyph(props.data.swcKind)}
+                <span className="autosar-family-symbol" aria-hidden="true">
+                  {formatSwcKindSymbol(props.data.swcKind)}
                 </span>
                 {kindLabel}
               </span>
@@ -83,7 +83,7 @@ function formatSwcKindLabel(kind: SwcGraphNode["swcKind"]) {
   }
 }
 
-function formatSwcKindGlyph(kind: SwcGraphNode["swcKind"]) {
+function formatSwcKindSymbol(kind: SwcGraphNode["swcKind"]) {
   switch (kind) {
     case "service":
       return "S";
