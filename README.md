@@ -183,7 +183,7 @@ Key responsibilities:
 - `AutosarApp.tsx` owns the webview message lifecycle and coordinates the active model workspace.
 - `EditorTabs/` contains tab types, tab-state helpers, and tab rendering.
 - `EditorGraphZone.tsx` coordinates graph selection, composition focus, and detail content.
-- `AutosarSwc/` contains the React Flow canvas, SWC node and port components, graph-query state, and layout calculations.
+- `AutosarSwc/` contains the React Flow canvas, graph-query state, and layout calculations. Its `AutosarSwcNode/` subtree groups the node, node menu, ports, and port menu; `SearchBox/` contains graph-search UI and highlighting.
 - `SwcDetails/` contains semantic detail surfaces and shared table/formatting utilities. Feature-specific details are grouped into nested folders.
 - `vscodeApi.ts` is the typed messaging boundary between the webview and extension host.
 

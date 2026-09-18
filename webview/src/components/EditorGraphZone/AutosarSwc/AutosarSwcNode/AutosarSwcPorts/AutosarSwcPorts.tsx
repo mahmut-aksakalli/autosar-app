@@ -1,9 +1,10 @@
 import { Handle, Position } from "@xyflow/react";
 import type React from "react";
 import { useCallback, useState } from "react";
-import type { SwcGraphPort } from "../../../../../src/shared/contracts";
-import { getPortConnectionHandleId, type FlowNodeData } from "./AutosarSwcLayout";
-import { AutosarSwcPortContextMenu } from "./AutosarSwcPortContextMenu";
+import type { SwcGraphPort } from "../../../../../../../src/shared/contracts";
+import { getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
+import { AutosarSwcPortContextMenu } from "./AutosarSwcPortContextMenu/AutosarSwcPortContextMenu";
+import { HighlightedText } from "../../SearchBox/HighlightedText";
 
 interface AutosarSwcPortsProps {
   ports: FlowNodeData["ports"];
@@ -17,6 +18,9 @@ interface AutosarSwcPortsProps {
   onConnectionNavigate?: FlowNodeData["onConnectionNavigate"];
   onCopyText?: FlowNodeData["onCopyText"];
   onPortDetailsOpen?: FlowNodeData["onPortDetailsOpen"];
+  searchQuery?: string;
+  activeSearchKey?: string;
+  searchNodeId: string;
 }
 
 interface PortContextMenuState {
@@ -133,7 +137,15 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
               )}
             </Handle>
             <div className="autosar-port-text">
-              <strong>{port.label}</strong>
+              <strong>
+                <HighlightedText
+                  text={port.label}
+                  query={props.searchQuery}
+                  active={props.activeSearchKey === `port:${port.id}:label`}
+                  searchNodeId={props.searchNodeId}
+                  searchKey={`port:${port.id}:label`}
+                />
+              </strong>
             </div>
             <Handle
               id={getPortConnectionHandleId(port.id)}
@@ -146,9 +158,13 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
             />
             {hasConnections && (
               <PortConnectionList
+                portId={port.id}
                 connections={connections}
                 highlighted={port.id === props.highlightedPortId}
                 onNavigate={props.onConnectionNavigate}
+                searchQuery={props.searchQuery}
+                activeSearchKey={props.activeSearchKey}
+                searchNodeId={props.searchNodeId}
               />
             )}
           </div>
@@ -172,9 +188,13 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
 }
 
 function PortConnectionList(props: {
+  portId: string;
   connections: NonNullable<FlowNodeData["portConnections"]>[string] | undefined;
   highlighted: boolean;
   onNavigate?: FlowNodeData["onConnectionNavigate"];
+  searchQuery?: string;
+  activeSearchKey?: string;
+  searchNodeId: string;
 }) {
   if (!props.connections || props.connections.length === 0) {
     return null;
@@ -200,8 +220,24 @@ function PortConnectionList(props: {
             props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
           }}
         >
-          <span className="autosar-port-connection-component">{connection.componentName}</span>
-          <span className="autosar-port-connection-port">{connection.portName}</span>
+          <span className="autosar-port-connection-component">
+            <HighlightedText
+              text={connection.componentName}
+              query={props.searchQuery}
+              active={props.activeSearchKey === `connection:${props.portId}:${index}:component`}
+              searchNodeId={props.searchNodeId}
+              searchKey={`connection:${props.portId}:${index}:component`}
+            />
+          </span>
+          <span className="autosar-port-connection-port">
+            <HighlightedText
+              text={connection.portName}
+              query={props.searchQuery}
+              active={props.activeSearchKey === `connection:${props.portId}:${index}:port`}
+              searchNodeId={props.searchNodeId}
+              searchKey={`connection:${props.portId}:${index}:port`}
+            />
+          </span>
         </span>
       ))}
     </span>

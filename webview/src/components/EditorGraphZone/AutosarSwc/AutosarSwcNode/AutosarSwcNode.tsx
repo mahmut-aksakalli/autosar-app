@@ -1,9 +1,10 @@
 import type { NodeProps } from "@xyflow/react";
 import { useCallback, useState } from "react";
-import type { SwcGraphNode } from "../../../../../src/shared/contracts";
-import { getPortRailWidth, type FlowNode } from "./AutosarSwcLayout";
-import { AutosarSwcNodeContextMenu } from "./AutosarSwcNodeContextMenu";
-import { AutosarSwcPorts } from "./AutosarSwcPorts";
+import type { SwcGraphNode } from "../../../../../../src/shared/contracts";
+import { getPortRailWidth, type FlowNode } from "../AutosarSwcLayout";
+import { AutosarSwcNodeContextMenu } from "./AutosarSwcNodeContextMenu/AutosarSwcNodeContextMenu";
+import { AutosarSwcPorts } from "./AutosarSwcPorts/AutosarSwcPorts";
+import { HighlightedText } from "../SearchBox/HighlightedText";
 import "./AutosarSwcNode.css";
 
 export function AutosarSwcNode(props: NodeProps<FlowNode>) {
@@ -21,8 +22,13 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
     kindLabel = "Composition";
   }
 
+  let nodeClassName = `autosar-node autosar-node-${props.data.kind}`;
+  if (props.data.searchQuery && !props.data.isSearchMatch) {
+    nodeClassName += " is-search-dimmed";
+  }
+
   return (
-    <div className={`autosar-node autosar-node-${props.data.kind}`}>
+    <div className={nodeClassName}>
       <div className="autosar-symbol">
         <div className="autosar-symbol-rail autosar-symbol-rail-left">
           <AutosarSwcPorts
@@ -37,6 +43,9 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
             onConnectionNavigate={props.data.onConnectionNavigate}
             onCopyText={props.data.onCopyText}
             onPortDetailsOpen={props.data.onPortDetailsOpen}
+            searchQuery={props.data.searchQuery}
+            activeSearchKey={props.data.activeSearchKey}
+            searchNodeId={props.id}
           />
         </div>
         <div
@@ -56,9 +65,27 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
                 {kindLabel}
               </span>
             </div>
-            <strong>{props.data.label}</strong>
+            <strong>
+              <HighlightedText
+                text={props.data.label}
+                query={props.data.searchQuery}
+                active={props.data.activeSearchKey === "node:label"}
+                searchNodeId={props.id}
+                searchKey="node:label"
+              />
+            </strong>
           </div>
-          {props.data.secondaryLabel && <div className="autosar-node-subtitle">{props.data.secondaryLabel}</div>}
+          {props.data.secondaryLabel && (
+            <div className="autosar-node-subtitle">
+              <HighlightedText
+                text={props.data.secondaryLabel}
+                query={props.data.searchQuery}
+                active={props.data.activeSearchKey === "node:secondary"}
+                searchNodeId={props.id}
+                searchKey="node:secondary"
+              />
+            </div>
+          )}
           {props.data.warning && <div className="autosar-node-warning">{props.data.warning}</div>}
         </div>
         <div className="autosar-symbol-rail autosar-symbol-rail-right">
@@ -74,6 +101,9 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
             onConnectionNavigate={props.data.onConnectionNavigate}
             onCopyText={props.data.onCopyText}
             onPortDetailsOpen={props.data.onPortDetailsOpen}
+            searchQuery={props.data.searchQuery}
+            activeSearchKey={props.data.activeSearchKey}
+            searchNodeId={props.id}
           />
         </div>
       </div>

@@ -1,9 +1,9 @@
-import type { SwcGraphPort } from "../../../../../src/shared/contracts";
+import type { SwcGraphPort } from "../../../../../../../../src/shared/contracts";
 import {
   AutosarSwcContextMenu,
   ContextMenuCommand,
   ContextMenuSeparator
-} from "./AutosarSwcContextMenu";
+} from "../../AutosarSwcNodeContextMenu/AutosarSwcContextMenu";
 
 interface AutosarSwcPortContextMenuProps {
   x: number;

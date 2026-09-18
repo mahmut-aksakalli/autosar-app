@@ -1,4 +1,4 @@
-import type { SwcNodeView } from "./AutosarSwcLayout";
+import type { SwcNodeView } from "../../AutosarSwcLayout";
 import {
   AutosarSwcContextMenu,
   ContextMenuCommand,

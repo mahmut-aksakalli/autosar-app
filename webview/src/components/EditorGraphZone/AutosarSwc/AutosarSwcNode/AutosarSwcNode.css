@@ -2,6 +2,11 @@
   min-width: 360px;
   background: transparent;
   box-shadow: none;
+  transition: opacity 120ms ease;
+}
+
+.autosar-node.is-search-dimmed {
+  opacity: 0.28;
 }
 
 .autosar-node-header {

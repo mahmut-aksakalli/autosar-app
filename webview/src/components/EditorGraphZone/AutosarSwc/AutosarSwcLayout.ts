@@ -28,6 +28,9 @@ export interface FlowNodeData extends Record<string, unknown> {
   onPortDetailsOpen?: (port: SwcGraphPort) => void;
   onCopyName?: () => void;
   onOpenView?: (view: SwcNodeView) => void;
+  searchQuery?: string;
+  activeSearchKey?: string;
+  isSearchMatch?: boolean;
 }
 
 export type FlowNode = Node<FlowNodeData>;

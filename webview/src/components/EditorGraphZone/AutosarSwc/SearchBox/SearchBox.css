@@ -1,0 +1,50 @@
+.autosar-graph-search {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  border: 1px solid #b7c4d1;
+  background: rgba(255, 253, 246, 0.98);
+  box-shadow: 0 6px 18px rgba(20, 50, 77, 0.18);
+}
+
+.autosar-graph-search input {
+  width: 220px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 0;
+  border-right: 1px solid #d8e0e8;
+  outline: none;
+}
+
+.autosar-graph-search input:focus {
+  box-shadow: inset 0 0 0 2px rgba(45, 120, 196, 0.35);
+}
+
+.autosar-graph-search-count {
+  min-width: 70px;
+  padding: 0 8px;
+  color: #647487;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.autosar-graph-search button {
+  min-width: 32px;
+  min-height: 34px;
+  padding: 0 8px;
+  border-width: 0 0 0 1px;
+  border-color: #d8e0e8;
+  background: transparent;
+}
+
+.autosar-search-highlight {
+  padding: 0;
+  background: #ffe58a;
+  color: inherit;
+}
+
+.autosar-search-highlight.is-active {
+  background: #ff9f43;
+  box-shadow: 0 0 0 1px #9a4f00;
+}
