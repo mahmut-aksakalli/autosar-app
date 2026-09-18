@@ -77,8 +77,8 @@ export const modelHost = {
     });
   },
 
-  revealModelEntity(entityId: string) {
-    vscode?.postMessage({ type: "revealModelEntity", entityId });
+  revealModelEntity(entityId: string, treeNodeId?: string) {
+    vscode?.postMessage({ type: "revealModelEntity", entityId, treeNodeId });
   },
 
   copyText(text: string) {

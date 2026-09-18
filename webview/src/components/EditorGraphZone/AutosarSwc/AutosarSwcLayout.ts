@@ -24,6 +24,8 @@ export interface FlowNodeData extends Record<string, unknown> {
   onPortSelect?: (portId: string) => void;
   onPortInterfaceOpen?: (interfaceRef: string) => void;
   onConnectionNavigate?: (nodeId: string, portId: string) => void;
+  onCopyText?: (text: string) => void;
+  onPortDetailsOpen?: (port: SwcGraphPort) => void;
   onCopyName?: () => void;
   onOpenView?: (view: SwcNodeView) => void;
 }

@@ -1,6 +1,9 @@
 import { Handle, Position } from "@xyflow/react";
 import type React from "react";
+import { useCallback, useState } from "react";
+import type { SwcGraphPort } from "../../../../../src/shared/contracts";
 import { getPortConnectionHandleId, type FlowNodeData } from "./AutosarSwcLayout";
+import { AutosarSwcPortContextMenu } from "./AutosarSwcPortContextMenu";
 
 interface AutosarSwcPortsProps {
   ports: FlowNodeData["ports"];
@@ -12,10 +15,22 @@ interface AutosarSwcPortsProps {
   onPortSelect?: FlowNodeData["onPortSelect"];
   onPortInterfaceOpen?: FlowNodeData["onPortInterfaceOpen"];
   onConnectionNavigate?: FlowNodeData["onConnectionNavigate"];
+  onCopyText?: FlowNodeData["onCopyText"];
+  onPortDetailsOpen?: FlowNodeData["onPortDetailsOpen"];
+}
+
+interface PortContextMenuState {
+  x: number;
+  y: number;
+  port: SwcGraphPort;
+  interfaceName?: string;
 }
 
 /** Renders one side of an SWC node, including its React Flow connection handles. */
 export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
+  const [contextMenu, setContextMenu] = useState<PortContextMenuState>();
+  const closeContextMenu = useCallback(() => setContextMenu(undefined), []);
+
   if (props.ports.length === 0) {
     return <div className="autosar-node-empty" />;
   }
@@ -28,7 +43,8 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
   }
 
   return (
-    <div className={`autosar-port-list side-${props.side}`}>
+    <>
+      <div className={`autosar-port-list side-${props.side}`}>
       {props.ports.map((port) => {
         const connections = props.portConnections?.[port.id];
         const hasConnections = Boolean(connections && connections.length > 0);
@@ -53,6 +69,17 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
             key={port.id}
             className={portClassName}
             style={portLabelStyle}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              props.onPortSelect?.(port.id);
+              setContextMenu({
+                x: event.clientX,
+                y: event.clientY,
+                port,
+                interfaceName
+              });
+            }}
           >
             {/* The AUTOSAR symbol is also the single React Flow connection point for this port. */}
             <Handle
@@ -127,7 +154,20 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
           </div>
         );
       })}
-    </div>
+      </div>
+      {contextMenu && (
+        <AutosarSwcPortContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          port={contextMenu.port}
+          interfaceName={contextMenu.interfaceName}
+          onClose={closeContextMenu}
+          onCopyText={props.onCopyText}
+          onOpenDetails={props.onPortDetailsOpen}
+          onOpenInterface={props.onPortInterfaceOpen}
+        />
+      )}
+    </>
   );
 }
 

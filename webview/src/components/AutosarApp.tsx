@@ -4,6 +4,7 @@ import type {
   AutosarEntity,
   HostToModelWebviewMessage,
   ModelWebviewInitialState,
+  SwcGraphPort,
   SwcGraphScope,
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
@@ -152,7 +153,29 @@ export function AutosarApp() {
     }
 
     setModelFocusEntityId(targetEntity.id);
-    modelHost.revealModelEntity(targetEntity.id);
+    modelHost.revealModelEntity(targetEntity.id, getSwcTreeNodeId(targetEntity, view));
+  }
+
+  function openPortDetailsFromGraph(
+    entityId: string | undefined,
+    semanticPath: string | undefined,
+    port: SwcGraphPort
+  ) {
+    const targetEntity = findModelEntity(modelEntities, entityId, semanticPath);
+    if (!targetEntity) {
+      return;
+    }
+
+    preserveActivePreviewTab();
+    tabs.openTab(
+      makeModelTab(targetEntity, "port", `Port: ${port.label}`, {
+        entityId: port.id,
+        xmlPath: port.xmlPath
+      }),
+      true
+    );
+    setModelFocusEntityId(targetEntity.id);
+    modelHost.revealModelEntity(port.id, `${targetEntity.id}:port:${port.id}`);
   }
 
   function preserveActivePreviewTab() {
@@ -190,6 +213,7 @@ export function AutosarApp() {
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}
           onOpenPortInterface={openPortInterfaceFromGraph}
+          onOpenPortDetails={openPortDetailsFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
         />
       </div>
@@ -304,4 +328,12 @@ function getSwcViewTitle(view: Exclude<SwcNodeView, "graph">) {
     case "parameters":
       return "Calibration Parameters";
   }
+}
+
+function getSwcTreeNodeId(entity: AutosarEntity, view: SwcNodeView) {
+  if (entity.type !== "swc") {
+    return undefined;
+  }
+
+  return `${entity.id}:${view}`;
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./EditorGraphZone.css";
 import type { Node } from "@xyflow/react";
 import type { CSSProperties, ReactNode } from "react";
-import type { AutosarEntity, SwcGraphScope } from "../../../../src/shared/contracts";
+import type { AutosarEntity, SwcGraphPort, SwcGraphScope } from "../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../EditorTabs/EditorTabs";
 import {
   createGraphCacheKey,
@@ -49,6 +49,11 @@ interface EditorGraphZoneProps {
     view: SwcNodeView
   ) => void;
   onOpenPortInterface?: (interfaceRef: string) => void;
+  onOpenPortDetails?: (
+    entityId: string | undefined,
+    semanticPath: string | undefined,
+    port: SwcGraphPort
+  ) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
 
@@ -190,6 +195,16 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
               setSelectedPort({ nodeId: node.id, portId });
             },
             onPortInterfaceOpen: props.onOpenPortInterface,
+            onCopyText: props.onCopyText,
+            onPortDetailsOpen: (port: SwcGraphPort) => {
+              let entityId: string | undefined = node.id;
+              let semanticPath = sourceGraphNode?.semanticPath;
+              if (node.data.kind === "instance") {
+                entityId = undefined;
+                semanticPath = sourceGraphNode?.typeRef;
+              }
+              props.onOpenPortDetails?.(entityId, semanticPath, port);
+            },
             onCopyName: () => props.onCopyText?.(node.data.label),
             onOpenView: (view: SwcNodeView) => {
               let entityId: string | undefined = node.id;
@@ -219,6 +234,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     graphResult,
     props.onCopyText,
     props.onOpenPortInterface,
+    props.onOpenPortDetails,
     props.onOpenSwcView,
     props.preferredNodeId,
     selectedPort

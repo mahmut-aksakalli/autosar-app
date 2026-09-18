@@ -117,6 +117,11 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     );
   }
 
+  findNode(nodeId: string): ModelTreeNode | undefined {
+    this.getChildren();
+    return this.nodesById.get(nodeId);
+  }
+
   private buildRoots(): ModelTreeNode[] {
 
     if (!this.snapshot) {

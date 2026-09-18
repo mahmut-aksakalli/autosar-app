@@ -244,19 +244,22 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (webview && isRevealModelEntityMessage(message)) {
       const entity = workspaceModelService.getSnapshot()?.entities.find((candidate) => candidate.id === message.entityId);
-      if (!entity) {
-        return;
+      let node = message.treeNodeId ? treeProvider.findNode(message.treeNodeId) : undefined;
+      if (!node) {
+        node = treeProvider.findEntityNode(message.entityId);
       }
-      let node = treeProvider.findEntityNode(entity.id);
       if (!node && treeProvider.getFilterText()) {
         setTreeFilter("");
-        node = treeProvider.findEntityNode(entity.id);
+        node = message.treeNodeId ? treeProvider.findNode(message.treeNodeId) : undefined;
+        if (!node) {
+          node = treeProvider.findEntityNode(message.entityId);
+        }
       }
       if (node) {
         try {
           await treeView.reveal(node, { select: true, focus: false });
         } catch (error) {
-          logger.error(`Failed to reveal AUTOSAR model entity ${entity.shortName}.`, error);
+          logger.error(`Failed to reveal AUTOSAR model entity ${entity?.shortName ?? message.entityId}.`, error);
         }
       }
       return;
@@ -425,7 +428,9 @@ function isRevealModelEntityMessage(
     Boolean(message) &&
     typeof message === "object" &&
     (message as { type?: unknown }).type === "revealModelEntity" &&
-    typeof (message as { entityId?: unknown }).entityId === "string"
+    typeof (message as { entityId?: unknown }).entityId === "string" &&
+    ((message as { treeNodeId?: unknown }).treeNodeId === undefined ||
+      typeof (message as { treeNodeId?: unknown }).treeNodeId === "string")
   );
 }
 
