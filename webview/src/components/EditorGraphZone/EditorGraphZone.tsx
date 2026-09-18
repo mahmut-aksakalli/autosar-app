@@ -22,7 +22,8 @@ import {
   getFocusedNodeZoom,
   getIsolatedRailWidth,
   isPortConnectionListEdge,
-  layoutSwcGraph
+  layoutSwcGraph,
+  type SwcNodeView
 } from "./AutosarSwc/AutosarSwcLayout";
 import { SwcDetails } from "./SwcDetails/SwcDetails";
 
@@ -41,6 +42,12 @@ interface EditorGraphZoneProps {
     preferredNodeId?: string;
     includeCompositionInternals?: boolean;
   }) => void;
+  onCopyText?: (text: string) => void;
+  onOpenSwcView?: (
+    entityId: string | undefined,
+    semanticPath: string | undefined,
+    view: SwcNodeView
+  ) => void;
   onOpenPortInterface?: (interfaceRef: string) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
@@ -154,6 +161,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     const visibleNodes = baseGraph.nodes
       .filter((node) => !shouldIsolateCompositionNode || node.id === activeCompositionNodeId)
       .map((node) => {
+        const sourceGraphNode = graphResult.nodes.find((entry) => entry.id === node.id);
         const isActiveCompositionNode = node.id === activeCompositionNodeId;
         let style = node.style;
         if (shouldIsolateCompositionNode && isActiveCompositionNode) {
@@ -182,6 +190,16 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
               setSelectedPort({ nodeId: node.id, portId });
             },
             onPortInterfaceOpen: props.onOpenPortInterface,
+            onCopyName: () => props.onCopyText?.(node.data.label),
+            onOpenView: (view: SwcNodeView) => {
+              let entityId: string | undefined = node.id;
+              let semanticPath = sourceGraphNode?.semanticPath;
+              if (node.data.kind === "instance") {
+                entityId = undefined;
+                semanticPath = sourceGraphNode?.typeRef;
+              }
+              props.onOpenSwcView?.(entityId, semanticPath, view);
+            },
             onConnectionNavigate: (nodeId: string, portId: string) => {
               setActiveCompositionNodeId(nodeId);
               setActiveCompositionPortId(portId);
@@ -199,7 +217,9 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     activeCompositionNodeId,
     activeCompositionPortId,
     graphResult,
+    props.onCopyText,
     props.onOpenPortInterface,
+    props.onOpenSwcView,
     props.preferredNodeId,
     selectedPort
   ]);

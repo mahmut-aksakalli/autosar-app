@@ -72,7 +72,6 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     item.id = node.id;
     item.contextValue = node.selectable ? `autosarModelNode.${node.workspaceTab?.kind ?? "entity"}` : "autosarModelGroup";
     item.iconPath = getNodeIconPath(node);
-    item.tooltip = getTreeTooltip(node);
     if (node.selectable) {
       item.command = {
         command: "autosarModelView.selectTreeNode",
@@ -753,16 +752,6 @@ function getNodeIconPath(node: ModelTreeNode) {
     return makeBadgeIcon("folder");
   }
   return node.icon ? makeBadgeIcon(node.icon) : undefined;
-}
-
-function getTreeTooltip(node: ModelTreeNode) {
-  const parts = [
-    node.workspaceTab?.title,
-    node.workspaceTab?.kind ? `Kind: ${node.workspaceTab.kind}` : undefined,
-    node.preferredScope ? `Scope: ${node.preferredScope}` : undefined,
-    node.preferredNodeId ? `Node: ${node.preferredNodeId}` : undefined
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join("\n") : node.label;
 }
 
 function makeBadgeIcon(label: string) {

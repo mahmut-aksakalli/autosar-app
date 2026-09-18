@@ -81,6 +81,10 @@ export const modelHost = {
     vscode?.postMessage({ type: "revealModelEntity", entityId });
   },
 
+  copyText(text: string) {
+    vscode?.postMessage({ type: "copyText", text });
+  },
+
   onMessage(listener: (message: HostToModelWebviewMessage) => void) {
     messageListeners.add(listener);
     return () => {

@@ -237,6 +237,11 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   async function handleWebviewMessage(webview: vscode.Webview | undefined, message: unknown) {
+    if (isCopyTextMessage(message)) {
+      await vscode.env.clipboard.writeText(message.text);
+      return;
+    }
+
     if (webview && isRevealModelEntityMessage(message)) {
       const entity = workspaceModelService.getSnapshot()?.entities.find((candidate) => candidate.id === message.entityId);
       if (!entity) {
@@ -421,6 +426,17 @@ function isRevealModelEntityMessage(
     typeof message === "object" &&
     (message as { type?: unknown }).type === "revealModelEntity" &&
     typeof (message as { entityId?: unknown }).entityId === "string"
+  );
+}
+
+function isCopyTextMessage(
+  message: unknown
+): message is Extract<ModelWebviewToHostMessage, { type: "copyText" }> {
+  return (
+    Boolean(message) &&
+    typeof message === "object" &&
+    (message as { type?: unknown }).type === "copyText" &&
+    typeof (message as { text?: unknown }).text === "string"
   );
 }
 

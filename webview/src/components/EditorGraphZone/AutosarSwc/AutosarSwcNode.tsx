@@ -1,10 +1,14 @@
 import type { NodeProps } from "@xyflow/react";
+import { useCallback, useState } from "react";
 import type { SwcGraphNode } from "../../../../../src/shared/contracts";
 import { getPortRailWidth, type FlowNode } from "./AutosarSwcLayout";
+import { AutosarSwcNodeContextMenu } from "./AutosarSwcNodeContextMenu";
 import { AutosarSwcPorts } from "./AutosarSwcPorts";
 import "./AutosarSwcNode.css";
 
 export function AutosarSwcNode(props: NodeProps<FlowNode>) {
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number }>();
+  const closeContextMenu = useCallback(() => setContextMenuPosition(undefined), []);
   const providedPorts = props.data.ports.filter(
     (port) => port.direction === "provided" || port.direction === "provided-required"
   );
@@ -33,7 +37,14 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
             onConnectionNavigate={props.data.onConnectionNavigate}
           />
         </div>
-        <div className="autosar-symbol-body">
+        <div
+          className="autosar-symbol-body"
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setContextMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
+        >
           <div className="autosar-node-header">
             <div className="autosar-node-badges">
               <span className="autosar-node-badge">
@@ -62,6 +73,15 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
           />
         </div>
       </div>
+      {contextMenuPosition && (
+        <AutosarSwcNodeContextMenu
+          x={contextMenuPosition.x}
+          y={contextMenuPosition.y}
+          onClose={closeContextMenu}
+          onCopyName={props.data.onCopyName}
+          onOpenView={props.data.onOpenView}
+        />
+      )}
     </div>
   );
 }

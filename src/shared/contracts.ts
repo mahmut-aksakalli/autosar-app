@@ -382,7 +382,8 @@ export type HostToModelWebviewMessage =
 
 export type ModelWebviewToHostMessage =
   | { type: "buildGraph"; requestId: string; query: SwcGraphQuery }
-  | { type: "revealModelEntity"; entityId: string };
+  | { type: "revealModelEntity"; entityId: string }
+  | { type: "copyText"; text: string };
 
 export type SwcGraphScope = "swc" | "composition";
 export type SwcGraphNodeKind = "swc" | "composition" | "instance";

@@ -8,6 +8,7 @@ import type {
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
 import { EditorGraphZone } from "./EditorGraphZone/EditorGraphZone";
+import type { SwcNodeView } from "./EditorGraphZone/AutosarSwc/AutosarSwcLayout";
 import { EditorTabs } from "./EditorTabs/EditorTabsView";
 import {
   makeDefaultModelGraphTab,
@@ -121,13 +122,48 @@ export function AutosarApp() {
       "Port Interface"
     );
 
-    // Preserve the graph preview before opening a separate interface tab.
-    if (tabs.activeTab && !tabs.activeTab.pinned) {
-      tabs.openTab(tabs.activeTab, true);
-    }
+    preserveActivePreviewTab();
     tabs.openTab(interfaceTab, true);
     setModelFocusEntityId(interfaceEntity.id);
     modelHost.revealModelEntity(interfaceEntity.id);
+  }
+
+  function openSwcViewFromGraph(
+    entityId: string | undefined,
+    semanticPath: string | undefined,
+    view: SwcNodeView
+  ) {
+    const targetEntity = findModelEntity(modelEntities, entityId, semanticPath);
+    if (!targetEntity) {
+      return;
+    }
+
+    // Context-menu navigation should not replace the graph the user invoked it
+    // from. Pin a preview graph before opening the requested view in a new tab.
+    preserveActivePreviewTab();
+
+    if (view === "graph") {
+      const preferredScope = defaultScope(targetEntity);
+      tabs.openTab(makeModelTab(targetEntity, "graph", "Graph", { preferredScope }), true);
+      setModelPreferredScope(preferredScope);
+      setModelPreferredNodeId(undefined);
+    } else {
+      tabs.openTab(makeModelTab(targetEntity, view, getSwcViewTitle(view)), true);
+    }
+
+    setModelFocusEntityId(targetEntity.id);
+    modelHost.revealModelEntity(targetEntity.id);
+  }
+
+  function preserveActivePreviewTab() {
+    if (!tabs.activeTab) {
+      return;
+    }
+    if (tabs.activeTab.pinned) {
+      return;
+    }
+
+    tabs.openTab(tabs.activeTab, true);
   }
 
   if (!activeModelFocusEntity || !tabs.activeTab) {
@@ -151,6 +187,8 @@ export function AutosarApp() {
           preferredNodeId={tabs.activeTab.preferredNodeId ?? modelPreferredNodeId}
           activeWorkspaceTab={tabs.activeTab}
           onFocusModelEntity={focusModelEntityFromGraph}
+          onCopyText={modelHost.copyText}
+          onOpenSwcView={openSwcViewFromGraph}
           onOpenPortInterface={openPortInterfaceFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
         />
@@ -239,4 +277,31 @@ function findMessageTargetEntity(
     }
     return false;
   });
+}
+
+function findModelEntity(
+  entities: AutosarEntity[],
+  entityId: string | undefined,
+  semanticPath: string | undefined
+) {
+  return entities.find((entity) => {
+    return (
+      entity.id === entityId ||
+      entity.semanticPath === semanticPath ||
+      entity.shortName === semanticPath
+    );
+  });
+}
+
+function getSwcViewTitle(view: Exclude<SwcNodeView, "graph">) {
+  switch (view) {
+    case "runnables":
+      return "Runnables";
+    case "ports":
+      return "Ports";
+    case "interRunnableVariables":
+      return "Inter-Runnable Variables";
+    case "parameters":
+      return "Calibration Parameters";
+  }
 }

@@ -415,3 +415,40 @@
   padding: 12px;
   text-align: center;
 }
+
+.autosar-node-context-menu {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  min-width: 250px;
+  padding: 5px;
+  border: 1px solid #b7c4d1;
+  background: #fffdf6;
+  box-shadow: 0 8px 24px rgba(20, 50, 77, 0.22);
+}
+
+.autosar-node-context-menu-command {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 0;
+  background: transparent;
+  color: #2f3944;
+  font: 400 12px/1.2 "Cascadia Mono", Consolas, "Courier New", monospace;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.autosar-node-context-menu-command:hover,
+.autosar-node-context-menu-command:focus-visible {
+  background: #e8f1f8;
+  color: #14324d;
+  outline: none;
+}
+
+.autosar-node-context-menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: #d8e0e8;
+}

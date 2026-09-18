@@ -24,9 +24,12 @@ export interface FlowNodeData extends Record<string, unknown> {
   onPortSelect?: (portId: string) => void;
   onPortInterfaceOpen?: (interfaceRef: string) => void;
   onConnectionNavigate?: (nodeId: string, portId: string) => void;
+  onCopyName?: () => void;
+  onOpenView?: (view: SwcNodeView) => void;
 }
 
 export type FlowNode = Node<FlowNodeData>;
+export type SwcNodeView = "graph" | "runnables" | "ports" | "interRunnableVariables" | "parameters";
 
 const PORT_CONNECTION_LIST_EDGE_KIND = "port-connection-list";
 
