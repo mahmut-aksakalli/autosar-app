@@ -1,6 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 import type React from "react";
-import type { FlowNodeData } from "./AutosarSwcLayout";
+import { getPortConnectionHandleId, type FlowNodeData } from "./AutosarSwcLayout";
 
 interface AutosarSwcPortsProps {
   ports: FlowNodeData["ports"];
@@ -27,9 +27,18 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
   return (
     <div className={`autosar-port-list side-${props.side}`}>
       {props.ports.map((port) => {
+        const connections = props.portConnections?.[port.id];
+        const hasConnections = Boolean(connections && connections.length > 0);
         let portClassName = `autosar-port autosar-port-${port.direction} side-${props.side}`;
         if (port.id === props.highlightedPortId) {
           portClassName += " is-highlighted-target";
+        }
+
+        let connectionHandleClassName = "autosar-port-connection-handle";
+        if (hasConnections) {
+          connectionHandleClassName += " has-connections";
+        } else {
+          connectionHandleClassName += " is-empty";
         }
 
         return (
@@ -51,15 +60,22 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
                 side={props.side}
               />
             </Handle>
-            <span className="autosar-pin-line" aria-hidden="true" />
             <div className="autosar-port-text">
               <strong>{port.label}</strong>
+            </div>
+            <Handle
+              id={getPortConnectionHandleId(port.id)}
+              type={getPortConnectionHandleType(port.direction)}
+              position={getPortConnectionHandlePosition(props.side)}
+              className={connectionHandleClassName}
+            />
+            {hasConnections && (
               <PortConnectionList
-                connections={props.portConnections?.[port.id]}
+                connections={connections}
                 highlighted={port.id === props.highlightedPortId}
                 onNavigate={props.onConnectionNavigate}
               />
-            </div>
+            )}
           </div>
         );
       })}
@@ -116,10 +132,26 @@ function getPortHandleType(direction: "provided" | "required" | "provided-requir
 
 function getPortHandlePosition(side: "left" | "right") {
   if (side === "left") {
-    return Position.Right;
+    return Position.Left;
   }
 
-  return Position.Left;
+  return Position.Right;
+}
+
+function getPortConnectionHandleType(direction: "provided" | "required" | "provided-required") {
+  if (direction === "required") {
+    return "source" as const;
+  }
+
+  return "target" as const;
+}
+
+function getPortConnectionHandlePosition(side: "left" | "right") {
+  if (side === "left") {
+    return Position.Left;
+  }
+
+  return Position.Right;
 }
 
 function PortSymbol(props: {

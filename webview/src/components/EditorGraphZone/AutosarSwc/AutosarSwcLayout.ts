@@ -25,6 +25,8 @@ export interface FlowNodeData extends Record<string, unknown> {
 
 export type FlowNode = Node<FlowNodeData>;
 
+const PORT_CONNECTION_LIST_EDGE_KIND = "port-connection-list";
+
 const PORT_WIDTH = 170;
 const INSTANCE_TOP_Y = 80;
 const INSTANCE_X = 120;
@@ -144,7 +146,7 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
     nextInstanceY += estimatedHeight + INSTANCE_ROW_GAP;
   });
 
-  const flowEdges: Edge[] = graph.edges.map((edge) => ({
+  const graphEdges: Edge[] = graph.edges.map((edge) => ({
     id: edge.id,
     source: edge.source,
     target: edge.target,
@@ -169,7 +171,62 @@ export function layoutSwcGraph(graph: SwcGraphResult): { nodes: FlowNode[]; edge
     }
   }));
 
-  return { nodes: flowNodes, edges: flowEdges };
+  return {
+    nodes: flowNodes,
+    edges: [...graphEdges, ...buildPortConnectionListEdges(graph.nodes)]
+  };
+}
+
+/** Returns the handle that anchors a port's off-canvas connection summary. */
+export function getPortConnectionHandleId(portId: string) {
+  return `${portId}:connection-list`;
+}
+
+/** Identifies the short display edge between a port symbol and its connection list. */
+export function isPortConnectionListEdge(edge: Edge) {
+  return edge.data?.kind === PORT_CONNECTION_LIST_EDGE_KIND;
+}
+
+/**
+ * Creates a short self-edge for every port. The two handles belong to the same
+ * SWC node: one is the port symbol and the other sits beside its connection list.
+ */
+function buildPortConnectionListEdges(nodes: SwcGraphNode[]): Edge[] {
+  const edges: Edge[] = [];
+
+  for (const node of nodes) {
+    for (const port of node.ports) {
+      const connectionHandleId = getPortConnectionHandleId(port.id);
+      let sourceHandle = port.id;
+      let targetHandle = connectionHandleId;
+
+      if (port.direction === "required") {
+        sourceHandle = connectionHandleId;
+        targetHandle = port.id;
+      }
+
+      edges.push({
+        id: `${node.id}:${port.id}:connection-list-edge`,
+        source: node.id,
+        target: node.id,
+        sourceHandle,
+        targetHandle,
+        type: "straight",
+        selectable: false,
+        focusable: false,
+        zIndex: 3,
+        data: {
+          kind: PORT_CONNECTION_LIST_EDGE_KIND
+        },
+        style: {
+          stroke: "#a13131",
+          strokeWidth: 1.5
+        }
+      });
+    }
+  }
+
+  return edges;
 }
 
 function getEstimatedInstanceHeight(node: SwcGraphNode) {

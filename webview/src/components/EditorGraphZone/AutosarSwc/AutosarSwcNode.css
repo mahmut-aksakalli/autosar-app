@@ -187,6 +187,22 @@
   background: transparent;
 }
 
+/*
+ * Keep the symbol centered on the SWC boundary while its React Flow position
+ * points outward, so edges stop at the symbol surface facing the connection.
+ */
+.autosar-port.side-left .autosar-port-handle {
+  left: auto;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.autosar-port.side-right .autosar-port-handle {
+  left: 0;
+  right: auto;
+  transform: translate(-50%, -50%);
+}
+
 .autosar-port-symbol-mark {
   position: absolute;
   inset: 0;
@@ -219,21 +235,34 @@
   pointer-events: none;
 }
 
-.autosar-pin-line {
+.autosar-port .autosar-port-connection-handle {
   position: absolute;
   top: 42px;
-  height: 0;
-  border-top: 1.5px solid #a13131;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  background: transparent;
+  transform: translateY(-50%);
 }
 
-.autosar-port.side-left .autosar-pin-line {
+.autosar-port.side-left .autosar-port-connection-handle.is-empty {
   left: 0;
-  right: 21px;
+  right: auto;
 }
 
-.autosar-port.side-right .autosar-pin-line {
-  left: 21px;
-  right: 0;
+.autosar-port.side-right .autosar-port-connection-handle.is-empty {
+  left: 100%;
+  right: auto;
+}
+
+.autosar-port.side-left .autosar-port-connection-handle.has-connections {
+  left: auto;
+  right: 220px;
+}
+
+.autosar-port.side-right .autosar-port-connection-handle.has-connections {
+  left: 220px;
+  right: auto;
 }
 
 .autosar-port-text {
@@ -289,16 +318,6 @@
   transform: translateY(-50%);
 }
 
-.autosar-port-connection-list::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 100%;
-  width: 100px;
-  border-top: 1px solid #a13131;
-  transform: translateY(-50%);
-}
-
 .autosar-port-connection-label {
   display: inline-flex;
   align-items: stretch;
@@ -311,11 +330,6 @@
   left: auto;
   right: 220px;
   align-items: flex-end;
-}
-
-.autosar-port.side-left .autosar-port-connection-list::before {
-  right: auto;
-  left: 100%;
 }
 
 .autosar-port-connection-component,

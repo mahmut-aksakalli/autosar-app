@@ -21,6 +21,7 @@ import {
   getFocusedNodeBounds,
   getFocusedNodeZoom,
   getIsolatedRailWidth,
+  isPortConnectionListEdge,
   layoutSwcGraph
 } from "./AutosarSwc/AutosarSwcLayout";
 import { SwcDetails } from "./SwcDetails/SwcDetails";
@@ -132,9 +133,11 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
 
     let visibleEdges = baseGraph.edges;
     if (shouldIsolateCompositionNode) {
-      // An isolated instance shows its ports and connection labels without the
-      // composition-level connector lines competing for the same space.
-      visibleEdges = [];
+      // Hide composition-level connectors while retaining the short native
+      // edges between this SWC's port symbols and connection summaries.
+      visibleEdges = baseGraph.edges.filter((edge) => {
+        return edge.source === activeCompositionNodeId && isPortConnectionListEdge(edge);
+      });
     } else if (graphResult.scope === "composition") {
       visibleEdges = baseGraph.edges.filter((edge) => {
         const matchingGraphEdge = graphResult.edges.find((graphEdge) => graphEdge.id === edge.id);
