@@ -8,6 +8,9 @@ interface AutosarSwcPortsProps {
   side: "left" | "right";
   railWidth?: number;
   highlightedPortId?: string;
+  selectedPortId?: string;
+  onPortSelect?: FlowNodeData["onPortSelect"];
+  onPortInterfaceOpen?: FlowNodeData["onPortInterfaceOpen"];
   onConnectionNavigate?: FlowNodeData["onConnectionNavigate"];
 }
 
@@ -29,9 +32,13 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
       {props.ports.map((port) => {
         const connections = props.portConnections?.[port.id];
         const hasConnections = Boolean(connections && connections.length > 0);
+        const interfaceName = getReferenceLeafName(port.interfaceRef);
         let portClassName = `autosar-port autosar-port-${port.direction} side-${props.side}`;
         if (port.id === props.highlightedPortId) {
           portClassName += " is-highlighted-target";
+        }
+        if (port.id === props.selectedPortId) {
+          portClassName += " is-selected";
         }
 
         let connectionHandleClassName = "autosar-port-connection-handle";
@@ -53,12 +60,50 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
               type={getPortHandleType(port.direction)}
               position={getPortHandlePosition(props.side)}
               className="autosar-port-handle"
+              isConnectable={false}
+              isConnectableStart={false}
+              isConnectableEnd={false}
+              role="button"
+              tabIndex={0}
+              aria-label={`Port ${port.label}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onPortSelect?.(port.id);
+              }}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                if (port.interfaceRef) {
+                  props.onPortInterfaceOpen?.(port.interfaceRef);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  props.onPortSelect?.(port.id);
+                  return;
+                }
+
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  props.onPortSelect?.(port.id);
+                  if (port.interfaceRef) {
+                    props.onPortInterfaceOpen?.(port.interfaceRef);
+                  }
+                }
+              }}
             >
               <PortSymbol
                 direction={port.direction}
                 interfaceKind={port.interfaceKind}
                 side={props.side}
               />
+              {interfaceName && (
+                <span className="autosar-port-interface-tooltip" role="tooltip">
+                  {interfaceName}
+                </span>
+              )}
             </Handle>
             <div className="autosar-port-text">
               <strong>{port.label}</strong>
@@ -68,6 +113,9 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
               type={getPortConnectionHandleType(port.direction)}
               position={getPortConnectionHandlePosition(props.side)}
               className={connectionHandleClassName}
+              isConnectable={false}
+              isConnectableStart={false}
+              isConnectableEnd={false}
             />
             {hasConnections && (
               <PortConnectionList
@@ -152,6 +200,15 @@ function getPortConnectionHandlePosition(side: "left" | "right") {
   }
 
   return Position.Left;
+}
+
+function getReferenceLeafName(reference: string | undefined) {
+  if (!reference) {
+    return undefined;
+  }
+
+  const segments = reference.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? reference;
 }
 
 function PortSymbol(props: {

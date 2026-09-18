@@ -239,7 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
   async function handleWebviewMessage(webview: vscode.Webview | undefined, message: unknown) {
     if (webview && isRevealModelEntityMessage(message)) {
       const entity = workspaceModelService.getSnapshot()?.entities.find((candidate) => candidate.id === message.entityId);
-      if (!entity || (entity.type !== "swc" && entity.type !== "composition")) {
+      if (!entity) {
         return;
       }
       let node = treeProvider.findEntityNode(entity.id);

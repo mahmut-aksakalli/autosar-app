@@ -27,6 +27,9 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
             side="left"
             railWidth={leftRailWidth}
             highlightedPortId={props.data.highlightedPortId}
+            selectedPortId={props.data.selectedPortId}
+            onPortSelect={props.data.onPortSelect}
+            onPortInterfaceOpen={props.data.onPortInterfaceOpen}
             onConnectionNavigate={props.data.onConnectionNavigate}
           />
         </div>
@@ -52,6 +55,9 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
             side="right"
             railWidth={rightRailWidth}
             highlightedPortId={props.data.highlightedPortId}
+            selectedPortId={props.data.selectedPortId}
+            onPortSelect={props.data.onPortSelect}
+            onPortInterfaceOpen={props.data.onPortInterfaceOpen}
             onConnectionNavigate={props.data.onConnectionNavigate}
           />
         </div>

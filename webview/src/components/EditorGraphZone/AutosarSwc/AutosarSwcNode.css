@@ -184,6 +184,45 @@
   height: 42px;
   border: 0;
   background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.autosar-port .autosar-port-handle:hover .autosar-port-symbol-mark {
+  background: #fff3e8;
+}
+
+.autosar-port.is-selected .autosar-port-symbol-mark {
+  background: #f2c7b8;
+}
+
+.autosar-port .autosar-port-handle:focus-visible .autosar-port-symbol-mark {
+  outline: 2px solid #2f6f9f;
+  outline-offset: 2px;
+}
+
+.autosar-port-interface-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  max-width: 280px;
+  padding: 5px 8px;
+  border: 1px solid #8a1f1f;
+  background: #fffdf6;
+  color: #8a1f1f;
+  box-shadow: 2px 2px 0 rgba(20, 50, 77, 0.12);
+  font: 600 12px/1.2 "Cascadia Mono", Consolas, "Courier New", monospace;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 100ms ease;
+  white-space: nowrap;
+}
+
+.autosar-port .autosar-port-handle:hover .autosar-port-interface-tooltip,
+.autosar-port .autosar-port-handle:focus-visible .autosar-port-interface-tooltip {
+  opacity: 1;
 }
 
 /*

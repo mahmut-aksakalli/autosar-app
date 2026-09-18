@@ -111,7 +111,11 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
 
   findEntityNode(entityId: string): ModelTreeNode | undefined {
     this.getChildren();
-    return this.nodesById.get(`software-component:${entityId}`) ?? this.nodesById.get(entityId);
+    return (
+      this.nodesById.get(`software-component:${entityId}`) ??
+      this.nodesById.get(`model-entity:${entityId}`) ??
+      this.nodesById.get(entityId)
+    );
   }
 
   private buildRoots(): ModelTreeNode[] {

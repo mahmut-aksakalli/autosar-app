@@ -107,6 +107,29 @@ export function AutosarApp() {
     modelHost.revealModelEntity(targetEntity.id);
   }
 
+  function openPortInterfaceFromGraph(interfaceRef: string) {
+    const interfaceEntity = modelEntities.find((entity) => {
+      return entity.id === interfaceRef || entity.semanticPath === interfaceRef;
+    });
+    if (!interfaceEntity) {
+      return;
+    }
+
+    const interfaceTab = makeModelTab(
+      interfaceEntity,
+      "entityDetails",
+      "Port Interface"
+    );
+
+    // Preserve the graph preview before opening a separate interface tab.
+    if (tabs.activeTab && !tabs.activeTab.pinned) {
+      tabs.openTab(tabs.activeTab, true);
+    }
+    tabs.openTab(interfaceTab, true);
+    setModelFocusEntityId(interfaceEntity.id);
+    modelHost.revealModelEntity(interfaceEntity.id);
+  }
+
   if (!activeModelFocusEntity || !tabs.activeTab) {
     return <div className="empty-state">No AUTOSAR model entity was discovered.</div>;
   }
@@ -128,6 +151,7 @@ export function AutosarApp() {
           preferredNodeId={tabs.activeTab.preferredNodeId ?? modelPreferredNodeId}
           activeWorkspaceTab={tabs.activeTab}
           onFocusModelEntity={focusModelEntityFromGraph}
+          onOpenPortInterface={openPortInterfaceFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
         />
       </div>

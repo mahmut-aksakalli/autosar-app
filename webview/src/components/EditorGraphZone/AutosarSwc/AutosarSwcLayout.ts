@@ -20,6 +20,9 @@ export interface FlowNodeData extends Record<string, unknown> {
   secondaryLabel?: string;
   swcKind?: SwcGraphNode["swcKind"];
   highlightedPortId?: string;
+  selectedPortId?: string;
+  onPortSelect?: (portId: string) => void;
+  onPortInterfaceOpen?: (interfaceRef: string) => void;
   onConnectionNavigate?: (nodeId: string, portId: string) => void;
 }
 

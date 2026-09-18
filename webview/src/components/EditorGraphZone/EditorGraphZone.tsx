@@ -41,6 +41,7 @@ interface EditorGraphZoneProps {
     preferredNodeId?: string;
     includeCompositionInternals?: boolean;
   }) => void;
+  onOpenPortInterface?: (interfaceRef: string) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }
 
@@ -53,6 +54,10 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(props.preferredNodeId);
   const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
+  const [selectedPort, setSelectedPort] = useState<{
+    nodeId: string;
+    portId: string;
+  }>();
   const flowCanvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<AutosarSwcController | null>(null);
   const isCompositionScope = graphScope === "composition";
@@ -92,6 +97,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
   useEffect(() => {
     setActiveCompositionNodeId(props.preferredNodeId);
     setActiveCompositionPortId(undefined);
+    setSelectedPort(undefined);
   }, [props.preferredNodeId, props.focusEntity?.id]);
 
   useEffect(() => {
@@ -170,6 +176,12 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
             ...node.data,
             portConnections: portConnections[node.id] ?? {},
             highlightedPortId,
+            selectedPortId: selectedPort?.nodeId === node.id ? selectedPort.portId : undefined,
+            onPortSelect: (portId: string) => {
+              setSelectedNodeId(node.id);
+              setSelectedPort({ nodeId: node.id, portId });
+            },
+            onPortInterfaceOpen: props.onOpenPortInterface,
             onConnectionNavigate: (nodeId: string, portId: string) => {
               setActiveCompositionNodeId(nodeId);
               setActiveCompositionPortId(portId);
@@ -183,7 +195,14 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
       nodes: visibleNodes,
       edges: visibleEdges
     };
-  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, props.preferredNodeId]);
+  }, [
+    activeCompositionNodeId,
+    activeCompositionPortId,
+    graphResult,
+    props.onOpenPortInterface,
+    props.preferredNodeId,
+    selectedPort
+  ]);
 
   let fitViewOptions = { padding: 0.2, maxZoom: 1.1, minZoom: 0.35 };
   if (shouldIsolateCompositionNode) {
@@ -257,7 +276,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
       cancelled = true;
       window.cancelAnimationFrame(frameId);
     };
-  }, [activeCompositionNodeId, activeCompositionPortId, flowGraph.nodes, graphResult, shouldIsolateCompositionNode]);
+  }, [activeCompositionNodeId, activeCompositionPortId, graphResult, shouldIsolateCompositionNode]);
 
   let flowCanvasKey = "empty";
   if (graphResult) {
@@ -271,6 +290,7 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
     }
 
     setSelectedNodeId(node.id);
+    setSelectedPort(undefined);
   }
 
   function handleNodeDoubleClick(_event: React.MouseEvent, node: Node) {
