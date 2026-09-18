@@ -219,6 +219,9 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
               setActiveCompositionNodeId(nodeId);
               setActiveCompositionPortId(portId);
               setSelectedNodeId(nodeId);
+              // Connection-label navigation targets a concrete port. Keep the
+              // PortSymbol selection in sync with the highlighted label.
+              setSelectedPort({ nodeId, portId });
             }
           }
         };

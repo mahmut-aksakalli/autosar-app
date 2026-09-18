@@ -206,7 +206,15 @@ function PortConnectionList(props: {
   }
 
   return (
-    <span className="autosar-port-connection-list">
+    <span
+      className="autosar-port-connection-list"
+      onContextMenu={(event) => {
+        // Connection labels are navigation controls, not part of the port's
+        // context-menu target. Stop the event before it reaches the port row.
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       {props.connections.map((connection, index) => (
         <span
           key={`${connection.componentName}:${connection.portName}:${index}`}

@@ -25,7 +25,7 @@ export function AutosarSwcNodeContextMenu(props: AutosarSwcNodeContextMenuProps)
         }}
       />
       <ContextMenuSeparator />
-      <ContextMenuCommand label="Go to target SWC Graph" onSelect={() => selectView(props, "graph")} />
+      <ContextMenuCommand label="Show SWC Graph" onSelect={() => selectView(props, "graph")} />
       <ContextMenuCommand label="Show SWC Runnable details" onSelect={() => selectView(props, "runnables")} />
       <ContextMenuCommand label="Show SWC Port details" onSelect={() => selectView(props, "ports")} />
       <ContextMenuCommand

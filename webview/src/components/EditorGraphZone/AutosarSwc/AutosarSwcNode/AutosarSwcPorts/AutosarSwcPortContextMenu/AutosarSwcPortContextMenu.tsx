@@ -44,14 +44,14 @@ export function AutosarSwcPortContextMenu(props: AutosarSwcPortContextMenuProps)
       />
       <ContextMenuSeparator />
       <ContextMenuCommand
-        label="Go to Port Prototype Details"
+        label="Show Port Prototype Details"
         onSelect={() => {
           props.onOpenDetails?.(props.port);
           props.onClose();
         }}
       />
       <ContextMenuCommand
-        label="Go to Port Interface Details"
+        label="Show Port Interface Details"
         disabled={!props.port.interfaceRef}
         onSelect={() => {
           if (props.port.interfaceRef) {
