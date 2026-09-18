@@ -36,6 +36,10 @@
   padding: 0 8px 0 12px;
 }
 
+.editor-tab.preview .editor-tab-button {
+  font-style: italic;
+}
+
 .editor-tab-close {
   width: 28px;
   padding: 0;
