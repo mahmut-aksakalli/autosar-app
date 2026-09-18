@@ -43,8 +43,6 @@ and Electron shell code are intentionally out of scope.
   - [x] Detect Vector DaVinci metadata such as `.dpa`, `.dcf`, `.dvgproj`, `.dvgproject`, and `.dvcfg`.
   - [x] Seed workspace semantic indexing from Vector metadata-referenced ARXML inputs.
   - [x] Fall back to all ARXML files when Vector metadata inputs cannot be resolved.
-  - [ ] Show an explicit model-loading state in the webview while larger workspace indexing runs.
-  - [ ] Add a parsed/indexed ARXML documents panel equivalent for VS Code.
 - [x] Add version-aware semantic extractor interfaces.
 - [x] Implement the shared Classic AUTOSAR extractor foundation.
 - [ ] Add focused extractors for every source-app roadmap entity:
@@ -115,11 +113,6 @@ and Electron shell code are intentionally out of scope.
 - [x] Preserve composition-instance selection and graph navigation inside model mode.
 - [x] Render composition outer ports on the composition boundary.
 - [x] Add family-specific glyphs/icons for service, sensor-actuator, ECU abstraction, complex driver, nv-block, and parameter components.
-- [ ] Add tests for mixed compositions and standards coverage in this extension repo.
-- [ ] Add renderer/webview tests for model explorer navigation and semantic workspace tab opening.
-- [ ] Prove graph/detail rendering consumes only semantic contracts, not raw parser object shapes.
-- [ ] Keep raw XML nodes available only as source pointers for jump-to-XML, diagnostics, and traceability.
-- [ ] Add graph/view tests for stable semantic rendering across equivalent version-specific fixtures.
 
 ## 7. Source Step 7 - ECU Abstraction And Complex Driver Support
 References:

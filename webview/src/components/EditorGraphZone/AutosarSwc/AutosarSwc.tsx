@@ -1,5 +1,6 @@
 import {
   Background,
+  ConnectionMode,
   Controls,
   ReactFlow,
   ReactFlowProvider,
@@ -82,6 +83,7 @@ export function AutosarSwc(props: AutosarSwcProps) {
           fitViewOptions={props.fitViewOptions}
           minZoom={0.35}
           maxZoom={1.5}
+          connectionMode={ConnectionMode.Loose}
           zoomOnDoubleClick={false}
           nodesDraggable={false}
           nodesConnectable={false}

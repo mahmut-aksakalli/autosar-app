@@ -175,24 +175,21 @@
   text-align: left;
 }
 
-.autosar-port:hover:not(:disabled) {
-  background: transparent;
-}
-
-.autosar-port:active,
-.autosar-port:focus,
-.autosar-port:focus-visible {
-  background: transparent;
-  outline: none;
-}
-
 .autosar-port.side-right {
   text-align: right;
 }
 
+.autosar-port .autosar-port-handle {
+  top: 42px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+}
+
 .autosar-port-symbol-mark {
   position: absolute;
-  top: 22px;
+  inset: 0;
   width: 42px;
   height: 42px;
   z-index: 1;
@@ -201,14 +198,6 @@
   padding: 4px;
   overflow: visible;
   box-sizing: border-box;
-}
-
-.autosar-port-symbol-mark.side-left {
-  right: -21px;
-}
-
-.autosar-port-symbol-mark.side-right {
-  left: -21px;
 }
 
 .autosar-port-symbol-mark path {
@@ -223,6 +212,11 @@
   fill: none;
   stroke: #1f1f1f;
   stroke-width: 1.7;
+}
+
+/* The handle owns pointer interaction; its SVG child only supplies the visual shape. */
+.autosar-port-handle .autosar-port-symbol-mark {
+  pointer-events: none;
 }
 
 .autosar-pin-line {

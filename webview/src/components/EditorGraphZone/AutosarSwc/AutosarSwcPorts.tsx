@@ -33,26 +33,25 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
         }
 
         return (
-          <button
+          <div
             key={port.id}
-            type="button"
             className={portClassName}
-            onDoubleClick={(event) => {
-              event.stopPropagation();
-              const primaryConnection = props.portConnections?.[port.id]?.[0];
-              if (primaryConnection) {
-                props.onConnectionNavigate?.(primaryConnection.targetNodeId, primaryConnection.targetPortId);
-              }
-            }}
             style={portLabelStyle}
           >
+            {/* The AUTOSAR symbol is also the single React Flow connection point for this port. */}
             <Handle
               id={port.id}
-              type={getPrimaryHandleType(props.side)}
-              position={getPrimaryHandlePosition(props.side)}
-            />
+              type={getPortHandleType(port.direction)}
+              position={getPortHandlePosition(props.side)}
+              className="autosar-port-handle"
+            >
+              <PortSymbol
+                direction={port.direction}
+                interfaceKind={port.interfaceKind}
+                side={props.side}
+              />
+            </Handle>
             <span className="autosar-pin-line" aria-hidden="true" />
-            <PortSymbol direction={port.direction} interfaceKind={port.interfaceKind} side={props.side} />
             <div className="autosar-port-text">
               <strong>{port.label}</strong>
               <PortConnectionList
@@ -61,12 +60,7 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
                 onNavigate={props.onConnectionNavigate}
               />
             </div>
-            <Handle
-              id={port.id}
-              type={getSecondaryHandleType(props.side)}
-              position={getSecondaryHandlePosition(props.side)}
-            />
-          </button>
+          </div>
         );
       })}
     </div>
@@ -110,32 +104,22 @@ function PortConnectionList(props: {
   );
 }
 
-function getPrimaryHandleType(side: "left" | "right") {
-  if (side === "right") {
-    return "source" as const;
-  }
-  return "target" as const;
-}
-
-function getPrimaryHandlePosition(side: "left" | "right") {
-  if (side === "right") {
-    return Position.Right;
-  }
-  return Position.Left;
-}
-
-function getSecondaryHandleType(side: "left" | "right") {
-  if (side === "right") {
+function getPortHandleType(direction: "provided" | "required" | "provided-required") {
+  if (direction === "required") {
     return "target" as const;
   }
+
+  // React Flow still requires a declared type in loose mode. A provided-required
+  // port is declared as a source, but loose mode also permits incoming edges.
   return "source" as const;
 }
 
-function getSecondaryHandlePosition(side: "left" | "right") {
-  if (side === "right") {
-    return Position.Left;
+function getPortHandlePosition(side: "left" | "right") {
+  if (side === "left") {
+    return Position.Right;
   }
-  return Position.Right;
+
+  return Position.Left;
 }
 
 function PortSymbol(props: {
