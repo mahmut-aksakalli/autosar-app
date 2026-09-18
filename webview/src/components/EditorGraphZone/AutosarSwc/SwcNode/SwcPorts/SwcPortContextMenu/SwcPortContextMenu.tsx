@@ -1,11 +1,11 @@
 import type { SwcGraphPort } from "../../../../../../../../src/shared/contracts";
 import {
-  AutosarSwcContextMenu,
+  SwcContextMenu,
   ContextMenuCommand,
   ContextMenuSeparator
-} from "../../AutosarSwcNodeContextMenu/AutosarSwcContextMenu";
+} from "../../SwcNodeContextMenu/SwcContextMenu";
 
-interface AutosarSwcPortContextMenuProps {
+interface SwcPortContextMenuProps {
   x: number;
   y: number;
   port: SwcGraphPort;
@@ -17,9 +17,9 @@ interface AutosarSwcPortContextMenuProps {
 }
 
 /** Provides actions for the exact port that received the right-click. */
-export function AutosarSwcPortContextMenu(props: AutosarSwcPortContextMenuProps) {
+export function SwcPortContextMenu(props: SwcPortContextMenuProps) {
   return (
-    <AutosarSwcContextMenu
+    <SwcContextMenu
       x={props.x}
       y={props.y}
       estimatedHeight={160}
@@ -60,6 +60,6 @@ export function AutosarSwcPortContextMenu(props: AutosarSwcPortContextMenuProps)
           props.onClose();
         }}
       />
-    </AutosarSwcContextMenu>
+    </SwcContextMenu>
   );
 }

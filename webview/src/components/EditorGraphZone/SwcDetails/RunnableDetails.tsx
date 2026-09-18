@@ -6,9 +6,10 @@ import type {
   RunnableTriggerEventDetail,
   SwcInspectorItem
 } from "../../../../../src/shared/contracts";
-import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch, SortableResizableTableHeader } from "./DetailsTable";
+import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch } from "./TableData/TableData";
+import { SortableResizableTableHeader } from "./TableData/TableHeaders";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "./DetailsFormatters";
-import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./DetailsTable";
+import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 
 export function RunnableDetails(props: {
   title: string;

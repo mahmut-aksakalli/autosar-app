@@ -1,11 +1,10 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
 import type {
   RunnableAccessPointDetail,
   RunnableTriggerEventDetail,
   SwcGraphPort,
   SwcInspectorItem,
   SwcInspectorSectionId
-} from "../../../../../src/shared/contracts";
+} from "../../../../../../src/shared/contracts";
 
 export type SortDirection = "asc" | "desc";
 export type RunnableTableColumnKey = "swcName" | "runnableName" | "runnableSymbol" | "period";
@@ -47,61 +46,6 @@ export type DetailsTableRow = {
   filePath?: string;
   xmlPath?: string;
 } & Record<string, string | SwcInspectorItem | SwcInspectorSectionId | undefined>;
-
-export function SortableTableHeader<Key extends string>(props: {
-  label: string;
-  columnKey: Key;
-  sort: { key: Key; direction: SortDirection };
-  onSort: (key: Key) => void;
-}) {
-  const isActive = props.sort.key === props.columnKey;
-  const indicatorClass = isActive ? `is-${props.sort.direction}` : "is-unsorted";
-
-  return (
-    <th scope="col" aria-sort={isActive ? (props.sort.direction === "asc" ? "ascending" : "descending") : "none"}>
-      <button
-        type="button"
-        className="model-sort-header-button"
-        onClick={() => props.onSort(props.columnKey)}
-        title={`Sort by ${props.label}`}
-      >
-        <span>{props.label}</span>
-        <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
-      </button>
-    </th>
-  );
-}
-
-export function SortableResizableTableHeader<Key extends string>(props: {
-  label: string;
-  columnKey: Key;
-  sort: { key: Key; direction: SortDirection };
-  onSort: (key: Key) => void;
-  onResize: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-}) {
-  const isActive = props.sort.key === props.columnKey;
-  const indicatorClass = isActive ? `is-${props.sort.direction}` : "is-unsorted";
-
-  return (
-    <th aria-sort={isActive ? (props.sort.direction === "asc" ? "ascending" : "descending") : "none"}>
-      <button
-        type="button"
-        className="model-sort-header-button"
-        onClick={() => props.onSort(props.columnKey)}
-        title={`Sort by ${props.label}`}
-      >
-        <span>{props.label}</span>
-        <span className={`model-sort-indicator ${indicatorClass}`} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="model-runnable-column-resizer"
-        aria-label={`Resize ${props.label} column`}
-        onPointerDown={props.onResize}
-      />
-    </th>
-  );
-}
 
 export function compareRunnableRows(
   left: RunnableTableRow,

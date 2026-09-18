@@ -3,10 +3,10 @@ import type React from "react";
 import { useCallback, useState } from "react";
 import type { SwcGraphPort } from "../../../../../../../src/shared/contracts";
 import { getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
-import { AutosarSwcPortContextMenu } from "./AutosarSwcPortContextMenu/AutosarSwcPortContextMenu";
+import { SwcPortContextMenu } from "./SwcPortContextMenu/SwcPortContextMenu";
 import { HighlightedText } from "../../SearchBox/HighlightedText";
 
-interface AutosarSwcPortsProps {
+interface SwcPortsProps {
   ports: FlowNodeData["ports"];
   portConnections?: FlowNodeData["portConnections"];
   side: "left" | "right";
@@ -31,7 +31,7 @@ interface PortContextMenuState {
 }
 
 /** Renders one side of an SWC node, including its React Flow connection handles. */
-export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
+export function SwcPorts(props: SwcPortsProps) {
   const [contextMenu, setContextMenu] = useState<PortContextMenuState>();
   const closeContextMenu = useCallback(() => setContextMenu(undefined), []);
 
@@ -172,7 +172,7 @@ export function AutosarSwcPorts(props: AutosarSwcPortsProps) {
       })}
       </div>
       {contextMenu && (
-        <AutosarSwcPortContextMenu
+        <SwcPortContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
           port={contextMenu.port}

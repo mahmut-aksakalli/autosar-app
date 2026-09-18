@@ -1,11 +1,11 @@
 import type { SwcNodeView } from "../../AutosarSwcLayout";
 import {
-  AutosarSwcContextMenu,
+  SwcContextMenu,
   ContextMenuCommand,
   ContextMenuSeparator
-} from "./AutosarSwcContextMenu";
+} from "./SwcContextMenu";
 
-interface AutosarSwcNodeContextMenuProps {
+interface SwcNodeContextMenuProps {
   x: number;
   y: number;
   onClose: () => void;
@@ -14,9 +14,9 @@ interface AutosarSwcNodeContextMenuProps {
 }
 
 /** Renders node actions in screen space so graph zoom does not resize the menu. */
-export function AutosarSwcNodeContextMenu(props: AutosarSwcNodeContextMenuProps) {
+export function SwcNodeContextMenu(props: SwcNodeContextMenuProps) {
   return (
-    <AutosarSwcContextMenu x={props.x} y={props.y} estimatedHeight={230} onClose={props.onClose}>
+    <SwcContextMenu x={props.x} y={props.y} estimatedHeight={230} onClose={props.onClose}>
       <ContextMenuCommand
         label="Copy SWC name"
         onSelect={() => {
@@ -33,11 +33,11 @@ export function AutosarSwcNodeContextMenu(props: AutosarSwcNodeContextMenuProps)
         onSelect={() => selectView(props, "interRunnableVariables")}
       />
       <ContextMenuCommand label="Show Calibration Parameters" onSelect={() => selectView(props, "parameters")} />
-    </AutosarSwcContextMenu>
+    </SwcContextMenu>
   );
 }
 
-function selectView(props: AutosarSwcNodeContextMenuProps, view: SwcNodeView) {
+function selectView(props: SwcNodeContextMenuProps, view: SwcNodeView) {
   props.onOpenView?.(view);
   props.onClose();
 }

@@ -13,12 +13,12 @@ import {
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { SwcGraphResult } from "../../../../../src/shared/contracts";
 import type { FlowNode } from "./AutosarSwcLayout";
-import { AutosarSwcNode } from "./AutosarSwcNode/AutosarSwcNode";
+import { SwcNode } from "./SwcNode/SwcNode";
 import { SearchBox } from "./SearchBox/SearchBox";
 import "./AutosarSwc.css";
 
 const nodeTypes = {
-  autosarNode: AutosarSwcNode
+  autosarNode: SwcNode
 };
 
 const ignoreNodeChanges: OnNodesChange = () => undefined;

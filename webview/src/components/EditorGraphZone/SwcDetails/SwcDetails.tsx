@@ -10,9 +10,9 @@ import {
   getDetailsColumns
 } from "./SwcDetailsHelper";
 import { EntityDetails } from "./EntityDetails";
-import { ParameterDetails } from "./ParameterDetails";
-import { InterRunnableVariableDetails } from "./InterRunnableVariableDetails";
-import { PerInstanceMemoryDetails } from "./PerInstanceMemoryDetails";
+import { ParameterDetails } from "./ParameterDetails/ParameterDetails";
+import { InterRunnableVariableDetails } from "./InterRunnableVariableDetails/InterRunnableVariableDetails";
+import { PerInstanceMemoryDetails } from "./PerInstanceMemoryDetails/PerInstanceMemoryDetails";
 import { ServiceDependencyDetails } from "./ServiceDependency/ServiceDependencyDetails";
 import { RunnableDetails } from "./RunnableDetails";
 import { PortDetails } from "./PortDetails/PortDetails";
@@ -21,7 +21,7 @@ import {
   PortsTable,
   RunnablesTable,
   DetailsTable
-} from "./DetailsTables";
+} from "./TableData/DetailsTables";
 
 export function SwcDetails(props: {
   tab: ModelWorkspaceTab;

@@ -1,11 +1,11 @@
-import type { SwcInspectorItem } from "../../../../../src/shared/contracts";
+import type { SwcInspectorItem } from "../../../../../../src/shared/contracts";
 import {
   formatInitValueTypeOption,
   formatMeasurementCalibrationOption,
   formatReferenceShortName,
   initValueTypeOptions
-} from "./DetailsFormatters";
-import { InitValueDisplay } from "./InitValueDisplay";
+} from "../DetailsFormatters";
+import { InitValueDisplay } from "../InitValueDisplay";
 
 export function PerInstanceMemoryDetails(props: { title: string; item?: SwcInspectorItem }) {
   const metadata = props.item?.metadata ?? {};

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { InterfaceDetailMember } from "../../../../../../src/shared/contracts";
-import { CollapsibleSection } from "../CollapsibleSection";
-import { EntityDetailTable } from "../EntityDetailTable";
-import { compareTableText } from "../DetailsTable";
+import type { InterfaceDetailMember } from "../../../../../src/shared/contracts";
+import { CollapsibleSection } from "../SwcDetails/CollapsibleSection";
+import { EntityDetailTable } from "../SwcDetails/EntityDetailTable";
+import { compareTableText } from "../SwcDetails/TableData/TableData";
 import {
   formatAutosarTagText,
   formatHandleInvalidOption,
@@ -10,7 +10,7 @@ import {
   formatReferenceShortName,
   readBooleanMetadata,
   splitMetadataList
-} from "../DetailsFormatters";
+} from "../SwcDetails/DetailsFormatters";
 import { compareAutosarErrorCodes } from "./PortInterfaceDetailsHelper";
 
 export function PortInterfaceDataElements(props: { members: InterfaceDetailMember[] }) {

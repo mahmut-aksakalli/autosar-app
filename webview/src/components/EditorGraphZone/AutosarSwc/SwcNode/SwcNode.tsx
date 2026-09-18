@@ -2,12 +2,12 @@ import type { NodeProps } from "@xyflow/react";
 import { useCallback, useState } from "react";
 import type { SwcGraphNode } from "../../../../../../src/shared/contracts";
 import { getPortRailWidth, type FlowNode } from "../AutosarSwcLayout";
-import { AutosarSwcNodeContextMenu } from "./AutosarSwcNodeContextMenu/AutosarSwcNodeContextMenu";
-import { AutosarSwcPorts } from "./AutosarSwcPorts/AutosarSwcPorts";
+import { SwcNodeContextMenu } from "./SwcNodeContextMenu/SwcNodeContextMenu";
+import { SwcPorts } from "./SwcPorts/SwcPorts";
 import { HighlightedText } from "../SearchBox/HighlightedText";
-import "./AutosarSwcNode.css";
+import "./SwcNode.css";
 
-export function AutosarSwcNode(props: NodeProps<FlowNode>) {
+export function SwcNode(props: NodeProps<FlowNode>) {
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number }>();
   const closeContextMenu = useCallback(() => setContextMenuPosition(undefined), []);
   const providedPorts = props.data.ports.filter(
@@ -31,7 +31,7 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
     <div className={nodeClassName}>
       <div className="autosar-symbol">
         <div className="autosar-symbol-rail autosar-symbol-rail-left">
-          <AutosarSwcPorts
+          <SwcPorts
             ports={requiredPorts}
             portConnections={props.data.portConnections}
             side="left"
@@ -89,7 +89,7 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
           {props.data.warning && <div className="autosar-node-warning">{props.data.warning}</div>}
         </div>
         <div className="autosar-symbol-rail autosar-symbol-rail-right">
-          <AutosarSwcPorts
+          <SwcPorts
             ports={providedPorts}
             portConnections={props.data.portConnections}
             side="right"
@@ -108,7 +108,7 @@ export function AutosarSwcNode(props: NodeProps<FlowNode>) {
         </div>
       </div>
       {contextMenuPosition && (
-        <AutosarSwcNodeContextMenu
+        <SwcNodeContextMenu
           x={contextMenuPosition.x}
           y={contextMenuPosition.y}
           onClose={closeContextMenu}

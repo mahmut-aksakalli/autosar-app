@@ -1,12 +1,12 @@
-import type { SwcInspectorItem } from "../../../../../src/shared/contracts";
+import type { SwcInspectorItem } from "../../../../../../src/shared/contracts";
 import {
   formatInitValueTypeOption,
   formatMeasurementCalibrationOption,
   formatParameterScopeOption,
   formatReferenceShortName,
   initValueTypeOptions
-} from "./DetailsFormatters";
-import { InitValueDisplay } from "./InitValueDisplay";
+} from "../DetailsFormatters";
+import { InitValueDisplay } from "../InitValueDisplay";
 
 export function ParameterDetails(props: { title: string; parameter?: SwcInspectorItem }) {
   const metadata = props.parameter?.metadata ?? {};

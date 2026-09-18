@@ -11,8 +11,8 @@ import { InitValueDisplay } from "./InitValueDisplay";
 import {
   PortInterfaceDataElements,
   PortInterfaceOperations
-} from "./PortInterfaceDetails/PortInterfaceDetails";
-import { buildPortInterfaceDetailTables } from "./PortInterfaceDetails/PortInterfaceDetailsHelper";
+} from "../PortInterfaceDetails/PortInterfaceDetails";
+import { buildPortInterfaceDetailTables } from "../PortInterfaceDetails/PortInterfaceDetailsHelper";
 
 export function EntityDetails(props: { title: string; entity: AutosarEntity }) {
   const metadata = props.entity.metadata ?? {};

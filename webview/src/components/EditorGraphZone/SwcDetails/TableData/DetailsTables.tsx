@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react";
-import type { SwcGraphPort, SwcInspectorItem } from "../../../../../src/shared/contracts";
-import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
-import { comparePortRows, compareRunnableRows, compareTableText, normalizeTableSearch, SortableTableHeader } from "./DetailsTable";
+import type { SwcGraphPort, SwcInspectorItem } from "../../../../../../src/shared/contracts";
+import type { ModelWorkspaceTab } from "../../../EditorTabs/EditorTabs";
+import { comparePortRows, compareRunnableRows, compareTableText, normalizeTableSearch } from "./TableData";
+import { SortableTableHeader } from "./TableHeaders";
 import {
   formatBooleanMetadata,
   formatCalibrationAccess,
   formatInitValueTypeOption,
   formatOptionalMilliseconds,
   formatReferenceShortName
-} from "./DetailsFormatters";
-import { formatAssignedPortPrototypeColumn } from "./DetailsFormatters";
-import { formatPortDirectionLabel } from "./PortDetails/CommunicationSpecHelper";
-import type { DetailsTableItem, DetailsTableRow, PortTableColumnKey, RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./DetailsTable";
+} from "../DetailsFormatters";
+import { formatAssignedPortPrototypeColumn } from "../DetailsFormatters";
+import { formatPortDirectionLabel } from "../PortDetails/CommunicationSpecHelper";
+import type { DetailsTableItem, DetailsTableRow, PortTableColumnKey, RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./TableData";
 
 export function RunnablesTable(props: {
   title: string;

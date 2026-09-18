@@ -1,6 +1,6 @@
 import type { SwcInspectorData, SwcInspectorSectionId } from "../../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
-import type { DetailsTableItem } from "./DetailsTable";
+import type { DetailsTableItem } from "./TableData/TableData";
 
 export function getSectionsForTab(kind: ModelWorkspaceTab["kind"]): SwcInspectorSectionId[] {
   switch (kind) {

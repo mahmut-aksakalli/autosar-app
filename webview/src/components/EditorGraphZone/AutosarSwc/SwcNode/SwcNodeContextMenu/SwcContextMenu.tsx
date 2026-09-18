@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-interface AutosarSwcContextMenuProps {
+interface SwcContextMenuProps {
   x: number;
   y: number;
   estimatedHeight: number;
@@ -13,7 +13,7 @@ const MENU_WIDTH = 250;
 const VIEWPORT_MARGIN = 8;
 
 /** Keeps graph context menus at a readable screen-space size and inside the viewport. */
-export function AutosarSwcContextMenu(props: AutosarSwcContextMenuProps) {
+export function SwcContextMenu(props: SwcContextMenuProps) {
   useEffect(() => {
     function closeOnPointerDown() {
       props.onClose();

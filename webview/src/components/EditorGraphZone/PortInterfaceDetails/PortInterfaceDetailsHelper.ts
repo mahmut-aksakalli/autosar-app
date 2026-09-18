@@ -1,6 +1,6 @@
-import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../../../src/shared/contracts";
-import { compareTableText } from "../DetailsTable";
-import { formatCalibrationAccess, formatInitValueTypeOption } from "../DetailsFormatters";
+import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../../src/shared/contracts";
+import { compareTableText } from "../SwcDetails/TableData/TableData";
+import { formatCalibrationAccess, formatInitValueTypeOption } from "../SwcDetails/DetailsFormatters";
 
 export function buildPortInterfaceDetailTables(
   entity: AutosarEntity,

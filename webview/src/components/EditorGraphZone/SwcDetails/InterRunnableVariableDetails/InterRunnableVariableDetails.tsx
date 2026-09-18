@@ -1,12 +1,12 @@
-import type { InterRunnableVariableAccessDetail, SwcInspectorItem } from "../../../../../src/shared/contracts";
+import type { InterRunnableVariableAccessDetail, SwcInspectorItem } from "../../../../../../src/shared/contracts";
 import {
   formatInterRunnableCommunicationOption,
   formatInitValueTypeOption,
   formatMeasurementCalibrationOption,
   formatReferenceShortName,
   initValueTypeOptions
-} from "./DetailsFormatters";
-import { InitValueDisplay } from "./InitValueDisplay";
+} from "../DetailsFormatters";
+import { InitValueDisplay } from "../InitValueDisplay";
 
 export function InterRunnableVariableDetails(props: { title: string; variable?: SwcInspectorItem }) {
   const metadata = props.variable?.metadata ?? {};
