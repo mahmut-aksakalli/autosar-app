@@ -113,7 +113,13 @@
   padding: 3px 7px;
 }
 
-.graph-bottom-panel-table-scroll,
+.graph-bottom-panel-table-scroll {
+  height: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .graph-output-log {
   height: 100%;
   overflow: auto;

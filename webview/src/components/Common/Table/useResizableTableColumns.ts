@@ -17,13 +17,20 @@ export function useResizableTableColumns(
 ) {
   const [storedWidths, setStoredWidths] = useState(defaultWidths);
   const removePointerListenersRef = useRef<(() => void) | undefined>(undefined);
-  const columnWidths = defaultWidths.map(
+  const resizedColumnWidths = defaultWidths.map(
     (defaultWidth, columnIndex) => storedWidths[columnIndex] ?? defaultWidth
   );
-  const tableWidth = columnWidths.reduce((total, width) => total + width, 0);
+  const totalColumnWidth = resizedColumnWidths.reduce((total, width) => total + width, 0);
+  // Treat stored pixel values as relative weights. Percentage widths always
+  // fill the available table space, so widening one column narrows the others
+  // instead of introducing a horizontal scrollbar.
+  const columnWidths = resizedColumnWidths.map((width) => {
+    return `${(width / totalColumnWidth) * 100}%`;
+  });
   const tableStyle = {
-    width: `${tableWidth}px`,
-    minWidth: "100%"
+    width: "100%",
+    minWidth: 0,
+    tableLayout: "fixed"
   } as CSSProperties;
 
   useEffect(() => {
@@ -51,7 +58,7 @@ export function useResizableTableColumns(
     removePointerListenersRef.current?.();
 
     const startPointerX = event.clientX;
-    const startWidth = columnWidths[columnIndex] ?? minimumColumnWidth;
+    const startWidth = resizedColumnWidths[columnIndex] ?? minimumColumnWidth;
 
     // Window listeners keep the drag active when the pointer leaves the narrow handle.
     function resizeFromPointer(moveEvent: PointerEvent) {
@@ -75,7 +82,7 @@ export function useResizableTableColumns(
     event: ReactKeyboardEvent<HTMLButtonElement>,
     columnIndex: number
   ) {
-    const currentWidth = columnWidths[columnIndex] ?? minimumColumnWidth;
+    const currentWidth = resizedColumnWidths[columnIndex] ?? minimumColumnWidth;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       event.stopPropagation();
