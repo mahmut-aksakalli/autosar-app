@@ -3,15 +3,14 @@ import type { ConnectedPortReference } from "../../../../../../src/shared/contra
 import { SortableResizableTableHeader } from "../../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
 
-type ConnectedPortColumnKey = "portName" | "portInterface" | "swcName" | "swcPath";
+type ConnectedPortColumnKey = "portName" | "portInterface" | "swcName";
 type SortDirection = "asc" | "desc";
 
-const CONNECTED_PORT_COLUMN_WIDTHS = [180, 220, 180, 360];
+const CONNECTED_PORT_COLUMN_WIDTHS = [200, 260, 220];
 const CONNECTED_PORT_COLUMNS: Array<{ key: ConnectedPortColumnKey; label: string }> = [
   { key: "portName", label: "Port Name" },
   { key: "portInterface", label: "Port Interface" },
-  { key: "swcName", label: "SWC Name" },
-  { key: "swcPath", label: "SWC Path" }
+  { key: "swcName", label: "SWC Name" }
 ];
 
 export function ConnectedPortsTable(props: {
@@ -90,7 +89,6 @@ export function ConnectedPortsTable(props: {
                     {connection.portInterface}
                   </td>
                   <td title={connection.swcName}>{connection.swcName}</td>
-                  <td title={connection.swcPath}>{connection.swcPath}</td>
                 </tr>
               ))}
             </tbody>

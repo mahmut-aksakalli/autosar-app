@@ -22,6 +22,7 @@ test("indexes a referenced definition with its nearest named usage", () => {
   assert.equal(index.type.length, 1);
   assert.equal(index.type[0].instanceName, "Speed");
   assert.equal(index.type[0].instanceType, "VARIABLE-DATA-PROTOTYPE");
+  assert.equal(index.type[0].referencingObjectName, "SpeedInterface");
   assert.equal(index.type[0].navigationEntityId, "interface");
 });
 
@@ -41,6 +42,7 @@ test("uses the owning SWC for navigation and removes an ancestor duplicate for a
 
   assert.equal(index.interface.length, 1);
   assert.equal(index.interface[0].portId, "port");
+  assert.equal(index.interface[0].referencingObjectName, "SpeedConsumer");
   assert.equal(index.interface[0].navigationEntityId, "swc");
 });
 
@@ -114,7 +116,63 @@ test("does not treat a data type inclusion as an instance", () => {
 
   assert.equal(index.type.length, 1);
   assert.equal(index.type[0].instanceName, "Speed");
+  assert.equal(index.type[0].referencingObjectName, "SpeedInterface");
   assert.equal(index.type[0].referenceRole, "TYPE-TREF");
+});
+
+test("uses the nearest SWC member as the referencing object", () => {
+  const dataType = entity("type", "application-data-type", "CounterType", "/Types/CounterType");
+  const swc = {
+    ...entity("swc", "swc", "CounterSwc", "/Components/CounterSwc"),
+    inspector: inspectorSection("interRunnableVariables", {
+      id: "counter-irv",
+      label: "CounterIrv",
+      xmlPath: "/AUTOSAR/CounterIrv"
+    }),
+    references: [
+      {
+        target: "/Types/CounterType",
+        role: "TYPE-TREF",
+        contextName: "CounterIrv",
+        contextPath: "/Components/CounterSwc/CounterBehavior/CounterIrv",
+        contextType: "VARIABLE-DATA-PROTOTYPE"
+      }
+    ]
+  };
+
+  const index = buildReferenceInstancesByTargetId([dataType, swc]);
+
+  assert.equal(index.type.length, 1);
+  assert.equal(index.type[0].referencingObjectName, "CounterIrv");
+  assert.equal(index.type[0].navigationSectionId, "interRunnableVariables");
+  assert.equal(index.type[0].navigationItemId, "counter-irv");
+  assert.equal(index.type[0].navigationItemXmlPath, "/AUTOSAR/CounterIrv");
+});
+
+test("indexes calibration parameters as directly navigable inspector items", () => {
+  const dataType = entity("type", "application-data-type", "ThresholdType", "/Types/ThresholdType");
+  const swc = {
+    ...entity("swc", "swc", "DiagnosticsSwc", "/Components/DiagnosticsSwc"),
+    inspector: inspectorSection("calibrationVariables", {
+      id: "event-threshold",
+      label: "EventThreshold_C",
+      xmlPath: "/AUTOSAR/EventThreshold_C"
+    }),
+    references: [
+      {
+        target: "/Types/ThresholdType",
+        role: "TYPE-TREF",
+        contextName: "EventThreshold_C",
+        contextPath: "/Components/DiagnosticsSwc/DiagnosticsBehavior/EventThreshold_C",
+        contextType: "PARAMETER-DATA-PROTOTYPE"
+      }
+    ]
+  };
+
+  const index = buildReferenceInstancesByTargetId([dataType, swc]);
+
+  assert.equal(index.type[0].navigationSectionId, "calibrationVariables");
+  assert.equal(index.type[0].navigationItemId, "event-threshold");
 });
 
 function portReference() {
@@ -129,4 +187,12 @@ function portReference() {
 
 function entity(id, type, shortName, semanticPath) {
   return { id, type, shortName, semanticPath, path: semanticPath, filePath: "model.arxml" };
+}
+
+function inspectorSection(sectionId, item) {
+  return {
+    ownerId: "swc",
+    ownerLabel: "SWC",
+    sections: [{ id: sectionId, label: sectionId, items: [item] }]
+  };
 }

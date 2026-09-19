@@ -3,14 +3,17 @@ import type { EntityReferenceInstance } from "../../../../../src/shared/contract
 import { SortableResizableTableHeader } from "./TableHeaders";
 import { useResizableTableColumns } from "./useResizableTableColumns";
 
-type InstanceColumnKey = "instanceName" | "instanceType" | "instancePath";
+type InstanceColumnKey =
+  | "instanceName"
+  | "instanceType"
+  | "referencingObjectName";
 type SortDirection = "asc" | "desc";
 
-const INSTANCE_COLUMN_WIDTHS = [220, 260, 460];
+const INSTANCE_COLUMN_WIDTHS = [220, 260, 260];
 const INSTANCE_COLUMNS: Array<{ key: InstanceColumnKey; label: string }> = [
   { key: "instanceName", label: "Instance Name" },
   { key: "instanceType", label: "Instance Type" },
-  { key: "instancePath", label: "Instance Path" }
+  { key: "referencingObjectName", label: "Referencing Object" }
 ];
 
 export function ReferenceInstancesTable(props: {
@@ -83,7 +86,9 @@ export function ReferenceInstancesTable(props: {
                 >
                   <td title={instance.instanceName}>{instance.instanceName}</td>
                   <td title={instance.instanceType}>{formatAutosarName(instance.instanceType)}</td>
-                  <td title={instance.instancePath}>{instance.instancePath}</td>
+                  <td title={instance.referencingObjectName}>
+                    {instance.referencingObjectName}
+                  </td>
                 </tr>
               ))}
             </tbody>

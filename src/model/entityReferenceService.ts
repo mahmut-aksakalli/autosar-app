@@ -58,6 +58,7 @@ export function buildReferenceInstancesByTargetId(
       if (!navigationEntity) {
         continue;
       }
+      const inspectorNavigation = findInspectorNavigation(candidate, navigationEntity);
 
       const instancePath =
         candidate.reference.contextPath ??
@@ -74,11 +75,13 @@ export function buildReferenceInstancesByTargetId(
         id,
         instanceName: candidate.reference.contextName ?? candidate.source.shortName,
         instanceType: candidate.reference.contextType ?? candidate.source.rawTagName ?? candidate.source.type,
+        referencingObjectName: getReferencingObjectName(candidate, navigationEntity),
         referenceRole: candidate.reference.role,
         instancePath,
         navigationEntityId: navigationEntity.id,
         navigationSemanticPath: navigationEntity.semanticPath,
         navigationEntityType: navigationEntity.type,
+        ...(inspectorNavigation ?? {}),
         ...(candidate.source.type === "port"
           ? {
               portId: candidate.source.id,
@@ -98,6 +101,71 @@ export function buildReferenceInstancesByTargetId(
   }
 
   return instancesByTargetId;
+}
+
+function findInspectorNavigation(
+  candidate: ReferenceCandidate,
+  navigationEntity: AutosarEntity
+) {
+  if (navigationEntity.type !== "swc") {
+    return undefined;
+  }
+
+  const contextName = candidate.reference.contextName;
+  if (!contextName) {
+    return undefined;
+  }
+
+  const supportedSectionIds = [
+    "calibrationVariables",
+    "interfaceParameters",
+    "interRunnableVariables",
+    "perInstanceMemory",
+    "serviceDependencies",
+    "runnables"
+  ] as const;
+
+  for (const sectionId of supportedSectionIds) {
+    const section = navigationEntity.inspector?.sections.find((entry) => entry.id === sectionId);
+    const item = section?.items.find((entry) => entry.label === contextName);
+    if (!item) {
+      continue;
+    }
+
+    return {
+      navigationSectionId: sectionId,
+      navigationItemId: item.id,
+      ...(item.xmlPath ? { navigationItemXmlPath: item.xmlPath } : {})
+    };
+  }
+
+  return undefined;
+}
+
+function getReferencingObjectName(
+  candidate: ReferenceCandidate,
+  navigationEntity: AutosarEntity
+) {
+  if (candidate.source.type === "port") {
+    // Ports navigate through their owning component, which is also the useful
+    // referencing object shown for Port Interface instances.
+    return navigationEntity.shortName;
+  }
+
+  if (candidate.source.type === "interface") {
+    // Data elements are instances, while the interface is the object that
+    // owns their type references.
+    return candidate.source.shortName;
+  }
+
+  const contextName = candidate.reference.contextName;
+  if (contextName && contextName !== candidate.source.shortName) {
+    // SWC-contained references should identify their nearest named member,
+    // such as an inter-runnable variable, rather than only the owning SWC.
+    return contextName;
+  }
+
+  return candidate.source.shortName;
 }
 
 function isInstanceReference(

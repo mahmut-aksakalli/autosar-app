@@ -242,6 +242,29 @@ export function AutosarApp() {
         instance.portId,
         `${targetEntity.id}:port:${instance.portId}`
       );
+    } else if (instance.navigationSectionId && instance.navigationItemId) {
+      const targetKind = getReferenceInstanceTabKind(instance.navigationSectionId);
+      if (!targetKind) {
+        return;
+      }
+
+      tabs.openTab(
+        makeModelTab(
+          targetEntity,
+          targetKind,
+          `${getReferenceInstanceTitle(targetKind)}: ${instance.instanceName}`,
+          {
+            sectionId: instance.navigationSectionId,
+            itemId: instance.navigationItemId,
+            xmlPath: instance.navigationItemXmlPath
+          }
+        ),
+        true
+      );
+      modelHost.revealModelEntity(
+        targetEntity.id,
+        `${targetEntity.id}:${instance.navigationSectionId}:${instance.navigationItemId}`
+      );
     } else {
       tabs.openTab(
         makeModelTab(targetEntity, "entityDetails", `Details: ${targetEntity.shortName}`, {
@@ -454,6 +477,46 @@ function getSwcViewTitle(view: Exclude<SwcNodeView, "graph">) {
     case "parameters":
       return "Calibration Parameters";
   }
+}
+
+function getReferenceInstanceTabKind(
+  sectionId: EntityReferenceInstance["navigationSectionId"]
+): ModelWorkspaceTab["kind"] | undefined {
+  if (sectionId === "calibrationVariables" || sectionId === "interfaceParameters") {
+    return "parameter";
+  }
+  if (sectionId === "interRunnableVariables") {
+    return "interRunnableVariable";
+  }
+  if (sectionId === "perInstanceMemory") {
+    return "perInstanceMemoryItem";
+  }
+  if (sectionId === "serviceDependencies") {
+    return "serviceDependency";
+  }
+  if (sectionId === "runnables") {
+    return "runnable";
+  }
+  return undefined;
+}
+
+function getReferenceInstanceTitle(kind: ModelWorkspaceTab["kind"]) {
+  if (kind === "parameter") {
+    return "Parameter";
+  }
+  if (kind === "interRunnableVariable") {
+    return "Inter-Runnable Variable";
+  }
+  if (kind === "perInstanceMemoryItem") {
+    return "Per-Instance Memory";
+  }
+  if (kind === "serviceDependency") {
+    return "Service Need";
+  }
+  if (kind === "runnable") {
+    return "Runnable";
+  }
+  return "Details";
 }
 
 function getSwcTreeNodeId(entity: AutosarEntity, view: SwcNodeView) {

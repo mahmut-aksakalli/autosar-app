@@ -237,11 +237,15 @@ export interface EntityReferenceInstance {
   id: string;
   instanceName: string;
   instanceType: string;
+  referencingObjectName: string;
   referenceRole: string;
   instancePath: string;
   navigationEntityId: string;
   navigationSemanticPath?: string;
   navigationEntityType: string;
+  navigationSectionId?: SwcInspectorSectionId;
+  navigationItemId?: string;
+  navigationItemXmlPath?: string;
   portId?: string;
   portXmlPath?: string;
 }
