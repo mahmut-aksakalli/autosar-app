@@ -6,8 +6,14 @@ import {
   initValueTypeOptions
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
+import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 
-export function PerInstanceMemoryDetails(props: { title: string; item?: SwcInspectorItem }) {
+export function PerInstanceMemoryDetails(props: {
+  title: string;
+  item?: SwcInspectorItem;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   const metadata = props.item?.metadata ?? {};
 
   return (
@@ -23,7 +29,11 @@ export function PerInstanceMemoryDetails(props: { title: string; item?: SwcInspe
           </div>
           <div>
             <span>Data Type</span>
-            <strong>{formatReferenceShortName(metadata.TYPE)}</strong>
+            <ReferenceValue
+              referencePath={metadata.TYPE}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Init Value</span>

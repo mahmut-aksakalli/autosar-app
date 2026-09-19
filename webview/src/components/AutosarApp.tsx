@@ -141,6 +141,30 @@ export function AutosarApp() {
     modelHost.revealModelEntity(interfaceEntity.id);
   }
 
+  function openReferencedEntityDetails(referencePath: string) {
+    const targetEntity = findModelEntity(modelEntities, referencePath, referencePath);
+    if (!targetEntity) {
+      return;
+    }
+
+    // Keep the source details available when it is still a preview, then open
+    // the referenced definition in its own persistent editor tab.
+    preserveActivePreviewTab();
+    tabs.openTab(
+      makeModelTab(targetEntity, "entityDetails", `Details: ${targetEntity.shortName}`, {
+        entityId: targetEntity.id,
+        xmlPath: targetEntity.xmlPath
+      }),
+      true
+    );
+    setModelFocusEntityId(targetEntity.id);
+    modelHost.revealModelEntity(targetEntity.id, `model-entity:${targetEntity.id}`);
+  }
+
+  function canOpenReferencedEntity(referencePath: string) {
+    return Boolean(findModelEntity(modelEntities, referencePath, referencePath));
+  }
+
   function openSwcViewFromGraph(
     entityId: string | undefined,
     semanticPath: string | undefined,
@@ -338,6 +362,8 @@ export function AutosarApp() {
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}
           onOpenPortInterface={openPortInterfaceFromGraph}
+          onOpenReferencedEntity={openReferencedEntityDetails}
+          canOpenReferencedEntity={canOpenReferencedEntity}
           onOpenPortDetails={openPortDetailsFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
           onBottomPanelTabChange={setActiveBottomPanelTab}

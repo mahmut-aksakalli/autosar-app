@@ -32,6 +32,8 @@ export function SwcDetails(props: {
   connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const inspectorData = props.inspector ?? props.focusEntity?.inspector;
   const ports = props.graphResult?.nodes.find((node) => node.id === props.focusEntity?.id)?.ports ?? props.graphResult?.nodes[0]?.ports ?? [];
@@ -163,6 +165,8 @@ export function SwcDetails(props: {
         onConnectedPortSelect={props.onConnectedPortSelect}
         filePath={port?.filePath ?? props.focusEntity.filePath}
         xmlPath={port?.xmlPath ?? props.tab.xmlPath}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
       />
     );
   }
@@ -172,7 +176,14 @@ export function SwcDetails(props: {
       props.tab.sectionId && props.tab.itemId
         ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
         : findInspectorItemInSections(inspectorData, ["calibrationVariables", "interfaceParameters"], props.tab.itemId);
-    return <ParameterDetails title={props.tab.title} parameter={item} />;
+    return (
+      <ParameterDetails
+        title={props.tab.title}
+        parameter={item}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
+      />
+    );
   }
 
   if (props.tab.kind === "interRunnableVariable") {
@@ -180,7 +191,14 @@ export function SwcDetails(props: {
       props.tab.sectionId && props.tab.itemId
         ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
         : findInspectorItemInSections(inspectorData, ["interRunnableVariables"], props.tab.itemId);
-    return <InterRunnableVariableDetails title={props.tab.title} variable={item} />;
+    return (
+      <InterRunnableVariableDetails
+        title={props.tab.title}
+        variable={item}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
+      />
+    );
   }
 
   if (props.tab.kind === "perInstanceMemoryItem") {
@@ -188,7 +206,14 @@ export function SwcDetails(props: {
       props.tab.sectionId && props.tab.itemId
         ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
         : findInspectorItemInSections(inspectorData, ["perInstanceMemory"], props.tab.itemId);
-    return <PerInstanceMemoryDetails title={props.tab.title} item={item} />;
+    return (
+      <PerInstanceMemoryDetails
+        title={props.tab.title}
+        item={item}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
+      />
+    );
   }
 
   if (props.tab.kind === "serviceDependency") {

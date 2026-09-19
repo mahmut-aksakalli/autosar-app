@@ -13,6 +13,10 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import {
+  ReferenceOpenButton,
+  ReferenceValue
+} from "../../../Common/Details/ReferenceValue";
+import {
   formatCommunicationSpecDirectionLabel,
   formatHandleOutOfRangeOption,
   formatRxFilterOption,
@@ -27,6 +31,8 @@ export function CommunicationSpecsSection(props: {
   rows: CommunicationSpecDetail[];
   interfaceKind: PortInterfaceKind;
   title?: string;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -42,7 +48,15 @@ export function CommunicationSpecsSection(props: {
         <span>{props.title ?? "Communication Specs"}</span>
         <span className="model-list-section-count">{props.rows.length}</span>
       </button>
-      {isExpanded && <CommunicationSpecsTable rows={props.rows} interfaceKind={props.interfaceKind} embedded />}
+      {isExpanded && (
+        <CommunicationSpecsTable
+          rows={props.rows}
+          interfaceKind={props.interfaceKind}
+          embedded
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      )}
     </section>
   );
 }
@@ -51,6 +65,8 @@ function CommunicationSpecsTable(props: {
   rows: CommunicationSpecDetail[];
   interfaceKind: PortInterfaceKind;
   embedded?: boolean;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const itemLabel = getCommunicationSpecItemLabel(props.interfaceKind);
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
@@ -138,7 +154,12 @@ function CommunicationSpecsTable(props: {
                   <span>{itemLabel}</span>
                   <strong title={selectedRow.dataElement}>{formatReferenceShortName(selectedRow.dataElement)}</strong>
                 </div>
-                <CommunicationSpecDetails row={selectedRow} itemLabel={itemLabel} />
+                <CommunicationSpecDetails
+                  row={selectedRow}
+                  itemLabel={itemLabel}
+                  onOpenReferencedEntity={props.onOpenReferencedEntity}
+                  canOpenReferencedEntity={props.canOpenReferencedEntity}
+                />
               </>
             ) : (
               <div className="model-list-empty">Select a communication spec.</div>
@@ -156,18 +177,31 @@ function getCommunicationSpecRowKey(row: CommunicationSpecDetail) {
   return `${row.index}:${row.dataElement}:${row.comSpec}:${row.initValue}`;
 }
 
-function CommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLabel: string }) {
+function CommunicationSpecDetails(props: {
+  row: CommunicationSpecDetail;
+  itemLabel: string;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   return (
     <div className="model-communication-spec-details">
       <CollapsibleSection title={`${props.itemLabel} Properties`} defaultOpen>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Data Type</span>
-            <strong>{formatReferenceShortName(props.row.dataType)}</strong>
+            <ReferenceValue
+              referencePath={props.row.dataType}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Data Constraints</span>
-            <strong>{formatReferenceShortName(props.row.dataConstraints)}</strong>
+            <ReferenceValue
+              referencePath={props.row.dataConstraints}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Addressing Method</span>
@@ -203,16 +237,36 @@ function CommunicationSpecDetails(props: { row: CommunicationSpecDetail; itemLab
         </div>
       </CollapsibleSection>
 
-      {props.row.comSpecDirection === "sender" && <SenderComSpecDetails row={props.row} />}
-      {props.row.comSpecDirection === "receiver" && <ReceiverComSpecDetails row={props.row} />}
+      {props.row.comSpecDirection === "sender" && (
+        <SenderComSpecDetails
+          row={props.row}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      )}
+      {props.row.comSpecDirection === "receiver" && (
+        <ReceiverComSpecDetails
+          row={props.row}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      )}
       {props.row.comSpecDirection !== "sender" && props.row.comSpecDirection !== "receiver" && (
-        <GenericComSpecDetails row={props.row} />
+        <GenericComSpecDetails
+          row={props.row}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
       )}
     </div>
   );
 }
 
-function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
+function SenderComSpecDetails(props: {
+  row: CommunicationSpecDetail;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   return (
     <CollapsibleSection title="Sender ComSpec" defaultOpen>
       <div className="model-semantic-kv model-port-fields">
@@ -225,6 +279,11 @@ function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
               ))}
             </select>
             <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
+            <ReferenceOpenButton
+              referencePath={props.row.initValueRef}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </strong>
         </div>
         <div className="model-semantic-kv-three">
@@ -281,7 +340,11 @@ function SenderComSpecDetails(props: { row: CommunicationSpecDetail }) {
   );
 }
 
-function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
+function ReceiverComSpecDetails(props: {
+  row: CommunicationSpecDetail;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   return (
     <CollapsibleSection title="Receiver ComSpec" defaultOpen>
       <div className="model-semantic-kv model-port-fields">
@@ -294,6 +357,11 @@ function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
               ))}
             </select>
             <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
+            <ReferenceOpenButton
+              referencePath={props.row.initValueRef}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </strong>
         </div>
         <div>
@@ -347,7 +415,11 @@ function ReceiverComSpecDetails(props: { row: CommunicationSpecDetail }) {
   );
 }
 
-function GenericComSpecDetails(props: { row: CommunicationSpecDetail }) {
+function GenericComSpecDetails(props: {
+  row: CommunicationSpecDetail;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   return (
     <CollapsibleSection title={`${formatCommunicationSpecDirectionLabel(props.row.comSpecDirection)} ComSpec`} defaultOpen>
       <div className="model-semantic-kv model-port-fields">
@@ -360,6 +432,11 @@ function GenericComSpecDetails(props: { row: CommunicationSpecDetail }) {
               ))}
             </select>
             <InitValueDisplay value={props.row.initValue} type={props.row.initValueType} />
+            <ReferenceOpenButton
+              referencePath={props.row.initValueRef}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </strong>
         </div>
         <div>

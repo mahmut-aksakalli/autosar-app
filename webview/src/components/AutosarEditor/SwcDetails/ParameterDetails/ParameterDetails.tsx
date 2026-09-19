@@ -7,8 +7,14 @@ import {
   initValueTypeOptions
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
+import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 
-export function ParameterDetails(props: { title: string; parameter?: SwcInspectorItem }) {
+export function ParameterDetails(props: {
+  title: string;
+  parameter?: SwcInspectorItem;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   const metadata = props.parameter?.metadata ?? {};
   const scope = formatParameterScopeOption(metadata.SCOPE);
   const measurementCalibration = formatMeasurementCalibrationOption(metadata["SW-CALIBRATION-ACCESS"] ?? "-");
@@ -26,7 +32,11 @@ export function ParameterDetails(props: { title: string; parameter?: SwcInspecto
           </div>
           <div>
             <span>Type</span>
-            <strong>{formatReferenceShortName(metadata.TYPE)}</strong>
+            <ReferenceValue
+              referencePath={metadata.TYPE}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Init Value</span>

@@ -7,8 +7,14 @@ import {
   initValueTypeOptions
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
+import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 
-export function InterRunnableVariableDetails(props: { title: string; variable?: SwcInspectorItem }) {
+export function InterRunnableVariableDetails(props: {
+  title: string;
+  variable?: SwcInspectorItem;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   const metadata = props.variable?.metadata ?? {};
   const accessRows = props.variable?.details?.interRunnableVariableAccesses ?? [];
 
@@ -25,7 +31,11 @@ export function InterRunnableVariableDetails(props: { title: string; variable?: 
           </div>
           <div>
             <span>Data Type</span>
-            <strong>{formatReferenceShortName(metadata.TYPE)}</strong>
+            <ReferenceValue
+              referencePath={metadata.TYPE}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Init Value</span>

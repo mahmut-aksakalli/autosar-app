@@ -21,6 +21,8 @@ export function PortInterfaceDetails(props: {
   referenceInstances: EntityReferenceInstance[];
   selectedInstancePath?: string;
   onReferenceInstanceSelect?: (instance: EntityReferenceInstance) => void;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const metadata = props.entity.metadata ?? {};
   const details = props.entity.details?.entity ?? { fields: [], tables: [] };
@@ -69,6 +71,8 @@ export function PortInterfaceDetails(props: {
           <SenderReceiverPortDetails
             members={interfaceMembers}
             preferredMemberPath={props.selectedInstancePath}
+            onOpenReferencedEntity={props.onOpenReferencedEntity}
+            canOpenReferencedEntity={props.canOpenReferencedEntity}
           />
         )}
         {props.entity.interfaceKind === "client-server" && (

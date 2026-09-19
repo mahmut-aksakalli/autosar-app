@@ -1983,10 +1983,16 @@ function extractValueSpecificationType(value: unknown): string {
 
 function extractValueSpecificationReference(value: unknown): string | undefined {
   const specification = findValueSpecification(value);
-  if (!specification || specification.tag !== "CONSTANT-REFERENCE") {
+  if (!specification) {
     return undefined;
   }
-  return extractNestedReference(specification.value, "CONSTANT-REF");
+  if (specification.tag === "CONSTANT-REFERENCE") {
+    return extractNestedReference(specification.value, "CONSTANT-REF");
+  }
+  if (specification.tag === "REFERENCE-VALUE-SPECIFICATION") {
+    return extractNestedReference(specification.value, "REFERENCE-VALUE-REF");
+  }
+  return undefined;
 }
 
 function extractCommunicationSpecDataElement(record: Record<string, unknown>) {

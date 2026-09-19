@@ -7,10 +7,13 @@ import {
   formatReferenceShortName,
   readBooleanMetadata
 } from "../../../Common/Details/DetailsFormatters";
+import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 
 export function SenderReceiverPortDetails(props: {
   members: InterfaceDetailMember[];
   preferredMemberPath?: string;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const dataElements = props.members.filter((member) => member.kind === "dataElement");
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
@@ -102,7 +105,11 @@ export function SenderReceiverPortDetails(props: {
                   <span>Data Element</span>
                   <strong title={selectedElement.semanticPath}>{selectedElement.label}</strong>
                 </div>
-                <PortInterfaceDataElementDetails member={selectedElement} />
+                <PortInterfaceDataElementDetails
+                  member={selectedElement}
+                  onOpenReferencedEntity={props.onOpenReferencedEntity}
+                  canOpenReferencedEntity={props.canOpenReferencedEntity}
+                />
               </>
             ) : (
               <div className="model-list-empty">Select a data element.</div>
@@ -116,7 +123,11 @@ export function SenderReceiverPortDetails(props: {
   );
 }
 
-function PortInterfaceDataElementDetails(props: { member: InterfaceDetailMember }) {
+function PortInterfaceDataElementDetails(props: {
+  member: InterfaceDetailMember;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   const metadata = props.member.metadata ?? {};
 
   return (
@@ -125,11 +136,19 @@ function PortInterfaceDataElementDetails(props: { member: InterfaceDetailMember 
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Data Type</span>
-            <strong>{formatReferenceShortName(metadata.TYPE)}</strong>
+            <ReferenceValue
+              referencePath={metadata.TYPE}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Data Constraints</span>
-            <strong>{formatReferenceShortName(metadata["DATA-CONSTRAINTS"])}</strong>
+            <ReferenceValue
+              referencePath={metadata["DATA-CONSTRAINTS"]}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Addressing Method</span>

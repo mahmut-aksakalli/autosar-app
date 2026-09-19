@@ -541,6 +541,53 @@
   min-height: 28px;
 }
 
+.model-semantic-kv strong.model-reference-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-semantic-kv .model-reference-value-text {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.model-reference-open-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 4px;
+  border: 1px solid #b8cbe0;
+  border-radius: 3px;
+  background: #f7fbff;
+  color: #1f6fb2;
+  cursor: pointer;
+}
+
+.model-reference-open-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.model-reference-open-button:hover,
+.model-reference-open-button:focus-visible {
+  border-color: var(--accent, #2d78c4);
+  background: #eaf4fd;
+}
+
 .model-clickable-table tbody tr {
   cursor: pointer;
 }

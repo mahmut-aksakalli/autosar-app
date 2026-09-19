@@ -70,6 +70,7 @@ export interface CommunicationSpecDetail {
   comSpecDirection: string;
   initValue: string;
   initValueType: string;
+  initValueRef?: string;
   usesTxAcknowledge: string;
   transmissionAcknowledgeTimeout: string;
   usesEndToEndProtection: string;

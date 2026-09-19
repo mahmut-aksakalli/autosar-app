@@ -161,6 +161,7 @@ export function normalizeCommunicationSpecDetails(values: CommunicationSpecDetai
     comSpecDirection: parseCommunicationSpecDirection(record.comSpecDirection, record.comSpec),
     initValue: stringifyAccessPointCell(record.initValue),
     initValueType: stringifyAccessPointCell(record.initValueType),
+    ...(record.initValueRef ? { initValueRef: stringifyAccessPointCell(record.initValueRef) } : {}),
     usesTxAcknowledge: stringifyAccessPointCell(record.usesTxAcknowledge),
     transmissionAcknowledgeTimeout: stringifyAccessPointCell(record.transmissionAcknowledgeTimeout),
     usesEndToEndProtection: stringifyAccessPointCell(record.usesEndToEndProtection),

@@ -2,7 +2,8 @@ import type {
   ConnectedPortReference,
   SwcGraphPort
 } from "../../../../../../src/shared/contracts";
-import { formatBooleanMetadata, formatReferenceShortName } from "../../../Common/Details/DetailsFormatters";
+import { formatBooleanMetadata } from "../../../Common/Details/DetailsFormatters";
+import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 import { CommunicationSpecsSection } from "./CommunicationSpecs";
 import { PortApiOptionsSection } from "./PortApiOptions";
 import { ConnectedPortsTable } from "./ConnectedPortsTable";
@@ -22,6 +23,8 @@ export function PortDetails(props: {
   onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   filePath?: string;
   xmlPath?: string;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const argumentValues = normalizePortDefinedArgumentValues(props.port?.details?.portDefinedArgumentValues ?? []);
   const communicationSpecs = normalizeCommunicationSpecDetails(props.port?.details?.communicationSpecs ?? []);
@@ -45,7 +48,11 @@ export function PortDetails(props: {
           </div>
           <div>
             <span>Port Interface</span>
-            <strong>{formatReferenceShortName(props.port?.interfaceRef)}</strong>
+            <ReferenceValue
+              referencePath={props.port?.interfaceRef}
+              onOpen={props.onOpenReferencedEntity}
+              canOpen={props.canOpenReferencedEntity}
+            />
           </div>
           <div>
             <span>Port Interface Type</span>
@@ -72,7 +79,13 @@ export function PortDetails(props: {
         </div>
 
         <PortApiOptionsSection port={props.port} argumentValues={argumentValues} />
-        <CommunicationSpecsSection rows={displayedSpecs} interfaceKind={interfaceKind} title={specsTitle} />
+        <CommunicationSpecsSection
+          rows={displayedSpecs}
+          interfaceKind={interfaceKind}
+          title={specsTitle}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
         <ConnectedPortsTable
           connections={props.connectedPorts}
           onConnectionSelect={props.onConnectedPortSelect}

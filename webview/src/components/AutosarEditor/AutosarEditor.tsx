@@ -82,6 +82,8 @@ interface AutosarEditorProps {
     view: SwcNodeView
   ) => void;
   onOpenPortInterface?: (interfaceRef: string) => void;
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
   onOpenPortDetails?: (
     entityId: string | undefined,
     semanticPath: string | undefined,
@@ -446,6 +448,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
             referenceInstances={referenceInstances ?? []}
             selectedInstancePath={props.activeWorkspaceTab.itemId}
             onReferenceInstanceSelect={props.onReferenceInstanceSelect}
+            onOpenReferencedEntity={props.onOpenReferencedEntity}
+            canOpenReferencedEntity={props.canOpenReferencedEntity}
           />
         );
       } else {
@@ -469,6 +473,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
         connectedPortsByPortId={props.connectedPortsByPortId}
         onConnectedPortSelect={props.onConnectedPortSelect}
         onOpenWorkspaceTab={props.onOpenWorkspaceTab}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
       />
     );
   }
