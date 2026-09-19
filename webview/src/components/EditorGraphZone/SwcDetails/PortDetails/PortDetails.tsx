@@ -1,7 +1,11 @@
-import type { SwcGraphPort } from "../../../../../../src/shared/contracts";
+import type {
+  ConnectedPortReference,
+  SwcGraphPort
+} from "../../../../../../src/shared/contracts";
 import { formatBooleanMetadata, formatReferenceShortName } from "../DetailsFormatters";
 import { CommunicationSpecsSection } from "./CommunicationSpecs";
 import { PortApiOptionsSection } from "./PortApiOptions";
+import { ConnectedPortsTable } from "./ConnectedPortsTable";
 import {
   formatPortDirectionLabel,
   formatPortInterfaceKindLabel,
@@ -14,6 +18,8 @@ import {
 export function PortDetails(props: {
   title: string;
   port?: SwcGraphPort;
+  connectedPorts: ConnectedPortReference[];
+  onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   filePath?: string;
   xmlPath?: string;
 }) {
@@ -67,6 +73,10 @@ export function PortDetails(props: {
 
         <PortApiOptionsSection port={props.port} argumentValues={argumentValues} />
         <CommunicationSpecsSection rows={displayedSpecs} interfaceKind={interfaceKind} title={specsTitle} />
+        <ConnectedPortsTable
+          connections={props.connectedPorts}
+          onConnectionSelect={props.onConnectedPortSelect}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import type { Node } from "@xyflow/react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
   AutosarEntity,
+  ConnectedPortReference,
   AutosarLogEntry,
   SwcGraphPort,
   SwcGraphScope,
@@ -45,6 +46,7 @@ interface EditorGraphZoneProps {
   instances: SwcInstanceReference[];
   logEntries: AutosarLogEntry[];
   activeBottomPanelTab: BottomPanelTab;
+  connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   onFocusModelEntity?: (selection: {
     entityId?: string;
     semanticPath?: string;
@@ -65,6 +67,7 @@ interface EditorGraphZoneProps {
     port: SwcGraphPort
   ) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
+  onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   onBottomPanelTabChange: (tab: BottomPanelTab) => void;
   onInstanceSelect: (instance: SwcInstanceReference) => void;
 }
@@ -411,6 +414,8 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
         focusEntity={props.focusEntity}
         graphResult={graphResult}
         inspector={inspector}
+        connectedPortsByPortId={props.connectedPortsByPortId}
+        onConnectedPortSelect={props.onConnectedPortSelect}
         onOpenWorkspaceTab={props.onOpenWorkspaceTab}
       />
     );

@@ -4,6 +4,7 @@ import type {
   AutosarEntity,
   HostToModelWebviewMessage,
   ModelWebviewInitialState,
+  ConnectedPortReference,
   SwcGraphPort,
   SwcGraphScope,
   SwcInstanceReference,
@@ -188,6 +189,35 @@ export function AutosarApp() {
     modelHost.revealModelEntity(port.id, `${targetEntity.id}:port:${port.id}`);
   }
 
+  function openConnectedPortDetails(connection: ConnectedPortReference) {
+    if (!connection.portId) {
+      return;
+    }
+
+    const targetEntity = findModelEntity(
+      modelEntities,
+      connection.ownerEntityId,
+      connection.ownerSemanticPath
+    );
+    if (!targetEntity) {
+      return;
+    }
+
+    preserveActivePreviewTab();
+    tabs.openTab(
+      makeModelTab(targetEntity, "port", `Port: ${connection.portName}`, {
+        entityId: connection.portId,
+        xmlPath: connection.portXmlPath
+      }),
+      true
+    );
+    setModelFocusEntityId(targetEntity.id);
+    modelHost.revealModelEntity(
+      connection.portId,
+      `${targetEntity.id}:port:${connection.portId}`
+    );
+  }
+
   function openSwcInstanceFromPanel(instance: SwcInstanceReference) {
     const parentComposition = modelEntities.find((entity) => entity.id === instance.parentCompositionId);
     if (!parentComposition) {
@@ -239,6 +269,8 @@ export function AutosarApp() {
           instances={visibleSwcInstances}
           logEntries={logEntries}
           activeBottomPanelTab={activeBottomPanelTab}
+          connectedPortsByPortId={workspace.connectedPortsByPortId ?? {}}
+          onConnectedPortSelect={openConnectedPortDetails}
           onFocusModelEntity={focusModelEntityFromGraph}
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}

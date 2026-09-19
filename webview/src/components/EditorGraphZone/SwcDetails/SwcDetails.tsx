@@ -1,4 +1,9 @@
-import type { AutosarEntity, SwcGraphResult, SwcInspectorData } from "../../../../../src/shared/contracts";
+import type {
+  AutosarEntity,
+  ConnectedPortReference,
+  SwcGraphResult,
+  SwcInspectorData
+} from "../../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
 import "./SwcDetails.css";
 import {
@@ -26,6 +31,8 @@ export function SwcDetails(props: {
   focusEntity?: AutosarEntity;
   graphResult?: SwcGraphResult;
   inspector?: SwcInspectorData;
+  connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
+  onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
 }) {
   const inspectorData = props.inspector ?? props.focusEntity?.inspector;
@@ -158,6 +165,8 @@ export function SwcDetails(props: {
       <PortDetails
         title={props.tab.title}
         port={port}
+        connectedPorts={port ? props.connectedPortsByPortId[port.id] ?? [] : []}
+        onConnectedPortSelect={props.onConnectedPortSelect}
         filePath={port?.filePath ?? props.focusEntity.filePath}
         xmlPath={port?.xmlPath ?? props.tab.xmlPath}
       />

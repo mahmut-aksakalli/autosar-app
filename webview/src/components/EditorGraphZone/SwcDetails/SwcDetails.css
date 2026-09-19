@@ -164,6 +164,10 @@
   border-top: 1px solid #dbe6f2;
 }
 
+.model-connected-ports-section {
+  margin-top: 14px;
+}
+
 .model-port-argument-section h3,
 .model-port-comspec-table-section h3 {
   margin: 0;

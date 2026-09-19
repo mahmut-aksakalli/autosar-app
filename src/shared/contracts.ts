@@ -310,6 +310,19 @@ export interface PortConnection {
   unresolved?: boolean;
 }
 
+export interface ConnectedPortReference {
+  connectionId: string;
+  portId?: string;
+  portXmlPath?: string;
+  portName: string;
+  portInterface: string;
+  portInterfaceRef?: string;
+  ownerEntityId?: string;
+  ownerSemanticPath?: string;
+  swcName: string;
+  swcPath: string;
+}
+
 export interface StructuredField {
   key: string;
   value: string;
@@ -372,6 +385,7 @@ export interface WorkspaceSnapshot {
   explorerEntries: ExplorerEntry[];
   entities: AutosarEntity[];
   swcInstances: SwcInstanceReference[];
+  connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   connections: PortConnection[];
   watched: boolean;
   lastIndexedAt: string;

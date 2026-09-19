@@ -68,8 +68,9 @@ function CommunicationSpecsTable(props: {
       return;
     }
 
-    // Keep the master-detail table within the visible webview. Resize and
-    // scroll events are collapsed into one measurement per animation frame.
+    // Keep the master-detail table within the visible webview. Do not measure
+    // on ancestor scroll: its viewport top changes while scrolling, which
+    // would make the table grow and continuously push later sections away.
     let frameId = 0;
     const updateHeight = () => {
       window.cancelAnimationFrame(frameId);
@@ -81,14 +82,12 @@ function CommunicationSpecsTable(props: {
     const resizeObserver = new ResizeObserver(updateHeight);
     resizeObserver.observe(document.body);
     window.addEventListener("resize", updateHeight);
-    window.addEventListener("scroll", updateHeight, true);
     updateHeight();
 
     return () => {
       window.cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateHeight);
-      window.removeEventListener("scroll", updateHeight, true);
     };
   }, [props.embedded, props.rows.length]);
 

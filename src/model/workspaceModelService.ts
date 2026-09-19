@@ -13,6 +13,7 @@ import type {
 } from "../shared/contracts";
 import { noopAutosarLogger, type AutosarLogger } from "../logging/AutosarLogger";
 import { buildSwcInstanceReferences } from "./swcInstanceService";
+import { buildConnectedPortsByPortId } from "./portConnectionService";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
@@ -220,6 +221,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 
     const entities = validatedDocuments.flatMap((document) => document.entities);
+    const connections = validatedDocuments.flatMap((document) => document.connections);
     return {
       rootPath,
       workspaceKind: project.kind,
@@ -233,7 +235,8 @@ export class WorkspaceModelService implements vscode.Disposable {
       explorerEntries,
       entities,
       swcInstances: buildSwcInstanceReferences(entities),
-      connections: validatedDocuments.flatMap((document) => document.connections),
+      connectedPortsByPortId: buildConnectedPortsByPortId(entities, connections),
+      connections,
       watched: true,
       lastIndexedAt: new Date().toISOString()
     } satisfies WorkspaceSnapshot;
@@ -300,6 +303,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       ],
       entities,
       swcInstances: buildSwcInstanceReferences(entities),
+      connectedPortsByPortId: buildConnectedPortsByPortId(entities, validatedDocument.connections),
       connections: validatedDocument.connections,
       watched: true,
       lastIndexedAt: new Date().toISOString()
