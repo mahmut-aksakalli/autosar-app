@@ -316,7 +316,7 @@
 }
 
 .model-runnable-table-scroll {
-  overflow: hidden;
+  overflow: auto;
 }
 
 .model-runnable-table {
@@ -354,34 +354,6 @@
 .model-runnable-table th:last-child,
 .model-runnable-table td:last-child {
   border-right: 0;
-}
-
-.model-runnable-column-resizer {
-  position: absolute;
-  top: 0;
-  right: -4px;
-  z-index: 1;
-  width: 8px;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: col-resize;
-}
-
-.model-runnable-column-resizer::after {
-  content: "";
-  position: absolute;
-  top: 7px;
-  right: 3px;
-  width: 1px;
-  height: calc(100% - 14px);
-  background: transparent;
-}
-
-.model-runnable-column-resizer:hover::after,
-.model-runnable-column-resizer:focus-visible::after {
-  background: var(--accent);
 }
 
 .model-runnable-table tbody tr:last-child td {

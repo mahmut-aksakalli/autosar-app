@@ -5,7 +5,10 @@ import { formatBooleanMetadata, formatReferenceShortName } from "../DetailsForma
 import { formatPortDirectionLabel } from "../PortDetails/CommunicationSpecHelper";
 import { comparePortRows, normalizeTableSearch } from "./TableData";
 import type { PortTableColumnKey, SortDirection } from "./TableData";
-import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
+import { SortableResizableTableHeader } from "../../../Common/Table/TableHeaders";
+import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
+
+const PORT_COLUMN_WIDTHS = [180, 140, 140, 200, 360];
 
 export function PortsTable(props: {
   title: string;
@@ -18,6 +21,7 @@ export function PortsTable(props: {
     key: "portName",
     direction: "asc"
   });
+  const columnResize = useResizableTableColumns(PORT_COLUMN_WIDTHS);
 
   const rows = useMemo(
     () =>
@@ -78,14 +82,36 @@ export function PortsTable(props: {
       </div>
       {props.ports.length > 0 ? (
         <div className="model-semantic-table-shell">
-          <table className="model-inspector-section-table model-semantic-table model-clickable-table">
+          <table
+            className="model-inspector-section-table model-semantic-table model-clickable-table"
+            style={columnResize.tableStyle}
+          >
+            <colgroup>
+              {columnResize.columnWidths.map((width, columnIndex) => (
+                <col key={columnIndex} style={{ width }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <SortableTableHeader label="Port" columnKey="portName" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Direction" columnKey="direction" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Is Service Port" columnKey="isServicePort" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Interface" columnKey="interfaceName" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Interface Ref" columnKey="interfaceRef" sort={sort} onSort={changeSort} />
+                {[
+                  { label: "Port", key: "portName" as const },
+                  { label: "Direction", key: "direction" as const },
+                  { label: "Is Service Port", key: "isServicePort" as const },
+                  { label: "Interface", key: "interfaceName" as const },
+                  { label: "Interface Ref", key: "interfaceRef" as const }
+                ].map((column, columnIndex) => (
+                  <SortableResizableTableHeader
+                    key={column.key}
+                    label={column.label}
+                    columnKey={column.key}
+                    sort={sort}
+                    onSort={changeSort}
+                    onResize={(event) => columnResize.startColumnResize(event, columnIndex)}
+                    onResizeKeyDown={(event) =>
+                      columnResize.resizeColumnWithKeyboard(event, columnIndex)
+                    }
+                  />
+                ))}
               </tr>
             </thead>
             <tbody>

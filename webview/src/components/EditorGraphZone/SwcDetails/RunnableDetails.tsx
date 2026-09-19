@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type {
   RunnableAccessPointDetail,
   RunnableActivationReasonDetail,
@@ -8,6 +7,7 @@ import type {
 } from "../../../../../src/shared/contracts";
 import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch } from "./TableData/TableData";
 import { SortableResizableTableHeader } from "../../Common/Table/TableHeaders";
+import { useResizableTableColumns } from "../../Common/Table/useResizableTableColumns";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "./DetailsFormatters";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 
@@ -99,7 +99,7 @@ function RunnableActivationReasonsTable(props: { details: RunnableActivationReas
 }
 
 function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]; fallbackItems: string[] }) {
-  const [columnWidths, setColumnWidths] = useState([280, 180, 260]);
+  const columnResize = useResizableTableColumns([280, 180, 260], 120);
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: AccessPointTableColumnKey; direction: SortDirection }>({
@@ -126,36 +126,12 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
       )
       .sort((left, right) => compareAccessPointRows(left, right, sort));
   }, [rows, searchQuery, sort]);
-  const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
 
   const changeSort = (key: AccessPointTableColumnKey) => {
     setSort((current) => ({
       key,
       direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
     }));
-  };
-
-  const startColumnResize = (event: ReactPointerEvent<HTMLButtonElement>, columnIndex: number) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const startX = event.clientX;
-    const startWidth = columnWidths[columnIndex] ?? 180;
-    // Window-level listeners keep resizing responsive when the pointer moves
-    // outside the narrow column handle.
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const delta = moveEvent.clientX - startX;
-      setColumnWidths((currentWidths) =>
-        currentWidths.map((width, index) => (index === columnIndex ? Math.max(120, startWidth + delta) : width))
-      );
-    };
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
   };
 
   return (
@@ -185,10 +161,10 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
         <div className="model-runnable-table-scroll">
           <table
             className="model-runnable-table"
-            style={{ "--model-runnable-table-width": `${tableWidth}px` } as CSSProperties}
+            style={columnResize.tableStyle}
           >
             <colgroup>
-              {columnWidths.map((width, index) => (
+              {columnResize.columnWidths.map((width, index) => (
                 <col key={index} style={{ width }} />
               ))}
             </colgroup>
@@ -205,7 +181,10 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
                     columnKey={column.key}
                     sort={sort}
                     onSort={changeSort}
-                    onResize={(event) => startColumnResize(event, index)}
+                    onResize={(event) => columnResize.startColumnResize(event, index)}
+                    onResizeKeyDown={(event) =>
+                      columnResize.resizeColumnWithKeyboard(event, index)
+                    }
                   />
                 ))}
               </tr>
@@ -230,7 +209,7 @@ function RunnableAccessPointsTable(props: { details: RunnableAccessPointDetail[]
 }
 
 function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail[]; fallbackItems: string[] }) {
-  const [columnWidths, setColumnWidths] = useState([220, 180, 180, 180, 240]);
+  const columnResize = useResizableTableColumns([220, 180, 180, 180, 240], 120);
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: TriggerEventTableColumnKey; direction: SortDirection }>({
@@ -261,35 +240,12 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
       )
       .sort((left, right) => compareTriggerEventRows(left, right, sort));
   }, [rows, searchQuery, sort]);
-  const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
 
   const changeSort = (key: TriggerEventTableColumnKey) => {
     setSort((current) => ({
       key,
       direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
     }));
-  };
-
-  const startColumnResize = (event: ReactPointerEvent<HTMLButtonElement>, columnIndex: number) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const startX = event.clientX;
-    const startWidth = columnWidths[columnIndex] ?? 180;
-    // Track outside the header cell so a fast drag cannot interrupt resizing.
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const delta = moveEvent.clientX - startX;
-      setColumnWidths((currentWidths) =>
-        currentWidths.map((width, index) => (index === columnIndex ? Math.max(120, startWidth + delta) : width))
-      );
-    };
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
   };
 
   return (
@@ -319,10 +275,10 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
         <div className="model-runnable-table-scroll">
           <table
             className="model-runnable-table"
-            style={{ "--model-runnable-table-width": `${tableWidth}px` } as CSSProperties}
+            style={columnResize.tableStyle}
           >
             <colgroup>
-              {columnWidths.map((width, index) => (
+              {columnResize.columnWidths.map((width, index) => (
                 <col key={index} style={{ width }} />
               ))}
             </colgroup>
@@ -341,7 +297,10 @@ function RunnableTriggerEventsTable(props: { details: RunnableTriggerEventDetail
                     columnKey={column.key}
                     sort={sort}
                     onSort={changeSort}
-                    onResize={(event) => startColumnResize(event, index)}
+                    onResize={(event) => columnResize.startColumnResize(event, index)}
+                    onResizeKeyDown={(event) =>
+                      columnResize.resizeColumnWithKeyboard(event, index)
+                    }
                   />
                 ))}
               </tr>

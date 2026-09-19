@@ -4,7 +4,10 @@ import type { ModelWorkspaceTab } from "../../../EditorTabs/EditorTabs";
 import { formatOptionalMilliseconds } from "../DetailsFormatters";
 import { compareRunnableRows, normalizeTableSearch } from "./TableData";
 import type { RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./TableData";
-import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
+import { SortableResizableTableHeader } from "../../../Common/Table/TableHeaders";
+import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
+
+const RUNNABLE_COLUMN_WIDTHS = [220, 220, 220, 140];
 
 export function RunnablesTable(props: {
   title: string;
@@ -18,6 +21,7 @@ export function RunnablesTable(props: {
     key: "runnableName",
     direction: "asc"
   });
+  const columnResize = useResizableTableColumns(RUNNABLE_COLUMN_WIDTHS);
 
   // Convert parser-oriented inspector items into stable, display-ready rows.
   const rows = useMemo<RunnableTableRow[]>(
@@ -80,13 +84,35 @@ export function RunnablesTable(props: {
       </div>
       {props.runnables.length > 0 ? (
         <div className="model-semantic-table-shell">
-          <table className="model-inspector-section-table model-semantic-table model-clickable-table">
+          <table
+            className="model-inspector-section-table model-semantic-table model-clickable-table"
+            style={columnResize.tableStyle}
+          >
+            <colgroup>
+              {columnResize.columnWidths.map((width, columnIndex) => (
+                <col key={columnIndex} style={{ width }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <SortableTableHeader label="SWC name" columnKey="swcName" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Runnable Name" columnKey="runnableName" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Runnable Symbol" columnKey="runnableSymbol" sort={sort} onSort={changeSort} />
-                <SortableTableHeader label="Period" columnKey="period" sort={sort} onSort={changeSort} />
+                {[
+                  { label: "SWC name", key: "swcName" as const },
+                  { label: "Runnable Name", key: "runnableName" as const },
+                  { label: "Runnable Symbol", key: "runnableSymbol" as const },
+                  { label: "Period", key: "period" as const }
+                ].map((column, columnIndex) => (
+                  <SortableResizableTableHeader
+                    key={column.key}
+                    label={column.label}
+                    columnKey={column.key}
+                    sort={sort}
+                    onSort={changeSort}
+                    onResize={(event) => columnResize.startColumnResize(event, columnIndex)}
+                    onResizeKeyDown={(event) =>
+                      columnResize.resizeColumnWithKeyboard(event, columnIndex)
+                    }
+                  />
+                ))}
               </tr>
             </thead>
             <tbody>

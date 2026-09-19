@@ -8,7 +8,8 @@ import {
 } from "../DetailsFormatters";
 import { compareTableText, normalizeTableSearch } from "./TableData";
 import type { DetailsTableItem, DetailsTableRow, SortDirection } from "./TableData";
-import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
+import { SortableResizableTableHeader } from "../../../Common/Table/TableHeaders";
+import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
 
 export function VariablesTable(props: {
   title: string;
@@ -26,6 +27,7 @@ export function VariablesTable(props: {
     key: props.columns[0]?.key ?? "label",
     direction: "asc"
   });
+  const columnResize = useResizableTableColumns(props.columns.map(() => 220));
 
   // Detail sections have different metadata columns. Flattening metadata into
   // each row keeps this table independent of the individual section schemas.
@@ -103,16 +105,28 @@ export function VariablesTable(props: {
       </div>
       {props.items.length > 0 ? (
         <div className="model-semantic-table-shell">
-          <table className="model-inspector-section-table model-semantic-table model-clickable-table">
+          <table
+            className="model-inspector-section-table model-semantic-table model-clickable-table"
+            style={columnResize.tableStyle}
+          >
+            <colgroup>
+              {columnResize.columnWidths.map((width, columnIndex) => (
+                <col key={columnIndex} style={{ width }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                {props.columns.map((column) => (
-                  <SortableTableHeader
+                {props.columns.map((column, columnIndex) => (
+                  <SortableResizableTableHeader
                     key={column.key}
                     label={column.label}
                     columnKey={column.key}
                     sort={sort}
                     onSort={changeSort}
+                    onResize={(event) => columnResize.startColumnResize(event, columnIndex)}
+                    onResizeKeyDown={(event) =>
+                      columnResize.resizeColumnWithKeyboard(event, columnIndex)
+                    }
                   />
                 ))}
               </tr>

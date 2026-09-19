@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import type { SwcInstanceReference } from "../../../../../../../src/shared/contracts";
-import { SortableTableHeader } from "../../../../Common/Table/TableHeaders";
+import { SortableResizableTableHeader } from "../../../../Common/Table/TableHeaders";
+import { useResizableTableColumns } from "../../../../Common/Table/useResizableTableColumns";
 import {
   filterAndSortInstances,
   type InstanceColumnKey,
   type SortDirection
 } from "./InstancesTableHelper";
+
+const INSTANCE_COLUMN_WIDTHS = [180, 220, 360];
 
 export function InstancesTable(props: {
   instances: SwcInstanceReference[];
@@ -17,6 +20,7 @@ export function InstancesTable(props: {
     key: "instanceName",
     direction: "asc"
   });
+  const columnResize = useResizableTableColumns(INSTANCE_COLUMN_WIDTHS);
   const visibleInstances = useMemo(
     () => filterAndSortInstances(props.instances, searchQuery, sort),
     [props.instances, searchQuery, sort]
@@ -41,17 +45,34 @@ export function InstancesTable(props: {
         />
       </label>
       <div className="graph-bottom-panel-table-scroll nowheel">
-        <table className="graph-bottom-panel-table graph-instance-table">
+        <table
+          className="graph-bottom-panel-table graph-instance-table"
+          style={columnResize.tableStyle}
+        >
+          <colgroup>
+            {columnResize.columnWidths.map((width, columnIndex) => (
+              <col key={columnIndex} style={{ width }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              <SortableTableHeader label="Instance" columnKey="instanceName" sort={sort} onSort={changeSort} />
-              <SortableTableHeader
-                label="Parent Composition"
-                columnKey="parentCompositionName"
-                sort={sort}
-                onSort={changeSort}
-              />
-              <SortableTableHeader label="Instance Path" columnKey="instancePath" sort={sort} onSort={changeSort} />
+              {[
+                { label: "Instance", key: "instanceName" as const },
+                { label: "Parent Composition", key: "parentCompositionName" as const },
+                { label: "Instance Path", key: "instancePath" as const }
+              ].map((column, columnIndex) => (
+                <SortableResizableTableHeader
+                  key={column.key}
+                  label={column.label}
+                  columnKey={column.key}
+                  sort={sort}
+                  onSort={changeSort}
+                  onResize={(event) => columnResize.startColumnResize(event, columnIndex)}
+                  onResizeKeyDown={(event) =>
+                    columnResize.resizeColumnWithKeyboard(event, columnIndex)
+                  }
+                />
+              ))}
             </tr>
           </thead>
           <tbody>
