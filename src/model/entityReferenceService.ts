@@ -10,6 +10,15 @@ interface ReferenceCandidate {
   reference: AutosarEntityReference;
 }
 
+// These references declare that an internal behavior includes definitions for
+// generated code. They do not create model instances of those definitions.
+const NON_INSTANCE_REFERENCE_ROLES_BY_TARGET_TYPE: Record<string, Set<string>> = {
+  "application-data-type": new Set(["DATA-TYPE-REF"]),
+  "implementation-data-type": new Set(["DATA-TYPE-REF"]),
+  "base-type": new Set(["DATA-TYPE-REF"]),
+  "mode-declaration-group": new Set(["MODE-DECLARATION-GROUP-REF"])
+};
+
 /** Creates a reverse index from reusable AUTOSAR definitions to their usages. */
 export function buildReferenceInstancesByTargetId(
   entities: AutosarEntity[]
@@ -25,6 +34,9 @@ export function buildReferenceInstancesByTargetId(
     for (const reference of source.references ?? []) {
       const target = entitiesBySemanticPath.get(reference.target);
       if (!target || target.id === source.id) {
+        continue;
+      }
+      if (!isInstanceReference(target, reference)) {
         continue;
       }
 
@@ -86,6 +98,17 @@ export function buildReferenceInstancesByTargetId(
   }
 
   return instancesByTargetId;
+}
+
+function isInstanceReference(
+  target: AutosarEntity,
+  reference: AutosarEntityReference
+) {
+  const excludedRoles = NON_INSTANCE_REFERENCE_ROLES_BY_TARGET_TYPE[target.type];
+  if (!excludedRoles) {
+    return true;
+  }
+  return !excludedRoles.has(reference.role);
 }
 
 function isMoreSpecificDuplicate(candidate: ReferenceCandidate, other: ReferenceCandidate) {

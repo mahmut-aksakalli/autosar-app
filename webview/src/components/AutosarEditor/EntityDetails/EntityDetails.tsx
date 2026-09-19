@@ -47,15 +47,15 @@ export function EntityDetails(props: {
             </div>
           ))}
         </div>
+        {details.tables.map((table) => (
+          <EntityDetailTable key={table.title} table={table} />
+        ))}
         {props.referenceInstances && (
           <ReferenceInstancesTable
             instances={props.referenceInstances}
             onInstanceSelect={props.onReferenceInstanceSelect}
           />
         )}
-        {details.tables.map((table) => (
-          <EntityDetailTable key={table.title} table={table} />
-        ))}
       </div>
     </div>
   );
