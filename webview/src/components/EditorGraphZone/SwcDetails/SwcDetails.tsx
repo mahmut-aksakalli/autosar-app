@@ -16,12 +16,10 @@ import { PerInstanceMemoryDetails } from "./PerInstanceMemoryDetails/PerInstance
 import { ServiceDependencyDetails } from "./ServiceDependency/ServiceDependencyDetails";
 import { RunnableDetails } from "./RunnableDetails";
 import { PortDetails } from "./PortDetails/PortDetails";
-import {
-  DetailsItemsTable,
-  PortsTable,
-  RunnablesTable,
-  DetailsTable
-} from "./TableData/DetailsTables";
+import { VariablesTable } from "./TableData/VariablesTable";
+import { SimpleTable } from "./TableData/SimpleTable";
+import { PortsTable } from "./TableData/PortsTable";
+import { RunnablesTable } from "./TableData/RunnablesTable";
 
 export function SwcDetails(props: {
   tab: ModelWorkspaceTab;
@@ -67,7 +65,7 @@ export function SwcDetails(props: {
 
   if (props.tab.kind === "parameters") {
     return (
-      <DetailsItemsTable
+      <VariablesTable
         title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["calibrationVariables", "interfaceParameters"])}
         focusEntityId={props.focusEntity.id}
@@ -89,7 +87,7 @@ export function SwcDetails(props: {
 
   if (props.tab.kind === "interRunnableVariables") {
     return (
-      <DetailsItemsTable
+      <VariablesTable
         title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["interRunnableVariables"])}
         focusEntityId={props.focusEntity.id}
@@ -110,7 +108,7 @@ export function SwcDetails(props: {
 
   if (props.tab.kind === "perInstanceMemory") {
     return (
-      <DetailsItemsTable
+      <VariablesTable
         title={props.tab.title}
         items={collectInspectorItems(inspectorData, ["perInstanceMemory"])}
         focusEntityId={props.focusEntity.id}
@@ -134,7 +132,7 @@ export function SwcDetails(props: {
       (entry) => !props.tab.serviceType || entry.item.metadata?.["SERVICE-TYPE"] === props.tab.serviceType
     );
     return (
-      <DetailsItemsTable
+      <VariablesTable
         title={props.tab.title}
         items={serviceItems}
         focusEntityId={props.focusEntity.id}
@@ -212,7 +210,7 @@ export function SwcDetails(props: {
 
   if (props.tab.kind === "behavior") {
     return (
-      <DetailsTable
+      <SimpleTable
         title={props.tab.title}
         emptyLabel="No behavior details discovered."
         columns={[
@@ -242,7 +240,7 @@ export function SwcDetails(props: {
   });
 
   return (
-    <DetailsTable
+    <SimpleTable
       title={props.tab.title}
       emptyLabel={getEmptyLabel(props.tab.kind)}
       columns={getDetailsColumns(props.tab.kind)}
