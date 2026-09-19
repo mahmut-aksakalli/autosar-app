@@ -183,7 +183,7 @@ Key responsibilities:
 - `main.tsx` mounts the React application and loads global styles.
 - `AutosarApp.tsx` owns the webview message lifecycle and coordinates the active model workspace.
 - `EditorTabs/` contains tab types, tab-state helpers, and tab rendering.
-- `EditorGraphZone.tsx` coordinates graph selection, composition focus, and detail content.
+- `AutosarEditor.tsx` coordinates graph selection, composition focus, and routes SWC and generic AUTOSAR detail content.
 - `AutosarSwc/` contains the React Flow canvas, graph-query state, and layout calculations. Its `SwcNode/` subtree groups the node, node menu, ports, and port menu; `SearchBox/` contains graph-search UI and highlighting; `BottomPanel/` contains the SWC instance navigator and webview output log.
 - `Common/Table/` contains reusable sortable table-header components shared by graph and detail tables.
 - `SwcDetails/` contains semantic detail surfaces and shared table/formatting utilities. Feature-specific details are grouped into nested folders.

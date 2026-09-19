@@ -153,6 +153,14 @@ export interface AutosarEntityDetails {
   communicationSpecs?: CommunicationSpecDetail[];
 }
 
+export interface AutosarEntityReference {
+  target: string;
+  role: string;
+  contextName?: string;
+  contextPath?: string;
+  contextType?: string;
+}
+
 export interface SwcInspectorItemDetails {
   accessPoints?: RunnableAccessPointDetail[];
   interRunnableVariableAccesses?: InterRunnableVariableAccessDetail[];
@@ -221,7 +229,21 @@ export interface AutosarEntity {
   interfaceKind?: PortInterfaceKind;
   metadata?: Record<string, string>;
   details?: AutosarEntityDetails;
+  references?: AutosarEntityReference[];
   inspector?: SwcInspectorData;
+}
+
+export interface EntityReferenceInstance {
+  id: string;
+  instanceName: string;
+  instanceType: string;
+  referenceRole: string;
+  instancePath: string;
+  navigationEntityId: string;
+  navigationSemanticPath?: string;
+  navigationEntityType: string;
+  portId?: string;
+  portXmlPath?: string;
 }
 
 export type SwcInspectorSectionId =
@@ -386,6 +408,7 @@ export interface WorkspaceSnapshot {
   entities: AutosarEntity[];
   swcInstances: SwcInstanceReference[];
   connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
+  referenceInstancesByTargetId: Record<string, EntityReferenceInstance[]>;
   connections: PortConnection[];
   watched: boolean;
   lastIndexedAt: string;

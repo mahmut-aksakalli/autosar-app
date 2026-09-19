@@ -14,6 +14,7 @@ import type {
 import { noopAutosarLogger, type AutosarLogger } from "../logging/AutosarLogger";
 import { buildSwcInstanceReferences } from "./swcInstanceService";
 import { buildConnectedPortsByPortId } from "./portConnectionService";
+import { buildReferenceInstancesByTargetId } from "./entityReferenceService";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
@@ -236,6 +237,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       entities,
       swcInstances: buildSwcInstanceReferences(entities),
       connectedPortsByPortId: buildConnectedPortsByPortId(entities, connections),
+      referenceInstancesByTargetId: buildReferenceInstancesByTargetId(entities),
       connections,
       watched: true,
       lastIndexedAt: new Date().toISOString()
@@ -304,6 +306,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       entities,
       swcInstances: buildSwcInstanceReferences(entities),
       connectedPortsByPortId: buildConnectedPortsByPortId(entities, validatedDocument.connections),
+      referenceInstancesByTargetId: buildReferenceInstancesByTargetId(entities),
       connections: validatedDocument.connections,
       watched: true,
       lastIndexedAt: new Date().toISOString()

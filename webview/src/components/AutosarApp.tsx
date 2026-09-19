@@ -5,14 +5,15 @@ import type {
   HostToModelWebviewMessage,
   ModelWebviewInitialState,
   ConnectedPortReference,
+  EntityReferenceInstance,
   SwcGraphPort,
   SwcGraphScope,
   SwcInstanceReference,
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
-import { EditorGraphZone } from "./EditorGraphZone/EditorGraphZone";
-import type { BottomPanelTab } from "./EditorGraphZone/AutosarSwc/BottomPanel/BottomPanel";
-import type { SwcNodeView } from "./EditorGraphZone/AutosarSwc/AutosarSwcLayout";
+import { AutosarEditor } from "./AutosarEditor/AutosarEditor";
+import type { BottomPanelTab } from "./AutosarEditor/AutosarSwc/BottomPanel/BottomPanel";
+import type { SwcNodeView } from "./AutosarEditor/AutosarSwc/AutosarSwcLayout";
 import { EditorTabs } from "./EditorTabs/EditorTabsView";
 import {
   makeDefaultModelGraphTab,
@@ -218,6 +219,43 @@ export function AutosarApp() {
     );
   }
 
+  function openReferenceInstance(instance: EntityReferenceInstance) {
+    const targetEntity = findModelEntity(
+      modelEntities,
+      instance.navigationEntityId,
+      instance.navigationSemanticPath
+    );
+    if (!targetEntity) {
+      return;
+    }
+
+    preserveActivePreviewTab();
+    if (instance.portId) {
+      tabs.openTab(
+        makeModelTab(targetEntity, "port", `Port: ${instance.instanceName}`, {
+          entityId: instance.portId,
+          xmlPath: instance.portXmlPath
+        }),
+        true
+      );
+      modelHost.revealModelEntity(
+        instance.portId,
+        `${targetEntity.id}:port:${instance.portId}`
+      );
+    } else {
+      tabs.openTab(
+        makeModelTab(targetEntity, "entityDetails", `Details: ${targetEntity.shortName}`, {
+          entityId: targetEntity.id,
+          itemId: instance.instancePath,
+          xmlPath: targetEntity.xmlPath
+        }),
+        true
+      );
+      modelHost.revealModelEntity(targetEntity.id);
+    }
+    setModelFocusEntityId(targetEntity.id);
+  }
+
   function openSwcInstanceFromPanel(instance: SwcInstanceReference) {
     const parentComposition = modelEntities.find((entity) => entity.id === instance.parentCompositionId);
     if (!parentComposition) {
@@ -260,7 +298,7 @@ export function AutosarApp() {
         onClose={tabs.closeTab}
       />
       <div className="editor-view">
-        <EditorGraphZone
+        <AutosarEditor
           focusEntity={activeModelFocusEntity}
           workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}
@@ -270,7 +308,9 @@ export function AutosarApp() {
           logEntries={logEntries}
           activeBottomPanelTab={activeBottomPanelTab}
           connectedPortsByPortId={workspace.connectedPortsByPortId ?? {}}
+          referenceInstancesByTargetId={workspace.referenceInstancesByTargetId ?? {}}
           onConnectedPortSelect={openConnectedPortDetails}
+          onReferenceInstanceSelect={openReferenceInstance}
           onFocusModelEntity={focusModelEntityFromGraph}
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}

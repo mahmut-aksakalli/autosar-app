@@ -1,6 +1,7 @@
 import path from "node:path";
 import type {
   AutosarEntity,
+  AutosarEntityReference,
   PortDirection,
   PortInterfaceKind,
   PortKind,
@@ -273,7 +274,8 @@ function walkNode(state: WalkState) {
           ? collectPortMetadata(record)
           : type === "constant"
             ? collectConstantMetadata(record)
-            : collectEntityMetadata(type, tagName, record)
+            : collectEntityMetadata(type, tagName, record),
+      references: collectEntityReferences(record, tagName, shortName, semanticPath)
     });
   }
 
@@ -979,6 +981,77 @@ function collectEntityMetadata(type: EntityType, tagName: string, record: Record
     DESCRIPTION: extractDescription(record),
     "ENTITY-DETAILS": details ? JSON.stringify(details) : undefined
   });
+}
+
+function collectEntityReferences(
+  record: Record<string, unknown>,
+  entityTagName: string,
+  entityName: string,
+  entityPath: string | undefined
+): AutosarEntityReference[] {
+  const references: AutosarEntityReference[] = [];
+  const seen = new Set<string>();
+
+  function visit(
+    node: unknown,
+    tagName: string,
+    contextName: string,
+    contextPath: string | undefined,
+    contextType: string,
+    isRoot = false
+  ) {
+    if (Array.isArray(node)) {
+      node.forEach((entry) => visit(entry, tagName, contextName, contextPath, contextType));
+      return;
+    }
+    if (!isRecord(node)) {
+      return;
+    }
+
+    let nextContextName = contextName;
+    let nextContextPath = contextPath;
+    let nextContextType = contextType;
+    const nestedName = extractShortName(node);
+    if (!isRoot && nestedName && nestedName !== contextName) {
+      nextContextName = nestedName;
+      nextContextPath = contextPath ? `${contextPath}/${nestedName}` : nestedName;
+      nextContextType = tagName;
+    }
+
+    for (const [childTag, childValue] of Object.entries(node)) {
+      if (childTag.startsWith("@_")) {
+        continue;
+      }
+
+      if (/(?:-REF|-TREF|-IREF)$/.test(childTag)) {
+        const target = readSimpleValue(childValue);
+        if (target) {
+          const key = `${childTag}:${target}:${nextContextPath ?? nextContextName}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            references.push({
+              target,
+              role: childTag,
+              contextName: nextContextName,
+              contextPath: nextContextPath,
+              contextType: nextContextType
+            });
+          }
+        }
+      }
+
+      visit(
+        childValue,
+        childTag,
+        nextContextName,
+        nextContextPath,
+        nextContextType
+      );
+    }
+  }
+
+  visit(record, entityTagName, entityName, entityPath, entityTagName, true);
+  return references;
 }
 
 function buildEntityDetailPayload(
