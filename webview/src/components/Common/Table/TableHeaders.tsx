@@ -1,5 +1,7 @@
 import type { AriaAttributes, PointerEvent as ReactPointerEvent } from "react";
-import type { SortDirection } from "./TableData";
+import "./TableHeaders.css";
+
+type SortDirection = "asc" | "desc";
 
 function getAriaSort(isActive: boolean, direction: SortDirection): AriaAttributes["aria-sort"] {
   if (!isActive) {

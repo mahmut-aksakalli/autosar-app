@@ -1,4 +1,12 @@
 export type Severity = "info" | "warning" | "error";
+
+export interface AutosarLogEntry {
+  id: string;
+  timestamp: string;
+  severity: Severity;
+  message: string;
+  details?: string;
+}
 export type ValidationIssueCategory = "syntax" | "namespace" | "schema" | "serialization" | "semantic";
 export type ValidationScope = "single-file" | "workspace" | "batch";
 export type ValidationCompleteness = "complete" | "partial" | "not-validated";
@@ -363,6 +371,7 @@ export interface WorkspaceSnapshot {
   files: ArxmlDocumentSummary[];
   explorerEntries: ExplorerEntry[];
   entities: AutosarEntity[];
+  swcInstances: SwcInstanceReference[];
   connections: PortConnection[];
   watched: boolean;
   lastIndexedAt: string;
@@ -370,6 +379,7 @@ export interface WorkspaceSnapshot {
 
 export interface ModelWebviewInitialState {
   workspace: WorkspaceSnapshot;
+  logEntries: AutosarLogEntry[];
   focusEntityId?: string;
   activeWorkspaceTab?: ModelWorkspaceTab;
 }
@@ -377,6 +387,7 @@ export interface ModelWebviewInitialState {
 export type HostToModelWebviewMessage =
   | { type: "focusModel"; focusEntityId?: string; activeWorkspaceTab?: ModelWorkspaceTab }
   | { type: "workspaceUpdated"; workspace: WorkspaceSnapshot }
+  | { type: "logEntry"; entry: AutosarLogEntry }
   | { type: "graphResult"; requestId: string; graph: SwcGraphResult }
   | { type: "graphError"; requestId: string; message: string };
 
@@ -388,6 +399,19 @@ export type ModelWebviewToHostMessage =
 export type SwcGraphScope = "swc" | "composition";
 export type SwcGraphNodeKind = "swc" | "composition" | "instance";
 export type SwcGraphEdgeKind = "assembly" | "delegation";
+
+export interface SwcInstanceReference {
+  id: string;
+  instanceName: string;
+  instancePath?: string;
+  typeRef: string;
+  swcId: string;
+  swcName: string;
+  parentCompositionId: string;
+  parentCompositionName: string;
+  parentCompositionPath?: string;
+  treeNodeId: string;
+}
 
 export interface SwcGraphPort {
   id: string;

@@ -11,7 +11,16 @@ import {
   type OnNodesChange
 } from "@xyflow/react";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import type { SwcGraphResult } from "../../../../../src/shared/contracts";
+import type {
+  AutosarLogEntry,
+  SwcGraphResult,
+  SwcInstanceReference
+} from "../../../../../src/shared/contracts";
+import {
+  BottomPanel,
+  DEFAULT_BOTTOM_PANEL_HEIGHT,
+  type BottomPanelTab
+} from "./BottomPanel/BottomPanel";
 import type { FlowNode } from "./AutosarSwcLayout";
 import { SwcNode } from "./SwcNode/SwcNode";
 import { SearchBox } from "./SearchBox/SearchBox";
@@ -56,6 +65,10 @@ interface AutosarSwcProps {
   loading: boolean;
   error?: string;
   warnings: SwcGraphResult["warnings"];
+  instances: SwcInstanceReference[];
+  activeInstanceId?: string;
+  logEntries: AutosarLogEntry[];
+  activeBottomPanelTab: BottomPanelTab;
   fitViewOptions: {
     padding: number;
     maxZoom: number;
@@ -64,6 +77,8 @@ interface AutosarSwcProps {
   onInit: (controller: AutosarSwcController) => void;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onNodeDoubleClick: (event: React.MouseEvent, node: Node) => void;
+  onBottomPanelTabChange: (tab: BottomPanelTab) => void;
+  onInstanceSelect: (instance: SwcInstanceReference) => void;
 }
 
 interface GraphSearchMatch {
@@ -75,6 +90,10 @@ interface GraphSearchMatch {
 export function AutosarSwc(props: AutosarSwcProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  // Panel layout lives above the keyed ReactFlow instance so navigating to a
+  // different SWC does not discard the user's chosen height or minimized state.
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(DEFAULT_BOTTOM_PANEL_HEIGHT);
+  const [isBottomPanelMinimized, setIsBottomPanelMinimized] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AutosarSwcController | null>(null);
   const normalizedSearchQuery = searchQuery.trim();
@@ -204,66 +223,88 @@ export function AutosarSwc(props: AutosarSwcProps) {
     }
   }
 
-  let graphContent: React.ReactNode;
+  let graphStatusMessage: string | undefined;
   if (props.error) {
-    graphContent = <div className="empty-state">Could not build the model graph: {props.error}</div>;
+    graphStatusMessage = `Could not build the model graph: ${props.error}`;
   } else if (props.loading) {
-    graphContent = <div className="empty-state">Building AUTOSAR graph…</div>;
+    graphStatusMessage = "Building AUTOSAR graph…";
   } else if (!props.graphResult || props.graphResult.nodes.length === 0) {
-    graphContent = <div className="empty-state">Select an SWC or composition to visualize it.</div>;
-  } else {
-    graphContent = (
-      <ReactFlowProvider>
-        <ReactFlow
-          key={props.canvasKey}
-          nodes={searchNodes}
-          edges={props.edges}
-          nodeTypes={nodeTypes}
-          onInit={(instance) => {
-            const controller: AutosarSwcController = {
-              getNode: (id) => instance.getNode(id),
-              screenToFlowPosition: (position) => instance.screenToFlowPosition(position),
-              fitView: (options) => instance.fitView(options),
-              setCenter: (x, y, options) => instance.setCenter(x, y, options)
-            };
-            controllerRef.current = controller;
-            props.onInit(controller);
-          }}
-          fitView
-          fitViewOptions={props.fitViewOptions}
-          minZoom={0.35}
-          maxZoom={1.5}
-          connectionMode={ConnectionMode.Loose}
-          zoomOnDoubleClick={false}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable
-          onNodeClick={props.onNodeClick}
-          onNodeDoubleClick={props.onNodeDoubleClick}
-          onNodesChange={ignoreNodeChanges}
-          onEdgesChange={ignoreEdgeChanges}
-        >
-          <Background color="#d7e2ef" gap={20} />
-          <Controls showInteractive={false} />
-          <Panel position="top-right">
-            <SearchBox
-              inputRef={searchInputRef}
-              query={searchQuery}
-              activeMatchIndex={visibleMatchIndex}
-              matchCount={searchMatches.length}
-              onQueryChange={(query) => {
-                setSearchQuery(query);
-                setActiveMatchIndex(0);
-              }}
-              onPrevious={showPreviousMatch}
-              onNext={showNextMatch}
-              onClear={clearSearch}
-            />
-          </Panel>
-        </ReactFlow>
-      </ReactFlowProvider>
-    );
+    graphStatusMessage = "Select an SWC or composition to visualize it.";
   }
+
+  const graphContent = (
+    <ReactFlowProvider>
+      <ReactFlow
+        key={props.canvasKey}
+        nodes={searchNodes}
+        edges={props.edges}
+        nodeTypes={nodeTypes}
+        onInit={(instance) => {
+          const controller: AutosarSwcController = {
+            getNode: (id) => instance.getNode(id),
+            screenToFlowPosition: (position) => instance.screenToFlowPosition(position),
+            fitView: (options) => instance.fitView(options),
+            setCenter: (x, y, options) => instance.setCenter(x, y, options)
+          };
+          controllerRef.current = controller;
+          props.onInit(controller);
+        }}
+        fitView
+        fitViewOptions={props.fitViewOptions}
+        minZoom={0.35}
+        maxZoom={1.5}
+        connectionMode={ConnectionMode.Loose}
+        zoomOnDoubleClick={false}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
+        onNodeClick={props.onNodeClick}
+        onNodeDoubleClick={props.onNodeDoubleClick}
+        onNodesChange={ignoreNodeChanges}
+        onEdgesChange={ignoreEdgeChanges}
+      >
+        <Background color="#d7e2ef" gap={20} />
+        <Controls showInteractive={false} />
+        {graphStatusMessage && (
+          <Panel position="top-center" className="graph-canvas-status">
+            {graphStatusMessage}
+          </Panel>
+        )}
+        <Panel position="top-right">
+          <SearchBox
+            inputRef={searchInputRef}
+            query={searchQuery}
+            activeMatchIndex={visibleMatchIndex}
+            matchCount={searchMatches.length}
+            onQueryChange={(query) => {
+              setSearchQuery(query);
+              setActiveMatchIndex(0);
+            }}
+            onPrevious={showPreviousMatch}
+            onNext={showNextMatch}
+            onClear={clearSearch}
+          />
+        </Panel>
+        <Panel
+          position="bottom-center"
+          className="graph-bottom-panel-container nodrag nopan nowheel"
+        >
+          <BottomPanel
+            activeTab={props.activeBottomPanelTab}
+            instances={props.instances}
+            activeInstanceId={props.activeInstanceId}
+            logEntries={props.logEntries}
+            panelHeight={bottomPanelHeight}
+            isMinimized={isBottomPanelMinimized}
+            onActiveTabChange={props.onBottomPanelTabChange}
+            onHeightChange={setBottomPanelHeight}
+            onMinimizedChange={setIsBottomPanelMinimized}
+            onInstanceSelect={props.onInstanceSelect}
+          />
+        </Panel>
+      </ReactFlow>
+    </ReactFlowProvider>
+  );
 
   return (
     <div className="model-canvas-shell" ref={props.canvasRef}>

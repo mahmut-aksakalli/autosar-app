@@ -4,7 +4,7 @@ import type { ModelWorkspaceTab } from "../../../EditorTabs/EditorTabs";
 import { formatOptionalMilliseconds } from "../DetailsFormatters";
 import { compareRunnableRows, normalizeTableSearch } from "./TableData";
 import type { RunnableTableColumnKey, RunnableTableRow, SortDirection } from "./TableData";
-import { SortableTableHeader } from "./TableHeaders";
+import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
 
 export function RunnablesTable(props: {
   title: string;

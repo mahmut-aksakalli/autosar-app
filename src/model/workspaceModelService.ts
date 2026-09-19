@@ -11,7 +11,8 @@ import type {
   WorkspaceProjectInfo,
   WorkspaceSnapshot
 } from "../shared/contracts";
-import { noopAutosarLogger, type AutosarLogger } from "../logger";
+import { noopAutosarLogger, type AutosarLogger } from "../logging/AutosarLogger";
+import { buildSwcInstanceReferences } from "./swcInstanceService";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
@@ -218,6 +219,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       }))
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 
+    const entities = validatedDocuments.flatMap((document) => document.entities);
     return {
       rootPath,
       workspaceKind: project.kind,
@@ -229,7 +231,8 @@ export class WorkspaceModelService implements vscode.Disposable {
         : project,
       files,
       explorerEntries,
-      entities: validatedDocuments.flatMap((document) => document.entities),
+      entities,
+      swcInstances: buildSwcInstanceReferences(entities),
       connections: validatedDocuments.flatMap((document) => document.connections),
       watched: true,
       lastIndexedAt: new Date().toISOString()
@@ -270,6 +273,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       indexingStatus: "idle"
     };
 
+    const entities = validatedDocument.entities;
     return {
       rootPath,
       workspaceKind: "single-file",
@@ -294,7 +298,8 @@ export class WorkspaceModelService implements vscode.Disposable {
           openable: true
         }
       ],
-      entities: validatedDocument.entities,
+      entities,
+      swcInstances: buildSwcInstanceReferences(entities),
       connections: validatedDocument.connections,
       watched: true,
       lastIndexedAt: new Date().toISOString()

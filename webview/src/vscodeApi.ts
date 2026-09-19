@@ -103,6 +103,8 @@ function isHostMessage(message: unknown): message is HostToModelWebviewMessage {
       return isFocusModelMessage(candidate);
     case "workspaceUpdated":
       return isObject(candidate.workspace);
+    case "logEntry":
+      return isLogEntryMessage(candidate);
     case "graphResult":
       return isGraphResultMessage(candidate);
     case "graphError":
@@ -110,6 +112,23 @@ function isHostMessage(message: unknown): message is HostToModelWebviewMessage {
     default:
       return false;
   }
+}
+
+function isLogEntryMessage(candidate: Record<string, unknown>) {
+  if (!isObject(candidate.entry)) {
+    return false;
+  }
+  const entry = candidate.entry;
+  if (typeof entry.id !== "string" || typeof entry.timestamp !== "string") {
+    return false;
+  }
+  if (entry.severity !== "info" && entry.severity !== "warning" && entry.severity !== "error") {
+    return false;
+  }
+  if (typeof entry.message !== "string") {
+    return false;
+  }
+  return entry.details === undefined || typeof entry.details === "string";
 }
 
 function isFocusModelMessage(candidate: Record<string, unknown>) {

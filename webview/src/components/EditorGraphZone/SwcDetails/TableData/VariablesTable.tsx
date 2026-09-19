@@ -8,7 +8,7 @@ import {
 } from "../DetailsFormatters";
 import { compareTableText, normalizeTableSearch } from "./TableData";
 import type { DetailsTableItem, DetailsTableRow, SortDirection } from "./TableData";
-import { SortableTableHeader } from "./TableHeaders";
+import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
 
 export function VariablesTable(props: {
   title: string;

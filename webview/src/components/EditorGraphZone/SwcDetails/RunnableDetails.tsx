@@ -7,7 +7,7 @@ import type {
   SwcInspectorItem
 } from "../../../../../src/shared/contracts";
 import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch } from "./TableData/TableData";
-import { SortableResizableTableHeader } from "./TableData/TableHeaders";
+import { SortableResizableTableHeader } from "../../Common/Table/TableHeaders";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "./DetailsFormatters";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 

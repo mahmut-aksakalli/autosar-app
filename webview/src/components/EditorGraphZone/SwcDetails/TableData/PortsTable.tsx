@@ -5,7 +5,7 @@ import { formatBooleanMetadata, formatReferenceShortName } from "../DetailsForma
 import { formatPortDirectionLabel } from "../PortDetails/CommunicationSpecHelper";
 import { comparePortRows, normalizeTableSearch } from "./TableData";
 import type { PortTableColumnKey, SortDirection } from "./TableData";
-import { SortableTableHeader } from "./TableHeaders";
+import { SortableTableHeader } from "../../../Common/Table/TableHeaders";
 
 export function PortsTable(props: {
   title: string;

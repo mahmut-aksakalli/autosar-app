@@ -6,9 +6,11 @@ import type {
   ModelWebviewInitialState,
   SwcGraphPort,
   SwcGraphScope,
+  SwcInstanceReference,
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
 import { EditorGraphZone } from "./EditorGraphZone/EditorGraphZone";
+import type { BottomPanelTab } from "./EditorGraphZone/AutosarSwc/BottomPanel/BottomPanel";
 import type { SwcNodeView } from "./EditorGraphZone/AutosarSwc/AutosarSwcLayout";
 import { EditorTabs } from "./EditorTabs/EditorTabsView";
 import {
@@ -18,6 +20,7 @@ import {
 } from "./EditorTabs/EditorTabs";
 import { useWorkspaceTabs } from "./EditorTabs/EditorTabsHelper";
 import { modelHost } from "../vscodeApi";
+import { useLogEntries } from "../logging/useLogEntries";
 
 declare global {
   interface Window {
@@ -28,6 +31,8 @@ declare global {
 export function AutosarApp() {
   const initialState = window.__AUTOSAR_INITIAL_STATE__;
   const [workspace, setWorkspace] = useState(initialState.workspace);
+  const logEntries = useLogEntries(initialState.logEntries ?? []);
+  const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<BottomPanelTab>("output");
   const modelEntities = useMemo(() => getModelEntities(workspace), [workspace]);
   const [modelFocusEntityId, setModelFocusEntityId] = useState(() =>
     getInitialFocusEntityId(initialState, modelEntities)
@@ -54,6 +59,11 @@ export function AutosarApp() {
   const effectiveModelPreferredScope = getPreferredScope(
     tabs.activeTab,
     modelPreferredScope
+  );
+  const activePreferredNodeId = tabs.activeTab?.preferredNodeId ?? modelPreferredNodeId;
+  const visibleSwcInstances = useMemo(
+    () => getVisibleSwcInstances(workspace, activeModelFocusEntity, activePreferredNodeId),
+    [activeModelFocusEntity, activePreferredNodeId, workspace]
   );
 
   useEffect(() => {
@@ -178,6 +188,23 @@ export function AutosarApp() {
     modelHost.revealModelEntity(port.id, `${targetEntity.id}:port:${port.id}`);
   }
 
+  function openSwcInstanceFromPanel(instance: SwcInstanceReference) {
+    const parentComposition = modelEntities.find((entity) => entity.id === instance.parentCompositionId);
+    if (!parentComposition) {
+      return;
+    }
+
+    const instanceTab = makeModelTab(parentComposition, "graph", `Graph: ${instance.instanceName}`, {
+      preferredScope: "composition",
+      preferredNodeId: instance.id
+    });
+    tabs.openTab(instanceTab);
+    setModelFocusEntityId(parentComposition.id);
+    setModelPreferredScope("composition");
+    setModelPreferredNodeId(instance.id);
+    modelHost.revealModelEntity(parentComposition.id, instance.treeNodeId);
+  }
+
   function preserveActivePreviewTab() {
     if (!tabs.activeTab) {
       return;
@@ -207,14 +234,19 @@ export function AutosarApp() {
           focusEntity={activeModelFocusEntity}
           workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}
-          preferredNodeId={tabs.activeTab.preferredNodeId ?? modelPreferredNodeId}
+          preferredNodeId={activePreferredNodeId}
           activeWorkspaceTab={tabs.activeTab}
+          instances={visibleSwcInstances}
+          logEntries={logEntries}
+          activeBottomPanelTab={activeBottomPanelTab}
           onFocusModelEntity={focusModelEntityFromGraph}
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}
           onOpenPortInterface={openPortInterfaceFromGraph}
           onOpenPortDetails={openPortDetailsFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
+          onBottomPanelTabChange={setActiveBottomPanelTab}
+          onInstanceSelect={openSwcInstanceFromPanel}
         />
       </div>
     </div>
@@ -234,6 +266,28 @@ function getModelEntities(workspace: WorkspaceSnapshot) {
     .filter((entity) => !["port", "instance", "connection", "generic"].includes(entity.type))
     .slice()
     .sort((left, right) => left.shortName.localeCompare(right.shortName));
+}
+
+function getVisibleSwcInstances(
+  workspace: WorkspaceSnapshot,
+  focusEntity: AutosarEntity | undefined,
+  preferredNodeId: string | undefined
+) {
+  const allInstances = workspace.swcInstances ?? [];
+  if (!focusEntity) {
+    return [];
+  }
+
+  if (preferredNodeId) {
+    const activeInstance = allInstances.find((instance) => {
+      return instance.id === preferredNodeId && instance.parentCompositionId === focusEntity.id;
+    });
+    if (activeInstance) {
+      return allInstances.filter((instance) => instance.swcId === activeInstance.swcId);
+    }
+  }
+
+  return allInstances.filter((instance) => instance.swcId === focusEntity.id);
 }
 
 function defaultScope(entity: AutosarEntity | undefined): SwcGraphScope {

@@ -157,6 +157,7 @@ The extension host lives under `src/` and is responsible for:
 - discovering Vector DaVinci project metadata
 - building AUTOSAR semantic model snapshots
 - building SWC/composition graph data
+- indexing SWC instances and buffering extension log output for the model webview
 - serving graph requests from the webview
 
 Main entry points:
@@ -183,8 +184,10 @@ Key responsibilities:
 - `AutosarApp.tsx` owns the webview message lifecycle and coordinates the active model workspace.
 - `EditorTabs/` contains tab types, tab-state helpers, and tab rendering.
 - `EditorGraphZone.tsx` coordinates graph selection, composition focus, and detail content.
-- `AutosarSwc/` contains the React Flow canvas, graph-query state, and layout calculations. Its `SwcNode/` subtree groups the node, node menu, ports, and port menu; `SearchBox/` contains graph-search UI and highlighting.
+- `AutosarSwc/` contains the React Flow canvas, graph-query state, and layout calculations. Its `SwcNode/` subtree groups the node, node menu, ports, and port menu; `SearchBox/` contains graph-search UI and highlighting; `BottomPanel/` contains the SWC instance navigator and webview output log.
+- `Common/Table/` contains reusable sortable table-header components shared by graph and detail tables.
 - `SwcDetails/` contains semantic detail surfaces and shared table/formatting utilities. Feature-specific details are grouped into nested folders.
+- `webview/src/logging/` retains streamed log entries independently of the currently visible graph tab.
 - `vscodeApi.ts` is the typed messaging boundary between the webview and extension host.
 
 ### Services
@@ -195,6 +198,8 @@ Model services handle:
 - Vector DaVinci project discovery from workspace metadata
 - AUTOSAR semantic reference validation for indexed SWCs, compositions, ports, interfaces, and connector endpoints
 - semantic SWC/composition graph generation
+- project-wide SWC instance indexing
+- bounded in-memory logging streamed to the graph output panel
 - version-aware Classic AUTOSAR extraction metadata for semantic model entities
 
 Key files:
@@ -205,3 +210,5 @@ Key files:
 - `src/model/autosarSemanticValidationService.ts`
 - `src/model/autosarVersionAdapters.ts`
 - `src/model/graphService.ts`
+- `src/model/swcInstanceService.ts`
+- `src/logging/LogService.ts`

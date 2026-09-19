@@ -2,8 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./EditorGraphZone.css";
 import type { Node } from "@xyflow/react";
 import type { CSSProperties, ReactNode } from "react";
-import type { AutosarEntity, SwcGraphPort, SwcGraphScope } from "../../../../src/shared/contracts";
+import type {
+  AutosarEntity,
+  AutosarLogEntry,
+  SwcGraphPort,
+  SwcGraphScope,
+  SwcInstanceReference
+} from "../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../EditorTabs/EditorTabs";
+import type { BottomPanelTab } from "./AutosarSwc/BottomPanel/BottomPanel";
 import {
   createGraphCacheKey,
   findFallbackInspector,
@@ -35,6 +42,9 @@ interface EditorGraphZoneProps {
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
   activeWorkspaceTab?: ModelWorkspaceTab;
+  instances: SwcInstanceReference[];
+  logEntries: AutosarLogEntry[];
+  activeBottomPanelTab: BottomPanelTab;
   onFocusModelEntity?: (selection: {
     entityId?: string;
     semanticPath?: string;
@@ -55,6 +65,8 @@ interface EditorGraphZoneProps {
     port: SwcGraphPort
   ) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
+  onBottomPanelTabChange: (tab: BottomPanelTab) => void;
+  onInstanceSelect: (instance: SwcInstanceReference) => void;
 }
 
 export function EditorGraphZone(props: EditorGraphZoneProps) {
@@ -378,12 +390,18 @@ export function EditorGraphZone(props: EditorGraphZoneProps) {
         loading={loading}
         error={error}
         warnings={graphResult?.warnings ?? []}
+        instances={props.instances}
+        activeInstanceId={activeCompositionNodeId ?? props.preferredNodeId}
+        logEntries={props.logEntries}
+        activeBottomPanelTab={props.activeBottomPanelTab}
         fitViewOptions={fitViewOptions}
         onInit={(controller) => {
           reactFlowRef.current = controller;
         }}
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onBottomPanelTabChange={props.onBottomPanelTabChange}
+        onInstanceSelect={props.onInstanceSelect}
       />
     );
   } else {

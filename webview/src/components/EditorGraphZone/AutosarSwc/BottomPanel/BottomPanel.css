@@ -1,0 +1,207 @@
+.react-flow__panel.graph-bottom-panel-container {
+  width: min(920px, calc(100% - 36px));
+  margin: 12px;
+}
+
+.graph-bottom-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  height: var(--graph-bottom-panel-height, 230px);
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+  border: 1px solid #b7c4d1;
+  background: rgba(255, 253, 246, 0.98);
+  box-shadow: 0 6px 18px rgba(20, 50, 77, 0.18);
+  color: #2f3944;
+}
+
+.graph-bottom-panel.is-minimized {
+  height: 34px;
+}
+
+.graph-bottom-panel-resize-handle {
+  position: absolute;
+  z-index: 2;
+  top: -4px;
+  right: 0;
+  left: 0;
+  height: 8px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.graph-bottom-panel-resize-handle:focus-visible {
+  outline: 2px solid #2d78c4;
+  outline-offset: -2px;
+}
+
+.graph-bottom-panel-header {
+  display: flex;
+  min-width: 0;
+  border-bottom: 1px solid #d8e0e8;
+  background: #f6f9fc;
+}
+
+.graph-bottom-panel.is-minimized .graph-bottom-panel-header {
+  border-bottom: 0;
+}
+
+.graph-bottom-panel-tabs {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.graph-bottom-panel-tabs button {
+  min-width: 120px;
+  min-height: 33px;
+  border-width: 0 1px 0 0;
+  border-color: #d8e0e8;
+  background: transparent;
+}
+
+.graph-bottom-panel-tabs button.is-active {
+  background: #fffdf6;
+  color: #174a7d;
+  box-shadow: inset 0 2px 0 #2d78c4;
+}
+
+.graph-bottom-panel-actions {
+  display: flex;
+  align-items: stretch;
+}
+
+.graph-bottom-panel-actions button {
+  min-height: 33px;
+  padding: 0 10px;
+  border-width: 0 0 0 1px;
+  border-color: #d8e0e8;
+  background: transparent;
+  color: #46586a;
+  font-size: 11px;
+}
+
+.graph-bottom-panel-actions button:hover {
+  background: #e9f1f8;
+}
+
+.graph-bottom-panel-content {
+  min-height: 0;
+}
+
+.graph-instances-tab {
+  display: grid;
+  grid-template-rows: 38px minmax(0, 1fr);
+  height: 100%;
+}
+
+.graph-bottom-panel-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid #e2e8ef;
+  color: #647487;
+  font-size: 11px;
+}
+
+.graph-bottom-panel-search input {
+  width: 240px;
+  min-height: 28px;
+  padding: 3px 7px;
+}
+
+.graph-bottom-panel-table-scroll,
+.graph-output-log {
+  height: 100%;
+  overflow: auto;
+}
+
+.graph-bottom-panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+}
+
+.graph-bottom-panel-table th,
+.graph-bottom-panel-table td {
+  padding: 6px 8px;
+  overflow: hidden;
+  border-right: 1px solid #e2e8ef;
+  border-bottom: 1px solid #e2e8ef;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-bottom-panel-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef3f8;
+}
+
+.graph-bottom-panel-table tbody tr {
+  cursor: pointer;
+}
+
+.graph-bottom-panel-table tbody tr:hover,
+.graph-bottom-panel-table tbody tr:focus {
+  background: #e9f1f8;
+  outline: none;
+}
+
+.graph-bottom-panel-table tbody tr.is-selected {
+  background: rgba(45, 120, 196, 0.18);
+}
+
+.graph-bottom-panel-empty {
+  padding: 18px;
+  color: #647487;
+  text-align: center;
+}
+
+.graph-output-log {
+  padding: 7px 9px;
+  background: #ffffff;
+  font: 11px/1.5 "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+.graph-output-entry {
+  display: grid;
+  grid-template-columns: 82px 58px minmax(0, 1fr);
+  column-gap: 8px;
+  padding: 2px 0;
+}
+
+.graph-output-entry time,
+.graph-output-severity {
+  color: #647487;
+}
+
+.graph-output-entry.is-info .graph-output-severity,
+.graph-output-entry.is-info .graph-output-message {
+  color: #245f91;
+}
+
+.graph-output-entry.is-warning .graph-output-severity,
+.graph-output-entry.is-warning .graph-output-message {
+  color: #9a6300;
+}
+
+.graph-output-entry.is-error .graph-output-severity,
+.graph-output-entry.is-error .graph-output-message {
+  color: #a13131;
+}
+
+.graph-output-entry pre {
+  grid-column: 3;
+  margin: 2px 0 5px;
+  overflow: visible;
+  color: #805b5b;
+  font: inherit;
+  white-space: pre-wrap;
+}

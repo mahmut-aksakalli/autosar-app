@@ -1,14 +1,19 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { AutosarEntity, ModelWebviewToHostMessage, ModelWorkspaceTab } from "./shared/contracts";
+import type {
+  AutosarEntity,
+  AutosarLogEntry,
+  ModelWebviewToHostMessage,
+  ModelWorkspaceTab
+} from "./shared/contracts";
 import { GraphService } from "./model/graphService";
-import { AutosarOutputLogger } from "./logger";
+import { LogService } from "./logging/LogService";
 import { ModelTreeProvider, type ModelTreeNode } from "./model/modelTreeProvider";
 import { WorkspaceModelService } from "./model/workspaceModelService";
 
 export function activate(context: vscode.ExtensionContext) {
-  const logger = new AutosarOutputLogger();
+  const logger = new LogService();
   const workspaceModelService = new WorkspaceModelService(logger);
   const graphService = new GraphService(workspaceModelService);
   const treeProvider = new ModelTreeProvider();
@@ -23,6 +28,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     logger,
+    logger.onDidAppend((entry) => {
+      void modelPanel?.webview.postMessage({ type: "logEntry", entry });
+    }),
     workspaceModelService,
     workspaceModelService.onUpdated((snapshot) => {
       treeProvider.update(snapshot);
@@ -69,10 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const focusEntity =
-        entity ??
-        snapshot.entities.find((candidate) => candidate.type === "composition") ??
-        snapshot.entities.find((candidate) => candidate.type === "swc");
+      const focusEntity = entity ?? findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
         scope: focusEntity?.type === "composition" ? "composition" : "swc",
         focusId: focusEntity?.semanticPath ?? focusEntity?.id,
@@ -91,9 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const focusEntity =
-        snapshot.entities.find((candidate) => candidate.type === "composition") ??
-        snapshot.entities.find((candidate) => candidate.type === "swc");
+      const focusEntity = findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
         scope: focusEntity?.type === "composition" ? "composition" : "swc",
         focusId: focusEntity?.semanticPath ?? focusEntity?.id,
@@ -166,6 +169,13 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const snapshot = await workspaceModelService.refresh();
         treeProvider.update(snapshot);
+
+        // Open the editor as soon as indexing finishes so the Output panel is
+        // available before the user selects a component in the explorer.
+        if (snapshot && !modelPanel) {
+          const focusEntity = findDefaultGraphEntity(snapshot.entities);
+          openModelWebview(focusEntity?.id, makeGraphTab(focusEntity), snapshot);
+        }
       } catch (error) {
         logger.error("Failed to index AUTOSAR model.", error);
         vscode.window.showErrorMessage(
@@ -222,6 +232,7 @@ export function activate(context: vscode.ExtensionContext) {
       });
       modelPanel.webview.html = getWebviewHtml(modelPanel.webview, context.extensionUri, {
         workspace: snapshot,
+        logEntries: logger.getEntries(),
         focusEntityId,
         activeWorkspaceTab
       });
@@ -289,6 +300,7 @@ export function activate(context: vscode.ExtensionContext) {
     extensionUri: vscode.Uri,
     initialState: {
       workspace: NonNullable<ReturnType<WorkspaceModelService["getSnapshot"]>>;
+      logEntries: AutosarLogEntry[];
       focusEntityId?: string;
       activeWorkspaceTab?: ModelWorkspaceTab;
     }
@@ -405,6 +417,15 @@ function getActiveArxmlEditorUri() {
     return uri;
   }
   return undefined;
+}
+
+function findDefaultGraphEntity(entities: AutosarEntity[]) {
+  const composition = entities.find((entity) => entity.type === "composition");
+  if (composition) {
+    return composition;
+  }
+
+  return entities.find((entity) => entity.type === "swc");
 }
 
 function makeGraphTab(entity: AutosarEntity | undefined): ModelWorkspaceTab | undefined {
