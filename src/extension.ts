@@ -69,13 +69,13 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
       const snapshot = workspaceModelService.getSnapshot() ?? (await workspaceModelService.refresh());
-      treeProvider.update(snapshot);
-
       if (!snapshot) {
         vscode.window.showWarningMessage("Open a VS Code workspace folder before opening AUTOSAR Model View.");
         logger.warning("Open Model View requested without an open VS Code workspace folder.");
         return;
       }
+
+      treeProvider.update(snapshot);
 
       const focusEntity = entity ?? findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
@@ -90,11 +90,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("autosarModelView.openFile", async (uri?: vscode.Uri) => {
       const fileUri = uri ?? getActiveArxmlEditorUri();
       const snapshot = await workspaceModelService.openFile(fileUri);
-      treeProvider.update(snapshot);
-
       if (!snapshot) {
         return;
       }
+
+      treeProvider.update(snapshot);
 
       const focusEntity = findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
@@ -168,11 +168,20 @@ export function activate(context: vscode.ExtensionContext) {
     initialWorkspaceIndexPromise = (async () => {
       try {
         const snapshot = await workspaceModelService.refresh();
+
+        // A command such as "Show Model View for Single File" can supersede
+        // this startup request. In that case refresh() returns null, while the
+        // newer request has already published its valid snapshot. Never clear
+        // the tree with the result of the superseded startup request.
+        if (!snapshot) {
+          return;
+        }
+
         treeProvider.update(snapshot);
 
         // Open the editor as soon as indexing finishes so the Output panel is
         // available before the user selects a component in the explorer.
-        if (snapshot && !modelPanel) {
+        if (!modelPanel) {
           const focusEntity = findDefaultGraphEntity(snapshot.entities);
           openModelWebview(focusEntity?.id, makeGraphTab(focusEntity), snapshot);
         }
