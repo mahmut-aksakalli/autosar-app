@@ -1,10 +1,10 @@
 {
-  "name": "autosar-model-view",
-  "displayName": "AUTOSAR Model View",
-  "description": "VS Code extension for exploring AUTOSAR software component and composition models.",
-  "version": "0.0.1",
-  "publisher": "local",
-  "private": true,
+  "name": "autosar-classic-arxml-explorer",
+  "displayName": "AUTOSAR Classic Explorer",
+  "description": "Explore AUTOSAR Classic projects and files(arxml) in a user friendly way.",
+  "version": "1.0.0",
+  "publisher": "viktor",
+  "repository": "https://github.com/mahmut-aksakalli/autosar-app",
   "engines": {
     "vscode": "^1.92.0"
   },

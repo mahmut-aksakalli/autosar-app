@@ -1,11 +1,14 @@
 node_modules
 src
 webview
-tests
+test
 *.tsbuildinfo
+.gitignore
 PLAN.md
 examples
 tsconfig.json
 package.json
 package-lock.json
 .vscode
+resources/autosar-schemas/**
+PLAN.md
