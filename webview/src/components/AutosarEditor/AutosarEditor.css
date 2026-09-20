@@ -1,0 +1,45 @@
+.model-workbench {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  user-select: text;
+}
+
+.model-workbench *,
+.model-workbench .react-flow__node,
+.model-workbench .react-flow__node *,
+.model-workbench .react-flow__edge-text {
+  user-select: text;
+}
+
+.model-content {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.model-canvas-shell {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  background:
+    linear-gradient(rgba(56, 82, 108, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 82, 108, 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fbfe 0%, #eef4f9 100%);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+
+.model-warning-strip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 5;
+  padding: 8px 10px;
+  border: 1px solid rgba(196, 91, 69, 0.24);
+  background: rgba(255, 244, 240, 0.95);
+  color: #8b3526;
+  font-size: 12px;
+}

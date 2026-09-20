@@ -1,0 +1,101 @@
+.model-sort-header-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-sort-header-button:hover,
+.model-sort-header-button:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.model-sort-indicator {
+  position: relative;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 16px;
+  color: #667789;
+}
+
+.model-sort-indicator::before,
+.model-sort-indicator::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.model-sort-indicator::before {
+  top: 2px;
+  border-bottom: 5px solid currentColor;
+  opacity: 0.45;
+}
+
+.model-sort-indicator::after {
+  bottom: 2px;
+  border-top: 5px solid currentColor;
+  opacity: 0.45;
+}
+
+.model-sort-indicator.is-asc::before,
+.model-sort-indicator.is-desc::after {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.model-sort-indicator.is-asc::after,
+.model-sort-indicator.is-desc::before {
+  opacity: 0.16;
+}
+
+.model-resizable-table-header {
+  position: relative;
+}
+
+.model-table-column-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  z-index: 2;
+  width: 9px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.model-table-column-resizer::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 4px;
+  width: 1px;
+  height: calc(100% - 10px);
+  background: rgba(69, 107, 143, 0.28);
+}
+
+.model-table-column-resizer:hover::after,
+.model-table-column-resizer:focus-visible::after {
+  background: var(--accent, #2d78c4);
+}
+
+.model-table-column-resizer:focus-visible {
+  outline: none;
+}

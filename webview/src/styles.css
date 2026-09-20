@@ -1,0 +1,104 @@
+:root {
+  color-scheme: light;
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #2f3944;
+  background: #ffffff;
+  --bg-app: #ffffff;
+  --bg-title: #f7f9fc;
+  --bg-activity: #eef3f8;
+  --bg-sidebar: #fbfcfe;
+  --bg-editor: #ffffff;
+  --bg-panel: #fbfcfe;
+  --bg-tab: #edf3f8;
+  --bg-tab-active: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #e9f1f8;
+  --border: #d5deea;
+  --border-subtle: #e6edf5;
+  --text-muted: #647487;
+  --text-dim: #7d8da0;
+  --accent: #2d78c4;
+  --accent-soft: rgba(45, 120, 196, 0.14);
+  --success: #4f9d69;
+  --danger: #c45b45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-app);
+  color: #2f3944;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg-input);
+  color: #2f3944;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #eef4fb;
+}
+
+button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: #174a7d;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+select,
+input,
+textarea {
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg-input);
+  color: #2f3944;
+}
+
+textarea:focus,
+input:focus,
+select:focus,
+button:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+}

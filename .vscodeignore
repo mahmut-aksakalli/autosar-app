@@ -1,0 +1,19 @@
+# Exclude dependencies except those loaded by the extension host at runtime.
+node_modules/**
+!node_modules/fast-xml-parser/**
+!node_modules/strnum/**
+
+# Development sources and configuration are not needed in the installed extension.
+src/**
+webview/**
+test/**
+examples/**
+.vscode/**
+resources/autosar-schemas/**
+
+*.tsbuildinfo
+.gitignore
+PLAN.md
+tsconfig.json
+package-lock.json
+*.vsix

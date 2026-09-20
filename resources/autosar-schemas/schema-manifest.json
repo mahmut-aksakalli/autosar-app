@@ -1,0 +1,91 @@
+{
+  "source": "AUTOSAR official XML schema bundles; this folder stores only validation XSD files",
+  "namespace": "http://autosar.org/schema/r4.0",
+  "sharedXmlSchemaFile": "xml.xsd",
+  "bundles": [
+    {
+      "release": "R4.0.3",
+      "version": "4.0.3",
+      "schemaFile": "R4.0.3/AUTOSAR_4-0-3.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R4.0.3/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "44F85985E82D5D99F0E98D60CC6C1AE5059180849018EDD3423AA2231E3A06FA"
+    },
+    {
+      "release": "R4.1.3",
+      "version": "4.1.3",
+      "schemaFile": "R4.1.3/AUTOSAR_4-1-3.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R4.1.3/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "99B8369DCFB6BD7B57390A88AB1594BE8CC93FAD7DCA7445FE61B70186569C37"
+    },
+    {
+      "release": "R4.2.2",
+      "version": "4.2.2",
+      "schemaFile": "R4.2.2/AUTOSAR_4-2-2.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R4.2.2/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "228BDC5E622C7CB545F29C317ED8DDA97CD0A1233672D52D9085F04BA0432019"
+    },
+    {
+      "release": "R4.3.1",
+      "version": "4.3.1",
+      "schemaFile": "R4.3.1/AUTOSAR_00044.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R4.3.1/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "2E303E3D24CF0B7FDD9952070895580C1219D289517EE415520B9A60DB96030F"
+    },
+    {
+      "release": "R4.4.0",
+      "version": "4.4.0",
+      "schemaFile": "R4.4.0/AUTOSAR_00046.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R18-10_R4.4.0_R1.5.0/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "B20DF1833A9D3F98E621B56AFB5596BC4241FC2133136CF9940AD58A1AD1FD51"
+    },
+    {
+      "release": "R19-11",
+      "version": "4.5.0",
+      "schemaFile": "R19-11/AUTOSAR_00048.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R19-11/CP/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "242377CE9E8B8303D317DD3DDF4368BAD5C47597FF371E8F9F9DD8894289D083"
+    },
+    {
+      "release": "R20-11",
+      "version": "4.6.0",
+      "schemaFile": "R20-11/AUTOSAR_00049.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R20-11/FO/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "A7A04B0A588552874EE046F097CA6515AE43ED8DD50867F2587735946D4FE689"
+    },
+    {
+      "release": "R21-11",
+      "version": "4.7.0",
+      "schemaFile": "R21-11/AUTOSAR_00050.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R21-11/FO/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "9F675C7F87FEEEA8C56EA2EBA095D30BD59E3A8CC0011908A1C6D15D212305C5"
+    },
+    {
+      "release": "R22-11",
+      "version": "4.8.0",
+      "schemaFile": "R22-11/AUTOSAR_00051.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_MMOD_XMLSchema.zip",
+      "sha256": "3317A4CF161869C000BE489E30746ECAB368EF8793ADFE0E2AF33723A0F5351B"
+    },
+    {
+      "release": "R23-11",
+      "version": "4.9.0",
+      "schemaFile": "R23-11/AUTOSAR_00052.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_MMOD_XMLSchema.zip",
+      "sha256": "9458DEC111FAA9A799037A484EC7ADAF0955172E8A0C0774626562B1034473C4"
+    },
+    {
+      "release": "R24-11",
+      "version": "4.10.0",
+      "schemaFile": "R24-11/AUTOSAR_00053.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R24-11/FO/AUTOSAR_FO_MMOD_XMLSchema.zip",
+      "sha256": "43161400D3EAA55DB2AB416289C933ABA7977E61D3DA8678FAD1761CAAF61457"
+    },
+    {
+      "release": "R25-11",
+      "version": "4.11.0",
+      "schemaFile": "R25-11/AUTOSAR_00054.xsd",
+      "sourceUrl": "https://www.autosar.org/fileadmin/standards/R25-11/FO/AUTOSAR_FO_MMOD_XMLSchema.zip",
+      "sha256": "2C45637BF1817F8EACD17D86D1E4D76FC425470F451FB435C3571CEB34968373"
+    }
+  ]
+}

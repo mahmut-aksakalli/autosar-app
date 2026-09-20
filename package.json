@@ -1,0 +1,155 @@
+{
+  "name": "autosar-classic-arxml-explorer",
+  "displayName": "AUTOSAR Classic Explorer",
+  "description": "Explore AUTOSAR Classic projects and files(arxml) in a user friendly way.",
+  "version": "1.0.3",
+  "license": "MIT",
+  "publisher": "antivector",
+  "repository": "https://github.com/mahmut-aksakalli/autosar-app",
+  "icon": "resources/icon.png",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "AUTOSAR",
+    "AUTOSAR Classic",
+    "arxml",
+    "xml",
+    "automotive",
+    "SDV (Software Defined Vehicle)",
+    "AUTOSAR Classic Explorer",
+    "AUTOSAR Classic Model View",
+    "AUTOSAR Viewer",
+    "AUTOSAR Visualizer"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:autosarModelView.filter",
+    "onView:autosarModelView.tree"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "autosarModelView.open",
+        "title": "AUTOSAR: Show Model View for Workspace",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "autosarModelView.openFile",
+        "title": "AUTOSAR: Show Model View for Single File"
+      },
+      {
+        "command": "autosarModelView.refresh",
+        "title": "AUTOSAR: Refresh Model View",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "autosarModelView.showSemanticTree",
+        "title": "AUTOSAR: Show Tree View",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "autosarModelView.showPackageTree",
+        "title": "AUTOSAR: Show Packages",
+        "icon": "$(symbol-folder)"
+      },
+      {
+        "command": "autosarModelView.collapseAll",
+        "title": "AUTOSAR: Collapse All",
+        "icon": "$(collapse-all)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "autosarModelView.showSemanticTree",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "autosarModelView.showPackageTree",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "autosarModelView.refresh",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "autosarModelView.collapseAll",
+          "when": "view == autosarModelView.tree",
+          "group": "navigation@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "autosarModelView.openFile",
+          "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "autosarModelView.openFile",
+          "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autosarModelView",
+          "title": "AUTOSAR",
+          "icon": "resources/autosar.png"
+        }
+      ]
+    },
+    "views": {
+      "autosarModelView": [
+        {
+          "id": "autosarModelView.tree",
+          "name": "Model",
+          "icon": "resources/autosar.png"
+        },
+        {
+          "id": "autosarModelView.filter",
+          "name": "Filter",
+          "type": "webview"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p ./tsconfig.json",
+    "compile:webview": "vite build --config webview/vite.config.ts",
+    "package": "npm run compile && vsce package",
+    "test": "node --test test/*.test.cjs",
+    "typecheck": "npm run typecheck:extension && npm run typecheck:webview",
+    "typecheck:extension": "tsc -p ./tsconfig.json --noEmit",
+    "typecheck:webview": "tsc -p ./webview/tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.1",
+    "fast-xml-parser": "^4.5.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "@types/node": "^22.15.17",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
