@@ -36,6 +36,7 @@ export class WorkspaceModelService implements vscode.Disposable {
   private workspaceFolder?: vscode.WorkspaceFolder;
   private singleFilePath?: string;
   private indexingGeneration = 0;
+  private workspaceIndexPromise?: Promise<WorkspaceSnapshot | null>;
 
   constructor(private readonly logger: AutosarLogger = noopAutosarLogger) {
     const watcher = vscode.workspace.createFileSystemWatcher(modelInputPattern);
@@ -65,7 +66,48 @@ export class WorkspaceModelService implements vscode.Disposable {
     };
   }
 
-  async refresh() {
+  /**
+   * Returns the current workspace model when it is already available. If an
+   * index is running, every caller waits for that same operation instead of
+   * starting another parse of the workspace.
+   */
+  async ensureWorkspaceIndexed() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      return this.refresh();
+    }
+
+    const hasCurrentWorkspace =
+      this.workspace !== undefined &&
+      this.singleFilePath === undefined &&
+      this.workspaceFolder?.uri.toString() === workspaceFolder.uri.toString();
+
+    if (hasCurrentWorkspace) {
+      return this.workspace ?? null;
+    }
+
+    return this.refresh();
+  }
+
+  refresh(): Promise<WorkspaceSnapshot | null> {
+    if (this.workspaceIndexPromise) {
+      return this.workspaceIndexPromise;
+    }
+
+    const indexPromise = this.indexWorkspaceFolder();
+    this.workspaceIndexPromise = indexPromise;
+
+    const clearCompletedIndex = () => {
+      if (this.workspaceIndexPromise === indexPromise) {
+        this.workspaceIndexPromise = undefined;
+      }
+    };
+    void indexPromise.then(clearCompletedIndex, clearCompletedIndex);
+
+    return indexPromise;
+  }
+
+  private async indexWorkspaceFolder() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
       this.workspaceFolder = undefined;

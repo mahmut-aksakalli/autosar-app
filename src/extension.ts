@@ -68,7 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
-      const snapshot = workspaceModelService.getSnapshot() ?? (await workspaceModelService.refresh());
+      const snapshot = await workspaceModelService.ensureWorkspaceIndexed();
       if (!snapshot) {
         vscode.window.showWarningMessage("Open a VS Code workspace folder before opening AUTOSAR Model View.");
         logger.warning("Open Model View requested without an open VS Code workspace folder.");
@@ -167,7 +167,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     initialWorkspaceIndexPromise = (async () => {
       try {
-        const snapshot = await workspaceModelService.refresh();
+        const snapshot = await workspaceModelService.ensureWorkspaceIndexed();
 
         // A command such as "Show Model View for Single File" can supersede
         // this startup request. In that case refresh() returns null, while the
