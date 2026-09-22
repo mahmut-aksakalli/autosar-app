@@ -2,21 +2,33 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  min-height: 35px;
-  padding: 0 10px;
+  min-width: 0;
+  height: 35px;
+  box-sizing: border-box;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--border-subtle);
   background: #f6f9fc;
+}
+
+.editor-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .editor-tab {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   min-height: 34px;
   border-right: 1px solid var(--border-subtle);
   background: var(--bg-tab);
   color: var(--text-muted);
+  user-select: none;
+}
+
+.editor-tab.dragging {
+  opacity: 0.55;
 }
 
 .editor-tab.active {
@@ -33,11 +45,29 @@
 }
 
 .editor-tab-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 240px;
   padding: 0 8px 0 12px;
+  white-space: nowrap;
+}
+
+.editor-tab-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editor-tab.preview .editor-tab-button {
   font-style: italic;
+}
+
+.editor-tab-preview-label {
+  flex: none;
+  color: #708295;
+  font-style: normal;
 }
 
 .editor-tab-close {

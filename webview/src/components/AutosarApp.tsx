@@ -343,6 +343,7 @@ export function AutosarApp() {
         onActivate={tabs.activateTab}
         onPin={(tab) => tabs.openTab(tab, true)}
         onClose={tabs.closeTab}
+        onReorder={tabs.reorderTab}
       />
       <div className="editor-view">
         <AutosarEditor
