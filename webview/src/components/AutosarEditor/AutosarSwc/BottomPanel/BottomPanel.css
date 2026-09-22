@@ -188,6 +188,10 @@
   color: #647487;
 }
 
+.graph-output-message {
+  white-space: pre-wrap;
+}
+
 .graph-output-entry.is-info .graph-output-severity,
 .graph-output-entry.is-info .graph-output-message {
   color: #245f91;
