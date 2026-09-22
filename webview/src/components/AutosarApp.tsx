@@ -185,7 +185,13 @@ export function AutosarApp() {
       setModelPreferredScope(preferredScope);
       setModelPreferredNodeId(undefined);
     } else {
-      tabs.openTab(makeModelTab(targetEntity, view, getSwcViewTitle(view)), true);
+      // SWC detail views need the SWC graph even when opened from a
+      // composition graph. Match the scope used by the explorer tree.
+      tabs.openTab(makeModelTab(targetEntity, view, getSwcViewTitle(view), {
+        preferredScope: "swc"
+      }), true);
+      setModelPreferredScope("swc");
+      setModelPreferredNodeId(undefined);
     }
 
     setModelFocusEntityId(targetEntity.id);
