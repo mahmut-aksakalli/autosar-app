@@ -91,12 +91,22 @@
           "command": "autosarModelView.openFile",
           "when": "resourceExtname == .arxml",
           "group": "navigation@50"
+        },
+        {
+          "command": "autosarModelView.open",
+          "when": "resourceExtname == .dpa || resourceExtname == .dcf",
+          "group": "navigation@50"
         }
       ],
       "editor/title/context": [
         {
           "command": "autosarModelView.openFile",
           "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        },
+        {
+          "command": "autosarModelView.open",
+          "when": "resourceExtname == .dpa || resourceExtname == .dcf",
           "group": "navigation@50"
         }
       ]

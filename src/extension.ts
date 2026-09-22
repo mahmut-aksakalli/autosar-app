@@ -67,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
       }
     }),
-    vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
+    vscode.commands.registerCommand("autosarModelView.open", async (argument?: unknown) => {
       const snapshot = await workspaceModelService.ensureWorkspaceIndexed();
       if (!snapshot) {
         vscode.window.showWarningMessage("Open a VS Code workspace folder before opening AUTOSAR Model View.");
@@ -77,7 +77,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       treeProvider.update(snapshot);
 
-      const focusEntity = entity ?? findDefaultGraphEntity(snapshot.entities);
+      // Explorer context-menu commands receive a file URI. Only a model
+      // entity passed by another caller should override the default graph.
+      const focusEntity = isAutosarEntity(argument) ? argument : findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
         scope: focusEntity?.type === "composition" ? "composition" : "swc",
         focusId: focusEntity?.semanticPath ?? focusEntity?.id,
@@ -435,6 +437,17 @@ function findDefaultGraphEntity(entities: AutosarEntity[]) {
   }
 
   return entities.find((entity) => entity.type === "swc");
+}
+
+function isAutosarEntity(value: unknown): value is AutosarEntity {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Partial<AutosarEntity>;
+  return typeof candidate.id === "string" &&
+    typeof candidate.type === "string" &&
+    typeof candidate.shortName === "string";
 }
 
 function makeGraphTab(entity: AutosarEntity | undefined): ModelWorkspaceTab | undefined {

@@ -119,6 +119,80 @@ test("does not substitute unrelated ARXML files for an unresolved DPA reference"
   assert.equal(fullSearchCount, 0);
 });
 
+test("follows a selected DPA into its DCF and indexes both sets of ARXML inputs", async (context) => {
+  const workspace = await createWorkspace(context);
+  const dpaPath = await workspace.addFile(
+    "Project.dpa",
+    "<ProjectAssistant><DVWorkspace>Config/Developer/Project.dcf</DVWorkspace><FILE>RootModel.arxml</FILE></ProjectAssistant>"
+  );
+  const dcfPath = await workspace.addFile(
+    "Config/Developer/Project.dcf",
+    "<DCF><FILEREF><ARXML>../../RootModel.arxml</ARXML></FILEREF><FILEREF><ARXML>ExtraModel.arxml</ARXML></FILEREF></DCF>"
+  );
+  const rootModel = await workspace.addFile("RootModel.arxml", "<AUTOSAR />");
+  const extraModel = await workspace.addFile("Config/Developer/ExtraModel.arxml", "<AUTOSAR />");
+  await workspace.addFile("Other/Nested/Unrelated.dcf", "<DCF><ARXML>Unrelated.arxml</ARXML></DCF>");
+  await workspace.addFile("Other/Nested/Unrelated.arxml", "<AUTOSAR />");
+  let fullSearchCount = 0;
+
+  const metadataEntries = workspace.entries.filter((entry) => entry.name.endsWith(".dpa") || entry.name.endsWith(".dcf"));
+  const project = await discoverVectorProject(workspace.rootPath, metadataEntries, async () => {
+    fullSearchCount += 1;
+    return workspace.entries.filter((entry) => entry.name.endsWith(".arxml"));
+  });
+
+  assert.deepEqual(project.project.metadataFiles.map((file) => file.filePath), [dpaPath, dcfPath]);
+  assert.deepEqual(project.projectInputFilePaths, [extraModel, rootModel].sort());
+  assert.equal(fullSearchCount, 0);
+});
+
+test("follows a selected DCF into its DPA without revisiting their cycle", async (context) => {
+  const workspace = await createWorkspace(context);
+  const dcfPath = await workspace.addFile(
+    "Config/Developer/Project.dcf",
+    "<DCF><PROJECTASSISTANT>../../Project.dpa</PROJECTASSISTANT><FILEREF><ARXML>DeveloperModel.arxml</ARXML></FILEREF></DCF>"
+  );
+  const dpaPath = await workspace.addFile(
+    "Project.dpa",
+    "<ProjectAssistant><DVWorkspace>Config/Developer/Project.dcf</DVWorkspace><FILE>RootModel.arxml</FILE></ProjectAssistant>"
+  );
+  const developerModel = await workspace.addFile("Config/Developer/DeveloperModel.arxml", "<AUTOSAR />");
+  const rootModel = await workspace.addFile("RootModel.arxml", "<AUTOSAR />");
+  await workspace.addFile("Other/Nested/Unrelated.dcf", "<DCF><ARXML>Unrelated.arxml</ARXML></DCF>");
+  await workspace.addFile("Other/Nested/Unrelated.arxml", "<AUTOSAR />");
+  let fullSearchCount = 0;
+
+  const dcfEntries = workspace.entries.filter((entry) => entry.name.endsWith(".dcf"));
+  const project = await discoverVectorProject(workspace.rootPath, dcfEntries, async () => {
+    fullSearchCount += 1;
+    return workspace.entries.filter((entry) => entry.name.endsWith(".arxml"));
+  });
+
+  assert.deepEqual(project.project.metadataFiles.map((file) => file.filePath), [dcfPath, dpaPath]);
+  assert.deepEqual(project.projectInputFilePaths, [developerModel, rootModel].sort());
+  assert.equal(fullSearchCount, 0);
+});
+
+test("starts from a root DCF even when its referenced DPA is also discovered", async (context) => {
+  const workspace = await createWorkspace(context);
+  const dcfPath = await workspace.addFile(
+    "Project.dcf",
+    "<DCF><PROJECTASSISTANT>Config/Project.dpa</PROJECTASSISTANT><ARXML>FromDcf.arxml</ARXML></DCF>"
+  );
+  const dpaPath = await workspace.addFile(
+    "Config/Project.dpa",
+    "<ProjectAssistant><FILE>FromDpa.arxml</FILE></ProjectAssistant>"
+  );
+  const dcfModel = await workspace.addFile("FromDcf.arxml", "<AUTOSAR />");
+  const dpaModel = await workspace.addFile("Config/FromDpa.arxml", "<AUTOSAR />");
+
+  const metadataEntries = workspace.entries.filter((entry) => entry.name.endsWith(".dpa") || entry.name.endsWith(".dcf"));
+  const project = await discoverVectorProject(workspace.rootPath, metadataEntries);
+
+  assert.deepEqual(project.project.metadataFiles.map((file) => file.filePath), [dcfPath, dpaPath]);
+  assert.deepEqual(project.projectInputFilePaths, [dpaModel, dcfModel].sort());
+});
+
 async function createWorkspace(context) {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), "autosar-vector-project-"));
   const entries = [];
