@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./AutosarApp.css";
+import { findUniqueCompositionContext } from "../../../src/model/swcInstanceService";
 import type {
   AutosarEntity,
   HostToModelWebviewMessage,
@@ -67,7 +68,6 @@ export function AutosarApp() {
     () => getVisibleSwcInstances(workspace, activeModelFocusEntity, activePreferredNodeId),
     [activeModelFocusEntity, activePreferredNodeId, workspace]
   );
-
   useEffect(() => {
     // The extension owns the workspace snapshot. This listener translates host
     // events into local UI state and deliberately ignores response messages,
@@ -110,15 +110,23 @@ export function AutosarApp() {
     }
 
     const preferredScope = selection.preferredScope ?? defaultScope(targetEntity);
-    tabs.openTab(makeModelTab(targetEntity, "graph", "Graph", {
+    const isSelectedInstance = (entity: AutosarEntity) =>
+      entity.id === selection.preferredNodeId && entity.type === "instance";
+    const selectedInstance = workspace.entities.find(isSelectedInstance)
+      ?? workspace.vectorEcu?.flatEntities.find(isSelectedInstance);
+    const graphTitle = selectedInstance ? `Graph: ${selectedInstance.shortName}` : "Graph";
+    tabs.openTab(makeModelTab(targetEntity, "graph", graphTitle, {
       preferredScope,
       preferredNodeId: selection.preferredNodeId,
-      includeCompositionInternals: selection.includeCompositionInternals
+      preferredPortId: selection.preferredPortId,
+      includeCompositionInternals: selection.includeCompositionInternals,
+      compositionContextPaths: selection.compositionContextPaths,
+      compositionTreeOrigin: selection.compositionTreeOrigin
     }));
     setModelFocusEntityId(targetEntity.id);
     setModelPreferredScope(preferredScope);
     setModelPreferredNodeId(selection.preferredNodeId);
-    modelHost.revealModelEntity(targetEntity.id);
+    modelHost.revealModelEntity(targetEntity.id, selection.treeNodeId);
   }
 
   function openPortInterfaceFromGraph(interfaceRef: string) {
@@ -168,7 +176,9 @@ export function AutosarApp() {
   function openSwcViewFromGraph(
     entityId: string | undefined,
     semanticPath: string | undefined,
-    view: SwcNodeView
+    view: SwcNodeView,
+    compositionContextPaths?: string[],
+    compositionTreeOrigin?: "template" | "root"
   ) {
     const targetEntity = findModelEntity(modelEntities, entityId, semanticPath);
     if (!targetEntity) {
@@ -181,16 +191,23 @@ export function AutosarApp() {
 
     if (view === "graph") {
       const preferredScope = defaultScope(targetEntity);
-      tabs.openTab(makeModelTab(targetEntity, "graph", "Graph", { preferredScope }), true);
+      tabs.openTab(makeModelTab(targetEntity, "graph", "Graph", {
+        preferredScope,
+        compositionContextPaths,
+        compositionTreeOrigin
+      }), true);
       setModelPreferredScope(preferredScope);
       setModelPreferredNodeId(undefined);
     } else {
       // SWC detail views need the SWC graph even when opened from a
       // composition graph. Match the scope used by the explorer tree.
+      const preferredScope = targetEntity.type === "composition" ? "composition" : "swc";
       tabs.openTab(makeModelTab(targetEntity, view, getSwcViewTitle(view), {
-        preferredScope: "swc"
+        preferredScope,
+        compositionContextPaths,
+        compositionTreeOrigin
       }), true);
-      setModelPreferredScope("swc");
+      setModelPreferredScope(preferredScope);
       setModelPreferredNodeId(undefined);
     }
 
@@ -315,15 +332,29 @@ export function AutosarApp() {
       return;
     }
 
+    let compositionContextPaths = findUniqueCompositionContext(
+      workspace.entities,
+      workspace.vectorEcu?.rootCompositionId,
+      parentComposition.id
+    );
+    // The active graph can identify an occurrence even when the type has
+    // multiple instances elsewhere in the ECU.
+    if (tabs.activeTab?.focusEntityId === parentComposition.id && tabs.activeTab.compositionContextPaths) {
+      compositionContextPaths = tabs.activeTab.compositionContextPaths;
+    }
+
     const instanceTab = makeModelTab(parentComposition, "graph", `Graph: ${instance.instanceName}`, {
       preferredScope: "composition",
-      preferredNodeId: instance.id
+      preferredNodeId: instance.id,
+      compositionContextPaths
     });
     tabs.openTab(instanceTab);
     setModelFocusEntityId(parentComposition.id);
     setModelPreferredScope("composition");
     setModelPreferredNodeId(instance.id);
-    modelHost.revealModelEntity(parentComposition.id, instance.treeNodeId);
+    const contextKey = compositionContextPaths?.join(":") ?? "template";
+    const treeNodeId = `${parentComposition.id}:${contextKey}:${instance.id}`;
+    modelHost.revealModelEntity(parentComposition.id, treeNodeId);
   }
 
   function preserveActivePreviewTab() {
@@ -354,6 +385,9 @@ export function AutosarApp() {
       <div className="editor-view">
         <AutosarEditor
           focusEntity={activeModelFocusEntity}
+          modelEntities={modelEntities}
+          navigationEntities={workspace.entities}
+          rootCompositionId={workspace.vectorEcu?.rootCompositionId}
           workspaceRevision={workspace.lastIndexedAt}
           preferredScope={effectiveModelPreferredScope}
           preferredNodeId={activePreferredNodeId}
@@ -366,6 +400,7 @@ export function AutosarApp() {
           onConnectedPortSelect={openConnectedPortDetails}
           onReferenceInstanceSelect={openReferenceInstance}
           onFocusModelEntity={focusModelEntityFromGraph}
+          onRevealModelNode={modelHost.revealModelEntity}
           onCopyText={modelHost.copyText}
           onOpenSwcView={openSwcViewFromGraph}
           onOpenPortInterface={openPortInterfaceFromGraph}
@@ -386,7 +421,11 @@ interface ModelEntitySelection {
   semanticPath?: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  preferredPortId?: string;
   includeCompositionInternals?: boolean;
+  compositionContextPaths?: string[];
+  compositionTreeOrigin?: "template" | "root";
+  treeNodeId?: string;
 }
 
 function getModelEntities(workspace: WorkspaceSnapshot) {

@@ -18,6 +18,7 @@ import { buildReferenceInstancesByTargetId } from "./entityReferenceService";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
+import { buildVectorEcuModel } from "./vectorEcuModelService";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -285,8 +286,15 @@ export class WorkspaceModelService implements vscode.Disposable {
       }))
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 
-    const entities = validatedDocuments.flatMap((document) => document.entities);
-    const connections = validatedDocuments.flatMap((document) => document.connections);
+    const vectorEcu = vectorProject
+      ? buildVectorEcuModel(validatedDocuments, vectorProject.project)
+      : undefined;
+    const flatExtractPath = vectorProject?.project.vectorEcuInputs?.flatExtractFilePath;
+    const canonicalDocuments = flatExtractPath
+      ? validatedDocuments.filter((document) => path.normalize(document.filePath).toLowerCase() !== path.normalize(flatExtractPath).toLowerCase())
+      : validatedDocuments;
+    const entities = canonicalDocuments.flatMap((document) => document.entities);
+    const connections = canonicalDocuments.flatMap((document) => document.connections);
     return {
       rootPath,
       workspaceKind: project.kind,
@@ -303,6 +311,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       connectedPortsByPortId: buildConnectedPortsByPortId(entities, connections),
       referenceInstancesByTargetId: buildReferenceInstancesByTargetId(entities),
       connections,
+      vectorEcu,
       watched: true,
       lastIndexedAt: new Date().toISOString()
     } satisfies WorkspaceSnapshot;

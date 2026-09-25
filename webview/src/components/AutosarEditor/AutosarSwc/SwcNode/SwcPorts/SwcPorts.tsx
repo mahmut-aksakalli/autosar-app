@@ -2,7 +2,7 @@ import { Handle, Position } from "@xyflow/react";
 import type React from "react";
 import { useCallback, useState } from "react";
 import type { SwcGraphPort } from "../../../../../../../src/shared/contracts";
-import { getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
+import { getPortConnectionCategory, getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
 import { SwcPortContextMenu } from "./SwcPortContextMenu/SwcPortContextMenu";
 import { HighlightedText } from "../../SearchBox/HighlightedText";
 
@@ -52,8 +52,12 @@ export function SwcPorts(props: SwcPortsProps) {
       {props.ports.map((port) => {
         const connections = props.portConnections?.[port.id];
         const hasConnections = Boolean(connections && connections.length > 0);
+        const connectionCategory = getPortConnectionCategory(connections);
         const interfaceName = getReferenceLeafName(port.interfaceRef);
         let portClassName = `autosar-port autosar-port-${port.direction} side-${props.side}`;
+        if (connectionCategory) {
+          portClassName += ` has-${connectionCategory}-connection`;
+        }
         if (port.id === props.highlightedPortId) {
           portClassName += " is-highlighted-target";
         }
@@ -218,14 +222,15 @@ function PortConnectionList(props: {
       {props.connections.map((connection, index) => (
         <span
           key={`${connection.componentName}:${connection.portName}:${index}`}
-          className={labelClassName}
+          className={`${labelClassName} is-${connection.category}`}
+          title={getConnectionCategoryTitle(connection.category)}
           onClick={(event) => {
             event.stopPropagation();
-            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection);
           }}
           onDoubleClick={(event) => {
             event.stopPropagation();
-            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection);
           }}
         >
           <span className="autosar-port-connection-component">
@@ -250,6 +255,16 @@ function PortConnectionList(props: {
       ))}
     </span>
   );
+}
+
+function getConnectionCategoryTitle(category: "assembly" | "delegation" | "service") {
+  if (category === "delegation") {
+    return "Delegation connection";
+  }
+  if (category === "service") {
+    return "ECU service connection";
+  }
+  return "SWC connection";
 }
 
 function getPortHandleType(direction: "provided" | "required" | "provided-required") {

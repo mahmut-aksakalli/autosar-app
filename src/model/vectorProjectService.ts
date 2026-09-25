@@ -52,6 +52,7 @@ export async function discoverVectorProject(
   const visitedMetadataPaths = new Set(metadataFiles.map((file) => normalizePath(file.filePath)));
 
   const inputsByPath = new Map<string, { filePath: string; sourceMetadataPath?: string }>();
+  const vectorEcuInputs: NonNullable<WorkspaceProjectInfo["vectorEcuInputs"]> = {};
   let hasDeclaredInputs = false;
 
   for (let index = 0; index < metadataFiles.length; index += 1) {
@@ -65,6 +66,12 @@ export async function discoverVectorProject(
       metadataFile.filePath
     );
     hasDeclaredInputs ||= result.hasDeclaredInputs;
+    if (result.flatMapFilePath) {
+      vectorEcuInputs.flatMapFilePath = result.flatMapFilePath;
+    }
+    if (result.flatExtractFilePath) {
+      vectorEcuInputs.flatExtractFilePath = result.flatExtractFilePath;
+    }
     result.references.forEach((filePath) => {
       inputsByPath.set(normalizePath(filePath), {
         filePath,
@@ -116,6 +123,7 @@ export async function discoverVectorProject(
       displayName: inferProjectDisplayName(rootPath, metadataFiles),
       metadataFiles,
       inputFiles,
+      vectorEcuInputs,
       indexedInBackground: true,
       indexingStatus: "loading"
     },
@@ -193,7 +201,14 @@ async function collectReferencesFromMetadata(
   let hasDeclaredInputs = false;
   let match: RegExpExecArray | null;
 
-  while ((match = PROJECT_REFERENCE_PATTERN.exec(content))) {
+  // DaVinci's DPA lists several generated ARXML products. For the ECU model,
+  // use its explicit flat-extract/map roles and component folders; ECUC and
+  // measurement data are separate products, not SWC definitions.
+  const isDpa = path.extname(metadataFilePath).toLowerCase() === ".dpa";
+  const selectedDpaReferences = isDpa ? collectDpaEcuReferences(content) : undefined;
+  const useRoleBasedDpaInputs = Boolean(selectedDpaReferences?.flatMap || selectedDpaReferences?.flatExtract);
+
+  while (!useRoleBasedDpaInputs && (match = PROJECT_REFERENCE_PATTERN.exec(content))) {
     const rawReference = match[1];
     if (!rawReference) {
       continue;
@@ -232,7 +247,7 @@ async function collectReferencesFromMetadata(
     }
   }
 
-  if (path.extname(metadataFilePath).toLowerCase() === ".dpa") {
+  if (isDpa) {
     const folderReferences = collectDpaComponentFolderReferences(content);
     hasDeclaredInputs ||= folderReferences.length > 0;
     for (const folderReference of folderReferences) {
@@ -243,12 +258,45 @@ async function collectReferencesFromMetadata(
     }
   }
 
+  let flatMapFilePath: string | undefined;
+  let flatExtractFilePath: string | undefined;
+  if (selectedDpaReferences?.flatMap) {
+    hasDeclaredInputs = true;
+    flatMapFilePath = await resolveProjectReference(rootPath, metadataDir, selectedDpaReferences.flatMap, ".arxml");
+    if (flatMapFilePath) {
+      references.add(flatMapFilePath);
+    }
+  }
+  if (selectedDpaReferences?.flatExtract) {
+    hasDeclaredInputs = true;
+    flatExtractFilePath = await resolveProjectReference(rootPath, metadataDir, selectedDpaReferences.flatExtract, ".arxml");
+    if (flatExtractFilePath) {
+      references.add(flatExtractFilePath);
+    }
+  }
+
   return {
     references: Array.from(references),
     dcfReferences: Array.from(dcfReferences),
     dpaReferences: Array.from(dpaReferences),
-    hasDeclaredInputs
+    hasDeclaredInputs,
+    flatMapFilePath,
+    flatExtractFilePath
   };
+}
+
+function collectDpaEcuReferences(content: string) {
+  try {
+    const parsed = vectorMetadataParser.parse(content) as Record<string, unknown>;
+    const root = parsed.ProjectAssistant as Record<string, unknown> | undefined;
+    const entries = root?.References as Record<string, unknown> | undefined;
+    return {
+      flatMap: collectXmlTextValues(entries?.FlatMap)[0],
+      flatExtract: collectXmlTextValues(entries?.FlatECUEX)[0]
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function collectDpaComponentFolderReferences(content: string) {

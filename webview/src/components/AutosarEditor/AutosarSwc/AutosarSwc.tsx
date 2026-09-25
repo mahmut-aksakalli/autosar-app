@@ -251,7 +251,7 @@ export function AutosarSwc(props: AutosarSwcProps) {
         }}
         fitView
         fitViewOptions={props.fitViewOptions}
-        minZoom={0.35}
+        minZoom={0.08}
         maxZoom={1.5}
         connectionMode={ConnectionMode.Loose}
         zoomOnDoubleClick={false}

@@ -11,6 +11,10 @@ export function makeModelTab(
   return {
     id: `${entity.id}:${kind}:${options.entityId ?? options.itemId ?? options.preferredNodeId ?? "main"}${
       options.includeCompositionInternals ? ":internals" : ""
+    }${options.compositionContextPaths ? `:context:${options.compositionContextPaths.join("|") || "root"}` : ""}${
+      options.compositionTreeOrigin === "template" ? ":template-origin" : ""
+    }${
+      options.preferredPortId ? `:port:${options.preferredPortId}` : ""
     }`,
     title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
     pinned: options.pinned,
@@ -18,7 +22,10 @@ export function makeModelTab(
     focusEntityId: entity.id,
     preferredScope: options.preferredScope,
     preferredNodeId: options.preferredNodeId,
+    preferredPortId: options.preferredPortId,
     includeCompositionInternals: options.includeCompositionInternals,
+    compositionContextPaths: options.compositionContextPaths,
+    compositionTreeOrigin: options.compositionTreeOrigin,
     entityId: options.entityId,
     sectionId: options.sectionId,
     itemId: options.itemId,

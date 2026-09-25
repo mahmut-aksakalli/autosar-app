@@ -48,3 +48,43 @@ export function buildSwcInstanceReferences(entities: AutosarEntity[]): SwcInstan
     return left.instanceName.localeCompare(right.instanceName);
   });
 }
+
+/** Find the path to a composition type only when it has one ECU occurrence. */
+export function findUniqueCompositionContext(
+  entities: AutosarEntity[],
+  rootCompositionId: string | undefined,
+  targetCompositionId: string
+): string[] | undefined {
+  const root = entities.find((entity) => entity.id === rootCompositionId && entity.type === "composition");
+  if (!root?.semanticPath) {
+    return undefined;
+  }
+
+  const contexts: string[][] = [];
+  function visit(composition: AutosarEntity, context: string[], visitedTypes: Set<string>) {
+    if (composition.id === targetCompositionId) {
+      contexts.push(context);
+      return;
+    }
+    if (!composition.semanticPath || visitedTypes.has(composition.semanticPath)) {
+      return;
+    }
+
+    const nextVisitedTypes = new Set(visitedTypes);
+    nextVisitedTypes.add(composition.semanticPath);
+    for (const instance of entities) {
+      if (instance.type !== "instance" || instance.parentSemanticPath !== composition.semanticPath || !instance.semanticPath) {
+        continue;
+      }
+      const childComposition = entities.find((entity) => {
+        return entity.type === "composition" && entity.semanticPath === instance.typeRef;
+      });
+      if (childComposition) {
+        visit(childComposition, [...context, instance.semanticPath], nextVisitedTypes);
+      }
+    }
+  }
+
+  visit(root, [], new Set());
+  return contexts.length === 1 ? contexts[0] : undefined;
+}

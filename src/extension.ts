@@ -121,6 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      // Explorer nodes carry their own context: template descendants must
+      // remain templates, even if their type has one concrete ECU instance.
       const tab = node.workspaceTab;
       if (tab?.kind === "graph") {
         const graph = await graphService.buildGraph({
@@ -130,7 +132,8 @@ export function activate(context: vscode.ExtensionContext) {
           includeCompositionInternals:
             tab.includeCompositionInternals === true ||
             focusEntity.type === "composition" ||
-            Boolean(tab.preferredNodeId)
+            Boolean(tab.preferredNodeId),
+          compositionContextPaths: tab.compositionContextPaths
         });
         void graph;
         openModelWebview(focusEntity.id, tab, snapshot);
@@ -508,7 +511,11 @@ function isBuildGraphMessage(
     Number.isFinite(query.depth) &&
     query.depth >= 0 &&
     (query.focusId === undefined || typeof query.focusId === "string") &&
-    (query.includeCompositionInternals === undefined || typeof query.includeCompositionInternals === "boolean")
+    (query.includeCompositionInternals === undefined || typeof query.includeCompositionInternals === "boolean") &&
+    (query.compositionContextPaths === undefined || (
+      Array.isArray(query.compositionContextPaths) &&
+      query.compositionContextPaths.every((part) => typeof part === "string")
+    ))
   );
 }
 

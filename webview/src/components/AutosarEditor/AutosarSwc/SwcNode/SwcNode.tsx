@@ -17,12 +17,21 @@ export function SwcNode(props: NodeProps<FlowNode>) {
   const leftRailWidth = getPortRailWidth(requiredPorts);
   const rightRailWidth = getPortRailWidth(providedPorts);
 
-  let kindLabel = formatSwcKindLabel(props.data.swcKind);
-  if (props.data.kind === "composition") {
-    kindLabel = "Composition";
-  }
-
+  const isComposition = props.data.kind === "composition" || props.data.swcKind === "composition";
+  const isService = props.data.swcKind === "service" || props.data.swcKind === "service-proxy";
+  const isInstance = props.data.kind === "instance" || props.data.isRootCompositionInstance === true;
+  const kindLabel = formatNodeKindLabel(props.data.swcKind, isComposition, isInstance);
   let nodeClassName = `autosar-node autosar-node-${props.data.kind}`;
+  if (isComposition) {
+    nodeClassName += " autosar-node-family-composition";
+  } else if (isService) {
+    nodeClassName += " autosar-node-family-service";
+  } else {
+    nodeClassName += " autosar-node-family-software";
+  }
+  if (isInstance) {
+    nodeClassName += " autosar-node-is-instance";
+  }
   if (props.data.searchQuery && !props.data.isSearchMatch) {
     nodeClassName += " is-search-dimmed";
   }
@@ -114,10 +123,23 @@ export function SwcNode(props: NodeProps<FlowNode>) {
           onClose={closeContextMenu}
           onCopyName={props.data.onCopyName}
           onOpenView={props.data.onOpenView}
+          isComposition={props.data.kind === "composition" || props.data.swcKind === "composition"}
         />
       )}
     </div>
   );
+}
+
+function formatNodeKindLabel(
+  kind: SwcGraphNode["swcKind"],
+  isComposition: boolean,
+  isInstance: boolean
+) {
+  const suffix = isInstance ? "Instance" : "Type";
+  if (isComposition) {
+    return `Composition ${suffix}`;
+  }
+  return `${formatSwcKindLabel(kind)} ${suffix}`;
 }
 
 function formatSwcKindLabel(kind: SwcGraphNode["swcKind"]) {

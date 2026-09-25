@@ -193,6 +193,39 @@ test("starts from a root DCF even when its referenced DPA is also discovered", a
   assert.deepEqual(project.projectInputFilePaths, [dpaModel, dcfModel].sort());
 });
 
+test("selects ECU model roles without indexing unrelated DPA products", async (context) => {
+  const workspace = await createWorkspace(context);
+  await workspace.addFile(
+    "Project.dpa",
+    `<ProjectAssistant><References>
+      <DVWorkspace>Config/Developer/Project.dcf</DVWorkspace>
+      <FlatMap>Config/System/FlatMap.arxml</FlatMap>
+      <FlatECUEX>Config/System/FlatExtract.arxml</FlatECUEX>
+      <ECUEX>Config/System/SystemExtract.arxml</ECUEX>
+      <McData>Config/McData/Measurements.arxml</McData>
+    </References><Folders><ServiceComponents>Config/ServiceComponents</ServiceComponents></Folders></ProjectAssistant>`
+  );
+  await workspace.addFile(
+    "Config/Developer/Project.dcf",
+    "<DCF><FILEREF><ARXML>Components/Component.arxml</ARXML></FILEREF></DCF>"
+  );
+  const developer = await workspace.addFile("Config/Developer/Components/Component.arxml", "<AUTOSAR />");
+  const service = await workspace.addFile("Config/ServiceComponents/Service.arxml", "<AUTOSAR />");
+  const flatMap = await workspace.addFile("Config/System/FlatMap.arxml", "<AUTOSAR />");
+  const flatExtract = await workspace.addFile("Config/System/FlatExtract.arxml", "<AUTOSAR />");
+  await workspace.addFile("Config/System/SystemExtract.arxml", "<AUTOSAR />");
+  await workspace.addFile("Config/McData/Measurements.arxml", "<AUTOSAR />");
+  await workspace.addFile("Config/ECUC/Config.arxml", "<AUTOSAR />");
+
+  const project = await discoverVectorProject(workspace.rootPath, workspace.entries);
+
+  assert.deepEqual(project.projectInputFilePaths, [developer, service, flatExtract, flatMap].sort());
+  assert.deepEqual(project.project.vectorEcuInputs, {
+    flatMapFilePath: flatMap,
+    flatExtractFilePath: flatExtract
+  });
+});
+
 async function createWorkspace(context) {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), "autosar-vector-project-"));
   const entries = [];
