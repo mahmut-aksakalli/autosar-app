@@ -234,10 +234,11 @@ function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeG
 
   const rootComposition = compositions.find((composition) => composition.id === workspace.vectorEcu?.rootCompositionId);
   const makeCompositionTreeNode = (composition: AutosarEntity): ModelTreeNode => {
+    const ports = portsByOwner.get(composition.semanticPath ?? "") ?? [];
     if (composition.id === rootComposition?.id) {
-      return makeRootCompositionNode(composition, workspace);
+      return makeRootCompositionNode(composition, ports, workspace);
     }
-    return makeCompositionNode(composition, workspace);
+    return makeCompositionNode(composition, ports, workspace);
   };
   const compositionTree: ModelTreeNode[] = compositions.map(makeCompositionTreeNode);
   const componentChildren = swcs.map((swc): ModelTreeNode => makeSwcNode(swc, portsByOwner.get(swc.semanticPath ?? "") ?? []));
@@ -316,7 +317,11 @@ function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeG
   ];
 }
 
-function makeCompositionNode(composition: AutosarEntity, workspace: WorkspaceSnapshot): ModelTreeNode {
+function makeCompositionNode(
+  composition: AutosarEntity,
+  ports: AutosarEntity[],
+  workspace: WorkspaceSnapshot
+): ModelTreeNode {
   return {
     id: composition.id,
     label: composition.shortName,
@@ -328,16 +333,20 @@ function makeCompositionNode(composition: AutosarEntity, workspace: WorkspaceSna
       compositionTreeOrigin: "template"
     }),
     selectable: true,
-    children: makeCompositionChildren(composition, workspace, undefined, 0, "template")
+    children: [
+      makePortsWorkspaceNode(composition, ports, "composition", { compositionTreeOrigin: "template" }),
+      ...makeCompositionChildren(composition, workspace, undefined, 0, "template")
+    ]
   };
 }
 
 function makeRootCompositionNode(
   composition: AutosarEntity,
+  ports: AutosarEntity[],
   workspace: WorkspaceSnapshot
 ): ModelTreeNode {
   const contextPaths: string[] = [];
-  const children = [
+  const instanceChildren = [
     ...makeCompositionChildren(composition, workspace, contextPaths, 0, "root"),
     ...makeRootServiceInstanceNodes(composition, workspace)
   ].sort((left, right) => left.label.localeCompare(right.label));
@@ -355,7 +364,13 @@ function makeRootCompositionNode(
       compositionContextPaths: contextPaths,
       compositionTreeOrigin: "root"
     }),
-    children
+    children: [
+      makePortsWorkspaceNode(composition, ports, "composition", {
+        compositionContextPaths: contextPaths,
+        compositionTreeOrigin: "root"
+      }),
+      ...instanceChildren
+    ]
   };
 }
 
@@ -651,24 +666,7 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
         })
       }))
     },
-    {
-      ...makeSwcWorkspaceNode(swc, "ports", "Ports"),
-      children: ports
-        .slice()
-        .sort((left, right) => left.shortName.localeCompare(right.shortName))
-        .map((port) => ({
-          id: `${swc.id}:port:${port.id}`,
-          label: port.shortName,
-          icon: formatPortIcon(port),
-          focusEntityId: swc.id,
-          preferredScope: "swc" as const,
-          selectable: true,
-          workspaceTab: makeModelTab(swc, "port", `Port: ${port.shortName}`, {
-            entityId: port.id,
-            xmlPath: port.xmlPath
-          })
-        }))
-    },
+    makePortsWorkspaceNode(swc, ports, "swc"),
     {
       ...makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
       children: interRunnableVariables
@@ -703,6 +701,40 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
     },
     makeServiceNeedsWorkspaceNode(swc, serviceDependencies)
   ];
+}
+
+function makePortsWorkspaceNode(
+  owner: AutosarEntity,
+  ports: AutosarEntity[],
+  scope: SwcGraphScope,
+  tabOptions: Partial<ModelWorkspaceTab> = {}
+): ModelTreeNode {
+  return {
+    id: `${owner.id}:ports`,
+    label: "Ports",
+    icon: formatModelWorkspaceIcon("ports"),
+    focusEntityId: owner.id,
+    preferredScope: scope,
+    selectable: true,
+    workspaceTab: makeModelTab(owner, "ports", "Ports", { ...tabOptions, preferredScope: scope }),
+    children: ports
+      .slice()
+      .sort((left, right) => left.shortName.localeCompare(right.shortName))
+      .map((port) => ({
+        id: `${owner.id}:port:${port.id}`,
+        label: port.shortName,
+        icon: formatPortIcon(port),
+        focusEntityId: owner.id,
+        preferredScope: scope,
+        selectable: true,
+        workspaceTab: makeModelTab(owner, "port", `Port: ${port.shortName}`, {
+          ...tabOptions,
+          preferredScope: scope,
+          entityId: port.id,
+          xmlPath: port.xmlPath
+        })
+      }))
+  };
 }
 
 function makeServiceNeedsWorkspaceNode(swc: AutosarEntity, serviceDependencies: SwcInspectorItem[]): ModelTreeNode {
