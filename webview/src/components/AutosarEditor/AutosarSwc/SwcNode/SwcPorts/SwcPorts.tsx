@@ -92,6 +92,7 @@ export function SwcPorts(props: SwcPortsProps) {
             {/* The AUTOSAR symbol is also the single React Flow connection point for this port. */}
             <Handle
               id={port.id}
+              data-autosar-port-id={port.id}
               type={getPortHandleType(port.direction)}
               position={getPortHandlePosition(props.side)}
               className="autosar-port-handle"

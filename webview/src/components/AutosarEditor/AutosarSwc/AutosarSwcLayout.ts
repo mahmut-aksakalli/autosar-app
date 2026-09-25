@@ -339,6 +339,24 @@ export function getFocusedNodeZoom(
   return Math.max(minZoom, Math.min(maxZoom, horizontalZoom, verticalZoom));
 }
 
+/** Keep an individual destination port readable when the full SWC is too tall to fit. */
+export function getTallNodePortZoom(
+  nodeHeight: number,
+  visibleCanvasHeight: number
+) {
+  if (visibleCanvasHeight <= 0) {
+    return undefined;
+  }
+
+  const preferredZoom = 0.85;
+  const visibleHeight = visibleCanvasHeight * 0.82;
+  if (nodeHeight * preferredZoom <= visibleHeight) {
+    return undefined;
+  }
+
+  return preferredZoom;
+}
+
 function readPixelStyleValue(value: string | number | undefined) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : undefined;

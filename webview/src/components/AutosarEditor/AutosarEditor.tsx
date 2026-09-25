@@ -30,6 +30,7 @@ import {
   getEstimatedFlowNodeWidth,
   getFocusedNodeBounds,
   getFocusedNodeZoom,
+  getTallNodePortZoom,
   getIsolatedRailWidth,
   layoutVisibleSwcNode,
   type PortConnectionLabel,
@@ -409,6 +410,46 @@ export function AutosarEditor(props: AutosarEditorProps) {
         flowCanvasRef.current?.getBoundingClientRect(),
         shouldIsolateCompositionNode
       );
+
+      if (activeCompositionPortId) {
+        const canvasRect = flowCanvasRef.current?.getBoundingClientRect();
+        const bottomPanelRect = flowCanvasRef.current
+          ?.querySelector<HTMLElement>(".graph-bottom-panel-container")
+          ?.getBoundingClientRect();
+        let visibleCanvasHeight = canvasRect?.height ?? 0;
+        if (canvasRect && bottomPanelRect) {
+          visibleCanvasHeight = Math.max(0, Math.min(canvasRect.height, bottomPanelRect.top - canvasRect.top));
+        }
+        const portZoom = getTallNodePortZoom(
+          targetHeight,
+          visibleCanvasHeight
+        );
+        if (portZoom !== undefined) {
+          const portHandle = Array.from(
+            flowCanvasRef.current?.querySelectorAll<HTMLElement>("[data-autosar-port-id]") ?? []
+          ).find((element) => element.dataset.autosarPortId === activeCompositionPortId);
+          if (portHandle) {
+            const portRect = portHandle.getBoundingClientRect();
+            const portCenter = reactFlowRef.current.screenToFlowPosition({
+              x: portRect.left + portRect.width / 2,
+              y: portRect.top + portRect.height / 2
+            });
+            // React Flow centers within the whole canvas. Shift the target up
+            // so an expanded bottom panel cannot cover the selected port.
+            const panelOffset = ((canvasRect?.height ?? 0) - visibleCanvasHeight) / (2 * portZoom);
+            void reactFlowRef.current.setCenter(portCenter.x, portCenter.y + panelOffset, {
+              zoom: portZoom,
+              duration: 220
+            });
+            return;
+          }
+          if (attempt < GRAPH_FOCUS_RETRY_COUNT) {
+            attempt += 1;
+            frameId = window.requestAnimationFrame(focusTargetNode);
+            return;
+          }
+        }
+      }
 
       void reactFlowRef.current.setCenter(focusBounds.x + focusBounds.width / 2, focusBounds.y + focusBounds.height / 2, {
         zoom,
