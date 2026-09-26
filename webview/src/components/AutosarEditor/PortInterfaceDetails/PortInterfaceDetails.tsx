@@ -11,7 +11,7 @@ import {
   readBooleanMetadata
 } from "../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
-import { DetailsBottomTabs } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import { ClientServerPortDetails } from "./ClientServerPortDetails/ClientServerPortDetails";
 import { buildPortInterfaceDetailTables } from "./PortInterfaceDetailsHelper";
 import { SenderReceiverPortDetails } from "./SenderReceiverPortDetails/SenderReceiverPortDetails";
@@ -24,6 +24,7 @@ export function PortInterfaceDetails(props: {
   onReferenceInstanceSelect?: (instance: EntityReferenceInstance) => void;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.entity.metadata ?? {};
   const details = props.entity.details?.entity ?? { fields: [], tables: [] };
@@ -55,6 +56,7 @@ export function PortInterfaceDetails(props: {
     <DetailsBottomTabs
       title={props.title}
       contextKey={`${props.entity.id}:${props.selectedInstancePath ?? ""}`}
+      breadcrumbs={props.breadcrumbs}
       initialTabId={props.selectedInstancePath ? "members" : "general"}
       tabs={[
         { id: "general", label: "General", content: (

@@ -8,13 +8,14 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
-import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function InterRunnableVariableDetails(props: {
   title: string;
   variable?: SwcInspectorItem;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.variable?.metadata ?? {};
   const accessRows = props.variable?.details?.interRunnableVariableAccesses ?? [];
@@ -23,6 +24,7 @@ export function InterRunnableVariableDetails(props: {
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.variable?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
       tabs={[
         { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">

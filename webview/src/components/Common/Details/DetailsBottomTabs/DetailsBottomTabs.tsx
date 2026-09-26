@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import "./DetailsBottomTabs.css";
+import { BreadcrumbTrail } from "./BreadcrumbTrail";
 
 export interface DetailsTab {
   id: string;
@@ -8,11 +8,17 @@ export interface DetailsTab {
   content: ReactNode;
 }
 
+export interface DetailBreadcrumb {
+  label: string;
+  onClick?: () => void;
+}
+
 export function DetailsBottomTabs(props: {
   title: string;
   tabs: DetailsTab[];
   contextKey: string;
   initialTabId?: string;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const [activeTabId, setActiveTabId] = useState(props.initialTabId ?? props.tabs[0]?.id);
   const tabListRef = useRef<HTMLDivElement>(null);
@@ -51,7 +57,7 @@ export function DetailsBottomTabs(props: {
   return (
     <div className="model-semantic-surface model-details-with-bottom-tabs">
       <div className="model-semantic-header">
-        <strong>{props.title}</strong>
+        <BreadcrumbTrail title={props.title} breadcrumbs={props.breadcrumbs} />
       </div>
       {activeTab && (
         <div

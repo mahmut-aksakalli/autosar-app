@@ -8,13 +8,14 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
-import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function ParameterDetails(props: {
   title: string;
   parameter?: SwcInspectorItem;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.parameter?.metadata ?? {};
   const scope = formatParameterScopeOption(metadata.SCOPE);
@@ -24,6 +25,7 @@ export function ParameterDetails(props: {
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.parameter?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
       tabs={[{ id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           <div>

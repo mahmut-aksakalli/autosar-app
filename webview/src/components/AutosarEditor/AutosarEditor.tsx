@@ -13,6 +13,7 @@ import type {
   SwcInstanceReference
 } from "../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../EditorTabs/EditorTabs";
+import { buildDetailsBreadcrumbs } from "./DetailsBreadcrumbs/DetailsBreadcrumbs";
 import type { BottomPanelTab } from "./AutosarSwc/BottomPanel/BottomPanel";
 import {
   createGraphCacheKey,
@@ -523,6 +524,13 @@ export function AutosarEditor(props: AutosarEditorProps) {
     });
   }
 
+  const detailBreadcrumbs = buildDetailsBreadcrumbs(
+    props.focusEntity,
+    props.activeWorkspaceTab,
+    props.onOpenWorkspaceTab,
+    props.onRevealModelNode
+  );
+
   let activeContent: ReactNode;
   if (!props.activeWorkspaceTab) {
     activeContent = <div className="empty-state">Select an SWC or composition from the AUTOSAR model.</div>;
@@ -564,6 +572,7 @@ export function AutosarEditor(props: AutosarEditorProps) {
         activeContent = (
           <PortInterfaceDetails
             title={props.activeWorkspaceTab.title}
+            breadcrumbs={detailBreadcrumbs}
             entity={props.focusEntity}
             referenceInstances={referenceInstances ?? []}
             selectedInstancePath={props.activeWorkspaceTab.itemId}
@@ -576,6 +585,7 @@ export function AutosarEditor(props: AutosarEditorProps) {
         activeContent = (
           <EntityDetails
             title={props.activeWorkspaceTab.title}
+            breadcrumbs={detailBreadcrumbs}
             entity={props.focusEntity}
             referenceInstances={referenceInstances}
             onReferenceInstanceSelect={props.onReferenceInstanceSelect}
@@ -587,6 +597,7 @@ export function AutosarEditor(props: AutosarEditorProps) {
     activeContent = (
       <SwcDetails
         tab={props.activeWorkspaceTab}
+        breadcrumbs={detailBreadcrumbs}
         focusEntity={props.focusEntity}
         graphResult={graphResult}
         inspector={inspector}
@@ -612,5 +623,4 @@ function getDefaultGraphScope(entity: AutosarEntity | undefined): SwcGraphScope 
   }
   return "swc";
 }
-
 

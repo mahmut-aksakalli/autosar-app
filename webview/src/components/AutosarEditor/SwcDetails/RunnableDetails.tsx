@@ -9,7 +9,7 @@ import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch }
 import { SortableResizableTableHeader } from "../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../Common/Table/useResizableTableColumns";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "../../Common/Details/DetailsFormatters";
-import { DetailsBottomTabs } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 
 export function RunnableDetails(props: {
@@ -17,6 +17,7 @@ export function RunnableDetails(props: {
   runnable?: SwcInspectorItem;
   filePath?: string;
   xmlPath?: string;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const concurrent = readBooleanMetadata(props.runnable?.metadata?.CONCURRENT);
   const activationReasonDetails = props.runnable?.details?.activationReasons ?? [];
@@ -29,6 +30,7 @@ export function RunnableDetails(props: {
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.runnable?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
       tabs={[
         { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-runnable-fields">

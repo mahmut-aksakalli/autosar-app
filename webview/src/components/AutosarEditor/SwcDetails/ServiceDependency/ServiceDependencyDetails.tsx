@@ -4,7 +4,7 @@ import type {
   SwcInspectorItem
 } from "../../../../../../src/shared/contracts";
 import { normalizeAutosarEnumToken } from "../../../Common/Details/DetailsFormatters";
-import { DetailsBottomTabs, type DetailsTab } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb, type DetailsTab } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import {
   getServiceNeedDetailRows,
   getServiceNeedSelectOptions,
@@ -13,7 +13,7 @@ import {
 } from "./ServiceDependencyHelper";
 import type { NvmAssignedDataDetail, ServiceNeedDisplayDetail } from "./ServiceDependencyHelper";
 
-export function ServiceDependencyDetails(props: { title: string; item?: SwcInspectorItem }) {
+export function ServiceDependencyDetails(props: { title: string; item?: SwcInspectorItem; breadcrumbs?: DetailBreadcrumb[] }) {
   const metadata = props.item?.metadata ?? {};
   const serviceNeedDetails = parseServiceNeedDetailFields(
     props.item?.details?.serviceNeedFields ?? [],
@@ -62,7 +62,7 @@ export function ServiceDependencyDetails(props: { title: string; item?: SwcInspe
   });
 
   return (
-    <DetailsBottomTabs title={props.title} contextKey={props.item?.id ?? props.title} tabs={tabs} />
+    <DetailsBottomTabs title={props.title} contextKey={props.item?.id ?? props.title} breadcrumbs={props.breadcrumbs} tabs={tabs} />
   );
 }
 

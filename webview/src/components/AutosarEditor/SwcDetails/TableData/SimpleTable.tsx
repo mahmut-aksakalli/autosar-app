@@ -1,18 +1,21 @@
 import { ResizableTableHeader } from "../../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
+import { BreadcrumbTrail } from "../../../Common/Details/DetailsBottomTabs/BreadcrumbTrail";
+import type { DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function SimpleTable(props: {
   title: string;
   emptyLabel: string;
   columns: Array<{ key: string; label: string }>;
   rows: Array<Record<string, string | undefined>>;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const columnResize = useResizableTableColumns(props.columns.map(() => 220));
 
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{props.title}</strong>
+        <BreadcrumbTrail title={props.title} breadcrumbs={props.breadcrumbs} />
       </div>
       {props.rows.length > 0 ? (
         <div className="model-semantic-table-shell">

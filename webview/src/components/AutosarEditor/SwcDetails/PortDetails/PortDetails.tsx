@@ -4,7 +4,7 @@ import type {
 } from "../../../../../../src/shared/contracts";
 import { formatBooleanMetadata } from "../../../Common/Details/DetailsFormatters";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
-import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import { CommunicationSpecsSection } from "./CommunicationSpecs";
 import { PortApiOptionsSection } from "./PortApiOptions";
 import { ConnectedPortsTable } from "./ConnectedPortsTable";
@@ -26,6 +26,7 @@ export function PortDetails(props: {
   xmlPath?: string;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const argumentValues = normalizePortDefinedArgumentValues(props.port?.details?.portDefinedArgumentValues ?? []);
   const communicationSpecs = normalizeCommunicationSpecDetails(props.port?.details?.communicationSpecs ?? []);
@@ -40,6 +41,7 @@ export function PortDetails(props: {
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.port?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
       tabs={[
         { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">

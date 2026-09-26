@@ -11,13 +11,14 @@ import {
   initValueTypeOptions
 } from "../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
-import { DetailsBottomTabs, type DetailsTab } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailsBottomTabs, type DetailBreadcrumb, type DetailsTab } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function EntityDetails(props: {
   title: string;
   entity: AutosarEntity;
   referenceInstances?: EntityReferenceInstance[];
   onReferenceInstanceSelect?: (instance: EntityReferenceInstance) => void;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.entity.metadata ?? {};
   const details = props.entity.details?.entity ?? { fields: [], tables: [] };
@@ -67,7 +68,7 @@ export function EntityDetails(props: {
   }
 
   return (
-    <DetailsBottomTabs title={props.title} contextKey={props.entity.id} tabs={tabs} />
+    <DetailsBottomTabs title={props.title} contextKey={props.entity.id} breadcrumbs={props.breadcrumbs} tabs={tabs} />
   );
 }
 
