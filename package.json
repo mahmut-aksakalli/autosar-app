@@ -2,7 +2,7 @@
   "name": "autosar-classic-arxml-explorer",
   "displayName": "AUTOSAR Classic Explorer",
   "description": "Explore AUTOSAR Classic projects and files(arxml) in a user friendly way.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "MIT",
   "publisher": "antivector",
   "repository": "https://github.com/mahmut-aksakalli/autosar-app",
@@ -91,12 +91,22 @@
           "command": "autosarModelView.openFile",
           "when": "resourceExtname == .arxml",
           "group": "navigation@50"
+        },
+        {
+          "command": "autosarModelView.open",
+          "when": "resourceExtname == .dpa || resourceExtname == .dcf",
+          "group": "navigation@50"
         }
       ],
       "editor/title/context": [
         {
           "command": "autosarModelView.openFile",
           "when": "resourceExtname == .arxml",
+          "group": "navigation@50"
+        },
+        {
+          "command": "autosarModelView.open",
+          "when": "resourceExtname == .dpa || resourceExtname == .dcf",
           "group": "navigation@50"
         }
       ]

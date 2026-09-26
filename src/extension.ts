@@ -67,8 +67,8 @@ export function activate(context: vscode.ExtensionContext) {
         });
       }
     }),
-    vscode.commands.registerCommand("autosarModelView.open", async (entity?: AutosarEntity) => {
-      const snapshot = workspaceModelService.getSnapshot() ?? (await workspaceModelService.refresh());
+    vscode.commands.registerCommand("autosarModelView.open", async (argument?: unknown) => {
+      const snapshot = await workspaceModelService.ensureWorkspaceIndexed();
       if (!snapshot) {
         vscode.window.showWarningMessage("Open a VS Code workspace folder before opening AUTOSAR Model View.");
         logger.warning("Open Model View requested without an open VS Code workspace folder.");
@@ -77,7 +77,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       treeProvider.update(snapshot);
 
-      const focusEntity = entity ?? findDefaultGraphEntity(snapshot.entities);
+      // Explorer context-menu commands receive a file URI. Only a model
+      // entity passed by another caller should override the default graph.
+      const focusEntity = isAutosarEntity(argument) ? argument : findDefaultGraphEntity(snapshot.entities);
       const graph = await graphService.buildGraph({
         scope: focusEntity?.type === "composition" ? "composition" : "swc",
         focusId: focusEntity?.semanticPath ?? focusEntity?.id,
@@ -119,6 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      // Explorer nodes carry their own context: template descendants must
+      // remain templates, even if their type has one concrete ECU instance.
       const tab = node.workspaceTab;
       if (tab?.kind === "graph") {
         const graph = await graphService.buildGraph({
@@ -128,7 +132,8 @@ export function activate(context: vscode.ExtensionContext) {
           includeCompositionInternals:
             tab.includeCompositionInternals === true ||
             focusEntity.type === "composition" ||
-            Boolean(tab.preferredNodeId)
+            Boolean(tab.preferredNodeId),
+          compositionContextPaths: tab.compositionContextPaths
         });
         void graph;
         openModelWebview(focusEntity.id, tab, snapshot);
@@ -167,7 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     initialWorkspaceIndexPromise = (async () => {
       try {
-        const snapshot = await workspaceModelService.refresh();
+        const snapshot = await workspaceModelService.ensureWorkspaceIndexed();
 
         // A command such as "Show Model View for Single File" can supersede
         // this startup request. In that case refresh() returns null, while the
@@ -437,6 +442,17 @@ function findDefaultGraphEntity(entities: AutosarEntity[]) {
   return entities.find((entity) => entity.type === "swc");
 }
 
+function isAutosarEntity(value: unknown): value is AutosarEntity {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Partial<AutosarEntity>;
+  return typeof candidate.id === "string" &&
+    typeof candidate.type === "string" &&
+    typeof candidate.shortName === "string";
+}
+
 function makeGraphTab(entity: AutosarEntity | undefined): ModelWorkspaceTab | undefined {
   if (!entity) {
     return undefined;
@@ -495,7 +511,11 @@ function isBuildGraphMessage(
     Number.isFinite(query.depth) &&
     query.depth >= 0 &&
     (query.focusId === undefined || typeof query.focusId === "string") &&
-    (query.includeCompositionInternals === undefined || typeof query.includeCompositionInternals === "boolean")
+    (query.includeCompositionInternals === undefined || typeof query.includeCompositionInternals === "boolean") &&
+    (query.compositionContextPaths === undefined || (
+      Array.isArray(query.compositionContextPaths) &&
+      query.compositionContextPaths.every((part) => typeof part === "string")
+    ))
   );
 }
 

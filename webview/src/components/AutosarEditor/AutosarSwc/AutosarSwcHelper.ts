@@ -7,6 +7,7 @@ interface UseAutosarSwcGraphOptions {
   workspaceRevision?: string;
   scope: SwcGraphScope;
   includeCompositionInternals: boolean;
+  compositionContextPaths?: string[];
   cacheKey?: string;
   enabled: boolean;
 }
@@ -16,6 +17,7 @@ export function useAutosarSwcGraph({
   workspaceRevision,
   scope,
   includeCompositionInternals,
+  compositionContextPaths,
   cacheKey,
   enabled
 }: UseAutosarSwcGraphOptions) {
@@ -60,7 +62,8 @@ export function useAutosarSwcGraph({
         scope,
         focusId: focusEntity.semanticPath ?? focusEntity.id,
         depth: 1,
-        includeCompositionInternals
+        includeCompositionInternals,
+        compositionContextPaths
       })
       .then((graph) => {
         if (cancelled) {
@@ -89,7 +92,7 @@ export function useAutosarSwcGraph({
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, enabled, focusEntity, includeCompositionInternals, scope, cacheVersion]);
+  }, [cacheKey, enabled, focusEntity, includeCompositionInternals, compositionContextPaths, scope, cacheVersion]);
 
   return { graphResult, loading, error };
 }
@@ -142,7 +145,8 @@ export function createGraphCacheKey(
   workspaceRevision: string | undefined,
   scope: SwcGraphScope,
   focusId: string,
-  includeCompositionInternals: boolean
+  includeCompositionInternals: boolean,
+  compositionContextPaths?: string[]
 ) {
   const revision = workspaceRevision ?? "workspace";
   let detailLevel = "surface";
@@ -150,7 +154,7 @@ export function createGraphCacheKey(
     detailLevel = "internals";
   }
 
-  return `${revision}:${scope}:${detailLevel}:${focusId}`;
+  return `${revision}:${scope}:${detailLevel}:${focusId}:${compositionContextPaths?.join("|") ?? "template"}`;
 }
 
 export function findFallbackInspector(

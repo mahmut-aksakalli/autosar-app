@@ -15,6 +15,8 @@ const DPA_COMPONENT_FOLDER_TAGS = new Set(["servicecomponents", "applicationcomp
 const vectorMetadataParser = new XMLParser({ ignoreAttributes: true, trimValues: true });
 
 const PROJECT_REFERENCE_PATTERN = /(?:file:\/\/\/)?["'(<>\s=]([^"'<>?\r\n]+?\.arxml)\b/gi;
+const DCF_REFERENCE_PATTERN = /(?:file:\/\/\/)?["'(<>\s=]([^"'<>?\r\n]+?\.dcf)\b/gi;
+const DPA_REFERENCE_PATTERN = /(?:file:\/\/\/)?["'(<>\s=]([^"'<>?\r\n]+?\.dpa)\b/gi;
 
 export interface VectorProjectDiscovery {
   project: WorkspaceProjectInfo;
@@ -27,9 +29,11 @@ export function isVectorMetadataFile(fileName: string) {
 
 export async function discoverVectorProject(
   rootPath: string,
-  explorerEntries: ExplorerEntry[]
+  explorerEntries: ExplorerEntry[],
+  findAllArxmlEntries: () => Promise<ExplorerEntry[]> = async () =>
+    explorerEntries.filter((entry) => entry.kind === "file" && entry.name.toLowerCase().endsWith(".arxml"))
 ): Promise<VectorProjectDiscovery | undefined> {
-  const metadataFiles = explorerEntries
+  const discoveredMetadataFiles = explorerEntries
     .filter((entry) => entry.kind === "file" && isVectorMetadataFile(entry.name))
     .map((entry): VectorProjectMetadataFile => ({
       filePath: entry.filePath,
@@ -38,28 +42,67 @@ export async function discoverVectorProject(
     }))
     .sort(compareMetadataPriority);
 
-  if (metadataFiles.length === 0) {
+  if (discoveredMetadataFiles.length === 0) {
     return undefined;
   }
 
-  const arxmlEntries = explorerEntries.filter(
-    (entry) => entry.kind === "file" && entry.name.toLowerCase().endsWith(".arxml")
-  );
-  const arxmlByNormalizedPath = new Map(arxmlEntries.map((entry) => [normalizePath(entry.filePath), entry]));
-  const inputsByPath = new Map<string, { filePath: string; sourceMetadataPath?: string }>();
+  // A workspace can contain multiple independent DaVinci projects. Start
+  // with the nearest DPA or DCF, then follow only its explicit metadata links.
+  const metadataFiles = selectProjectMetadataFiles(discoveredMetadataFiles);
+  const visitedMetadataPaths = new Set(metadataFiles.map((file) => normalizePath(file.filePath)));
 
-  for (const metadataFile of metadataFiles) {
-    const references = await collectArxmlReferencesFromMetadata(rootPath, metadataFile.filePath, arxmlByNormalizedPath);
-    references.forEach((filePath) => {
+  const inputsByPath = new Map<string, { filePath: string; sourceMetadataPath?: string }>();
+  const vectorEcuInputs: NonNullable<WorkspaceProjectInfo["vectorEcuInputs"]> = {};
+  let hasDeclaredInputs = false;
+
+  for (let index = 0; index < metadataFiles.length; index += 1) {
+    const metadataFile = metadataFiles[index];
+    if (!metadataFile) {
+      continue;
+    }
+
+    const result = await collectReferencesFromMetadata(
+      rootPath,
+      metadataFile.filePath
+    );
+    hasDeclaredInputs ||= result.hasDeclaredInputs;
+    if (result.flatMapFilePath) {
+      vectorEcuInputs.flatMapFilePath = result.flatMapFilePath;
+    }
+    if (result.flatExtractFilePath) {
+      vectorEcuInputs.flatExtractFilePath = result.flatExtractFilePath;
+    }
+    result.references.forEach((filePath) => {
       inputsByPath.set(normalizePath(filePath), {
         filePath,
         sourceMetadataPath: metadataFile.filePath
       });
     });
+
+    // DPA and DCF files can refer to each other. Follow only explicit links
+    // from the selected project and visit each metadata file once.
+    const linkedMetadata = [
+      ...result.dcfReferences.map((filePath) => ({ filePath, kind: "dcf" as const })),
+      ...result.dpaReferences.map((filePath) => ({ filePath, kind: "dpa" as const }))
+    ];
+    for (const linkedFile of linkedMetadata) {
+      const normalizedPath = normalizePath(linkedFile.filePath);
+      if (visitedMetadataPaths.has(normalizedPath)) {
+        continue;
+      }
+      visitedMetadataPaths.add(normalizedPath);
+      metadataFiles.push({
+        filePath: linkedFile.filePath,
+        relativePath: path.relative(rootPath, linkedFile.filePath),
+        kind: linkedFile.kind
+      });
+    }
   }
 
-  if (inputsByPath.size === 0) {
-    arxmlEntries.forEach((entry) => {
+  if (inputsByPath.size === 0 && !hasDeclaredInputs) {
+    const arxmlEntries = await findAllArxmlEntries();
+    const fallbackEntries = selectFallbackArxmlEntries(arxmlEntries, metadataFiles, discoveredMetadataFiles);
+    fallbackEntries.forEach((entry) => {
       inputsByPath.set(normalizePath(entry.filePath), {
         filePath: entry.filePath
       });
@@ -80,6 +123,7 @@ export async function discoverVectorProject(
       displayName: inferProjectDisplayName(rootPath, metadataFiles),
       metadataFiles,
       inputFiles,
+      vectorEcuInputs,
       indexedInBackground: true,
       indexingStatus: "loading"
     },
@@ -87,39 +131,172 @@ export async function discoverVectorProject(
   };
 }
 
-async function collectArxmlReferencesFromMetadata(
+function selectProjectMetadataFiles(metadataFiles: VectorProjectMetadataFile[]) {
+  const projectFiles = metadataFiles.filter((file) => file.kind === "dpa" || file.kind === "dcf");
+  if (projectFiles.length > 0) {
+    const selectedProject = projectFiles.slice().sort(compareProjectPriority)[0];
+    return selectedProject ? [selectedProject] : [];
+  }
+
+  return metadataFiles;
+}
+
+function compareProjectPriority(left: VectorProjectMetadataFile, right: VectorProjectMetadataFile) {
+  const depthDifference = getRelativePathDepth(left.relativePath) - getRelativePathDepth(right.relativePath);
+  if (depthDifference !== 0) {
+    return depthDifference;
+  }
+
+  if (left.kind !== right.kind) {
+    return left.kind === "dpa" ? -1 : 1;
+  }
+
+  return left.relativePath.localeCompare(right.relativePath);
+}
+
+function getRelativePathDepth(relativePath: string) {
+  return relativePath.split(/[\\/]+/).filter(Boolean).length;
+}
+
+function selectFallbackArxmlEntries(
+  arxmlEntries: ExplorerEntry[],
+  selectedMetadataFiles: VectorProjectMetadataFile[],
+  discoveredMetadataFiles: VectorProjectMetadataFile[]
+) {
+  const selectedDpa = selectedMetadataFiles.find((file) => file.kind === "dpa");
+  if (!selectedDpa) {
+    return arxmlEntries;
+  }
+
+  const selectedDirectory = path.dirname(selectedDpa.filePath);
+  const otherDpaFiles = discoveredMetadataFiles.filter(
+    (file) => file.kind === "dpa" && file.filePath !== selectedDpa.filePath
+  );
+
+  // With two projects in the same directory, unreferenced ARXML files cannot
+  // be assigned to either project reliably. In that case, index no fallback
+  // files instead of silently combining both projects.
+  if (otherDpaFiles.some((file) => normalizePath(path.dirname(file.filePath)) === normalizePath(selectedDirectory))) {
+    return [];
+  }
+
+  return arxmlEntries.filter((entry) => {
+    if (!isFileInsideDirectory(selectedDirectory, entry.filePath)) {
+      return false;
+    }
+
+    return !otherDpaFiles.some((file) => isFileInsideDirectory(path.dirname(file.filePath), entry.filePath));
+  });
+}
+
+async function collectReferencesFromMetadata(
   rootPath: string,
-  metadataFilePath: string,
-  arxmlByNormalizedPath: Map<string, ExplorerEntry>
+  metadataFilePath: string
 ) {
   const content = await fs.readFile(metadataFilePath, "utf8").catch(() => "");
   const metadataDir = path.dirname(metadataFilePath);
   const references = new Set<string>();
+  const dcfReferences = new Set<string>();
+  const dpaReferences = new Set<string>();
+  let hasDeclaredInputs = false;
   let match: RegExpExecArray | null;
 
-  while ((match = PROJECT_REFERENCE_PATTERN.exec(content))) {
+  // DaVinci's DPA lists several generated ARXML products. For the ECU model,
+  // use its explicit flat-extract/map roles and component folders; ECUC and
+  // measurement data are separate products, not SWC definitions.
+  const isDpa = path.extname(metadataFilePath).toLowerCase() === ".dpa";
+  const selectedDpaReferences = isDpa ? collectDpaEcuReferences(content) : undefined;
+  const useRoleBasedDpaInputs = Boolean(selectedDpaReferences?.flatMap || selectedDpaReferences?.flatExtract);
+
+  while (!useRoleBasedDpaInputs && (match = PROJECT_REFERENCE_PATTERN.exec(content))) {
     const rawReference = match[1];
     if (!rawReference) {
       continue;
     }
 
-    const resolvedPath = resolveProjectReference(rootPath, metadataDir, rawReference, arxmlByNormalizedPath);
+    hasDeclaredInputs = true;
+    const resolvedPath = await resolveProjectReference(rootPath, metadataDir, rawReference, ".arxml");
     if (resolvedPath) {
       references.add(resolvedPath);
     }
   }
 
-  if (path.extname(metadataFilePath).toLowerCase() === ".dpa") {
+  while ((match = DCF_REFERENCE_PATTERN.exec(content))) {
+    const rawReference = match[1];
+    if (!rawReference) {
+      continue;
+    }
+
+    hasDeclaredInputs = true;
+    const resolvedPath = await resolveProjectReference(rootPath, metadataDir, rawReference, ".dcf");
+    if (resolvedPath) {
+      dcfReferences.add(resolvedPath);
+    }
+  }
+
+  while ((match = DPA_REFERENCE_PATTERN.exec(content))) {
+    const rawReference = match[1];
+    if (!rawReference) {
+      continue;
+    }
+
+    hasDeclaredInputs = true;
+    const resolvedPath = await resolveProjectReference(rootPath, metadataDir, rawReference, ".dpa");
+    if (resolvedPath) {
+      dpaReferences.add(resolvedPath);
+    }
+  }
+
+  if (isDpa) {
     const folderReferences = collectDpaComponentFolderReferences(content);
-    const arxmlEntries = Array.from(arxmlByNormalizedPath.values());
+    hasDeclaredInputs ||= folderReferences.length > 0;
     for (const folderReference of folderReferences) {
-      resolveDpaFolderReference(rootPath, metadataDir, folderReference, arxmlEntries).forEach((filePath) =>
+      const folderFiles = await resolveDpaFolderReference(rootPath, metadataDir, folderReference);
+      folderFiles.forEach((filePath) =>
         references.add(filePath)
       );
     }
   }
 
-  return Array.from(references);
+  let flatMapFilePath: string | undefined;
+  let flatExtractFilePath: string | undefined;
+  if (selectedDpaReferences?.flatMap) {
+    hasDeclaredInputs = true;
+    flatMapFilePath = await resolveProjectReference(rootPath, metadataDir, selectedDpaReferences.flatMap, ".arxml");
+    if (flatMapFilePath) {
+      references.add(flatMapFilePath);
+    }
+  }
+  if (selectedDpaReferences?.flatExtract) {
+    hasDeclaredInputs = true;
+    flatExtractFilePath = await resolveProjectReference(rootPath, metadataDir, selectedDpaReferences.flatExtract, ".arxml");
+    if (flatExtractFilePath) {
+      references.add(flatExtractFilePath);
+    }
+  }
+
+  return {
+    references: Array.from(references),
+    dcfReferences: Array.from(dcfReferences),
+    dpaReferences: Array.from(dpaReferences),
+    hasDeclaredInputs,
+    flatMapFilePath,
+    flatExtractFilePath
+  };
+}
+
+function collectDpaEcuReferences(content: string) {
+  try {
+    const parsed = vectorMetadataParser.parse(content) as Record<string, unknown>;
+    const root = parsed.ProjectAssistant as Record<string, unknown> | undefined;
+    const entries = root?.References as Record<string, unknown> | undefined;
+    return {
+      flatMap: collectXmlTextValues(entries?.FlatMap)[0],
+      flatExtract: collectXmlTextValues(entries?.FlatECUEX)[0]
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function collectDpaComponentFolderReferences(content: string) {
@@ -174,11 +351,10 @@ function collectXmlTextValues(value: unknown): string[] {
   return text === undefined ? [] : collectXmlTextValues(text);
 }
 
-function resolveDpaFolderReference(
+async function resolveDpaFolderReference(
   rootPath: string,
   metadataDir: string,
-  rawReference: string,
-  arxmlEntries: ExplorerEntry[]
+  rawReference: string
 ) {
   const cleanedReference = cleanProjectReference(rawReference);
   const candidates = [
@@ -189,13 +365,27 @@ function resolveDpaFolderReference(
 
   const matchingFiles = new Set<string>();
   for (const candidate of candidates) {
-    arxmlEntries.forEach((entry) => {
-      if (isFileInsideDirectory(candidate, entry.filePath)) {
-        matchingFiles.add(entry.filePath);
-      }
-    });
+    if (normalizePath(candidate) !== normalizePath(rootPath) && !isFileInsideDirectory(rootPath, candidate)) {
+      continue;
+    }
+    const files = await findArxmlFilesInDirectory(candidate);
+    files.forEach((filePath) => matchingFiles.add(filePath));
   }
   return Array.from(matchingFiles);
+}
+
+async function findArxmlFilesInDirectory(directoryPath: string): Promise<string[]> {
+  const entries = await fs.readdir(directoryPath, { withFileTypes: true }).catch(() => []);
+  const files: string[] = [];
+  for (const entry of entries) {
+    const entryPath = path.join(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await findArxmlFilesInDirectory(entryPath)));
+    } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".arxml")) {
+      files.push(entryPath);
+    }
+  }
+  return files;
 }
 
 function cleanProjectReference(rawReference: string) {
@@ -213,11 +403,11 @@ function isFileInsideDirectory(directoryPath: string, filePath: string) {
   return Boolean(relativePath) && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
 }
 
-function resolveProjectReference(
+async function resolveProjectReference(
   rootPath: string,
   metadataDir: string,
   rawReference: string,
-  arxmlByNormalizedPath: Map<string, ExplorerEntry>
+  extension: ".arxml" | ".dcf" | ".dpa"
 ) {
   const cleanedReference = cleanProjectReference(rawReference);
   const candidates = [
@@ -227,17 +417,16 @@ function resolveProjectReference(
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   for (const candidate of candidates) {
-    const entry = arxmlByNormalizedPath.get(normalizePath(candidate));
-    if (entry) {
-      return entry.filePath;
+    if (!isFileInsideDirectory(rootPath, candidate)) {
+      continue;
+    }
+    const file = await fs.stat(candidate).catch(() => undefined);
+    if (file?.isFile() && candidate.toLowerCase().endsWith(extension)) {
+      return candidate;
     }
   }
 
-  const referenceTail = normalizePath(cleanedReference);
-  const matchingEntry = Array.from(arxmlByNormalizedPath.values()).find((entry) =>
-    normalizePath(entry.relativePath).endsWith(referenceTail)
-  );
-  return matchingEntry?.filePath;
+  return undefined;
 }
 
 function compareMetadataPriority(left: VectorProjectMetadataFile, right: VectorProjectMetadataFile) {

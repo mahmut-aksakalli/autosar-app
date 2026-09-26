@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { buildSwcInstanceReferences } = require("../src/model/swcInstanceService.ts");
+const { buildSwcInstanceReferences, findUniqueCompositionContext } = require("../src/model/swcInstanceService.ts");
 
 test("indexes every resolved instance of the same SWC across compositions", () => {
   const entities = [
@@ -27,6 +27,23 @@ test("ignores instances with unresolved component types or parent compositions",
   ];
 
   assert.deepEqual(buildSwcInstanceReferences(entities), []);
+});
+
+test("resolves a unique nested composition occurrence for instance navigation", () => {
+  const entities = [
+    entity("root", "composition", "RootType", "/Types/Root"),
+    entity("door", "composition", "OrbitCompositionType", "/Types/Door"),
+    instance("door-prototype", "OrbitCompositionOne", "/Types/Root/OrbitCompositionOne", "/Types/Root", "/Types/Door")
+  ];
+
+  assert.deepEqual(
+    findUniqueCompositionContext(entities, "root", "door"),
+    ["/Types/Root/OrbitCompositionOne"]
+  );
+  assert.deepEqual(findUniqueCompositionContext(entities, "root", "root"), []);
+
+  entities.push(instance("second-door", "SecondDoor", "/Types/Root/SecondDoor", "/Types/Root", "/Types/Door"));
+  assert.equal(findUniqueCompositionContext(entities, "root", "door"), undefined);
 });
 
 function entity(id, type, shortName, semanticPath) {

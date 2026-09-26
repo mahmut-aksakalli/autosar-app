@@ -30,11 +30,13 @@ import {
   getEstimatedFlowNodeWidth,
   getFocusedNodeBounds,
   getFocusedNodeZoom,
+  getTallNodePortZoom,
   getIsolatedRailWidth,
-  isPortConnectionListEdge,
-  layoutSwcGraph,
+  layoutVisibleSwcNode,
+  type PortConnectionLabel,
   type SwcNodeView
 } from "./AutosarSwc/AutosarSwcLayout";
+import { getConnectionTreeNodeId, getDelegationNavigationTarget } from "./AutosarSwc/AutosarSwcNavigation";
 import { SwcDetails } from "./SwcDetails/SwcDetails";
 import { EntityDetails } from "./EntityDetails/EntityDetails";
 import { PortInterfaceDetails } from "./PortInterfaceDetails/PortInterfaceDetails";
@@ -59,6 +61,9 @@ const REFERENCE_INSTANCE_ENTITY_TYPES = new Set([
 
 interface AutosarEditorProps {
   focusEntity?: AutosarEntity;
+  modelEntities: AutosarEntity[];
+  navigationEntities: AutosarEntity[];
+  rootCompositionId?: string;
   workspaceRevision?: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
@@ -73,13 +78,20 @@ interface AutosarEditorProps {
     semanticPath?: string;
     preferredScope?: SwcGraphScope;
     preferredNodeId?: string;
+    preferredPortId?: string;
     includeCompositionInternals?: boolean;
+    compositionContextPaths?: string[];
+    compositionTreeOrigin?: "template" | "root";
+    treeNodeId?: string;
   }) => void;
+  onRevealModelNode?: (entityId: string, treeNodeId?: string) => void;
   onCopyText?: (text: string) => void;
   onOpenSwcView?: (
     entityId: string | undefined,
     semanticPath: string | undefined,
-    view: SwcNodeView
+    view: SwcNodeView,
+    compositionContextPaths?: string[],
+    compositionTreeOrigin?: "template" | "root"
   ) => void;
   onOpenPortInterface?: (interfaceRef: string) => void;
   onOpenReferencedEntity?: (referencePath: string) => void;
@@ -104,13 +116,16 @@ export function AutosarEditor(props: AutosarEditorProps) {
   // additionally control graph isolation and connection-label navigation.
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [activeCompositionNodeId, setActiveCompositionNodeId] = useState<string | undefined>(props.preferredNodeId);
-  const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(undefined);
+  const [activeCompositionPortId, setActiveCompositionPortId] = useState<string | undefined>(
+    props.activeWorkspaceTab?.preferredPortId
+  );
   const [selectedPort, setSelectedPort] = useState<{
     nodeId: string;
     portId: string;
   }>();
   const flowCanvasRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<AutosarSwcController | null>(null);
+  const compositionContextKey = props.activeWorkspaceTab?.compositionContextPaths?.join("|");
   const isCompositionScope = graphScope === "composition";
   const tabRequestsInternals = props.activeWorkspaceTab?.includeCompositionInternals === true;
   const hasFocusedCompositionNode = Boolean(activeCompositionNodeId);
@@ -125,7 +140,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
       props.workspaceRevision,
       graphScope,
       focusId,
-      includeCompositionInternals
+      includeCompositionInternals,
+      props.activeWorkspaceTab?.compositionContextPaths
     );
   }
 
@@ -137,6 +153,7 @@ export function AutosarEditor(props: AutosarEditorProps) {
     workspaceRevision: props.workspaceRevision,
     scope: graphScope,
     includeCompositionInternals,
+    compositionContextPaths: props.activeWorkspaceTab?.compositionContextPaths,
     cacheKey: graphCacheKey,
     enabled: shouldLoadGraph
   });
@@ -147,9 +164,13 @@ export function AutosarEditor(props: AutosarEditorProps) {
 
   useEffect(() => {
     setActiveCompositionNodeId(props.preferredNodeId);
-    setActiveCompositionPortId(undefined);
-    setSelectedPort(undefined);
-  }, [props.preferredNodeId, props.focusEntity?.id]);
+    setActiveCompositionPortId(props.activeWorkspaceTab?.preferredPortId);
+    if (props.preferredNodeId && props.activeWorkspaceTab?.preferredPortId) {
+      setSelectedPort({ nodeId: props.preferredNodeId, portId: props.activeWorkspaceTab.preferredPortId });
+    } else {
+      setSelectedPort(undefined);
+    }
+  }, [props.preferredNodeId, props.activeWorkspaceTab?.preferredPortId, props.focusEntity?.id, compositionContextKey]);
 
   useEffect(() => {
     if (props.activeWorkspaceTab?.kind === "graph" && props.activeWorkspaceTab.preferredScope) {
@@ -168,53 +189,34 @@ export function AutosarEditor(props: AutosarEditorProps) {
   const graphNodes = graphResult?.nodes ?? [];
   const selectedGraphNode = graphNodes.find((node) => node.id === selectedNodeId);
   const inspector = selectedGraphNode?.inspector ?? findFallbackInspector(graphResult, props.focusEntity);
-  let shouldIsolateCompositionNode = false;
-  if (graphResult?.scope === "composition" && activeCompositionNodeId && props.preferredNodeId) {
-    shouldIsolateCompositionNode = graphResult.nodes.some((node) => {
-      return node.id === activeCompositionNodeId && node.kind === "instance";
-    });
-  }
+  const visibleGraphNode = graphNodes.find((node) => node.id === activeCompositionNodeId)
+    ?? graphNodes.find((node) => node.kind === "composition" || node.kind === "swc")
+    ?? graphNodes[0];
+  const shouldIsolateCompositionNode = graphResult?.scope === "composition" &&
+    Boolean(activeCompositionNodeId && visibleGraphNode?.id === activeCompositionNodeId);
 
-  // Start with the pure layout, then decorate it with view-only state such as
-  // isolated nodes, highlighted ports, and connection navigation callbacks.
+  // Keep the full model graph for connection labels, but create only the one
+  // React Flow node and its short port-summary edges for the current view.
   const flowGraph = useMemo(() => {
     if (!graphResult) {
       return { nodes: [], edges: [] };
     }
 
-    const baseGraph = layoutSwcGraph(graphResult);
+    const baseGraph = layoutVisibleSwcNode(graphResult, visibleGraphNode?.id);
     let portConnections: ReturnType<typeof buildPortConnectionLabels> = {};
     if (graphResult.scope === "composition") {
       portConnections = buildPortConnectionLabels(graphResult);
     }
 
-    let visibleEdges = baseGraph.edges;
-    if (shouldIsolateCompositionNode) {
-      // Hide composition-level connectors while retaining the short native
-      // edges between this SWC's port symbols and connection summaries.
-      visibleEdges = baseGraph.edges.filter((edge) => {
-        return edge.source === activeCompositionNodeId && isPortConnectionListEdge(edge);
-      });
-    } else if (graphResult.scope === "composition") {
-      visibleEdges = baseGraph.edges.filter((edge) => {
-        const matchingGraphEdge = graphResult.edges.find((graphEdge) => graphEdge.id === edge.id);
-        return matchingGraphEdge?.kind !== "assembly";
-      });
-    }
-
     const visibleNodes = baseGraph.nodes
-      .filter((node) => !shouldIsolateCompositionNode || node.id === activeCompositionNodeId)
       .map((node) => {
         const sourceGraphNode = graphResult.nodes.find((entry) => entry.id === node.id);
         const isActiveCompositionNode = node.id === activeCompositionNodeId;
-        let style = node.style;
-        if (shouldIsolateCompositionNode && isActiveCompositionNode) {
-          style = {
-            ...(node.style ?? {}),
-            ["--autosar-left-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "left")}px`,
-            ["--autosar-right-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "right")}px`
-          } as CSSProperties;
-        }
+        const style = {
+          ...(node.style ?? {}),
+          ["--autosar-left-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "left")}px`,
+          ["--autosar-right-rail-width" as string]: `${getIsolatedRailWidth(node, portConnections[node.id], "right")}px`
+        } as CSSProperties;
 
         let highlightedPortId: string | undefined;
         if (isActiveCompositionNode) {
@@ -226,6 +228,9 @@ export function AutosarEditor(props: AutosarEditorProps) {
           style,
           data: {
             ...node.data,
+            isRootCompositionInstance: sourceGraphNode?.kind === "composition" &&
+              props.activeWorkspaceTab?.compositionTreeOrigin === "root" &&
+              props.activeWorkspaceTab.compositionContextPaths?.length === 0,
             portConnections: portConnections[node.id] ?? {},
             highlightedPortId,
             selectedPortId: selectedPort?.nodeId === node.id ? selectedPort.portId : undefined,
@@ -252,15 +257,71 @@ export function AutosarEditor(props: AutosarEditorProps) {
                 entityId = undefined;
                 semanticPath = sourceGraphNode?.typeRef;
               }
-              props.onOpenSwcView?.(entityId, semanticPath, view);
+              let compositionContextPaths = props.activeWorkspaceTab?.compositionContextPaths;
+              let compositionTreeOrigin = props.activeWorkspaceTab?.compositionTreeOrigin;
+              const opensCompositionInstance = sourceGraphNode?.kind === "instance" && props.modelEntities.some((entity) => {
+                return entity.type === "composition" && entity.semanticPath === sourceGraphNode.typeRef;
+              });
+              if (opensCompositionInstance && sourceGraphNode?.semanticPath) {
+                compositionContextPaths = compositionContextPaths
+                  ? [...compositionContextPaths, sourceGraphNode.semanticPath]
+                  : [sourceGraphNode.semanticPath];
+                compositionTreeOrigin ??= "template";
+              }
+              props.onOpenSwcView?.(
+                entityId,
+                semanticPath,
+                view,
+                compositionContextPaths,
+                compositionTreeOrigin
+              );
             },
-            onConnectionNavigate: (nodeId: string, portId: string) => {
+            onConnectionNavigate: (connection: PortConnectionLabel) => {
+              if (connection.targetCompositionId) {
+                const targetContextPaths = connection.targetCompositionContextPaths ?? [];
+                props.onFocusModelEntity?.({
+                  entityId: connection.targetCompositionId,
+                  preferredScope: "composition",
+                  preferredNodeId: connection.targetNodeId,
+                  preferredPortId: connection.targetPortId,
+                  compositionContextPaths: targetContextPaths,
+                  compositionTreeOrigin: "root",
+                  treeNodeId: connection.targetTreeNodeId ??
+                    `${connection.targetCompositionId}:service:${connection.targetNodeId}`
+                });
+                return;
+              }
+              const delegationTarget = getDelegationNavigationTarget(
+                props.focusEntity,
+                props.navigationEntities,
+                props.activeWorkspaceTab?.compositionContextPaths,
+                connection,
+                props.activeWorkspaceTab?.compositionTreeOrigin ?? "template",
+                props.rootCompositionId
+              );
+              if (delegationTarget) {
+                props.onFocusModelEntity?.(delegationTarget);
+                return;
+              }
+              const nodeId = connection.targetNodeId;
+              const portId = connection.targetPortId;
               setActiveCompositionNodeId(nodeId);
               setActiveCompositionPortId(portId);
               setSelectedNodeId(nodeId);
               // Connection-label navigation targets a concrete port. Keep the
               // PortSymbol selection in sync with the highlighted label.
               setSelectedPort({ nodeId, portId });
+              const targetGraphNode = graphResult.nodes.find((entry) => entry.id === nodeId);
+              const treeNodeId = getConnectionTreeNodeId(
+                props.focusEntity,
+                targetGraphNode,
+                props.navigationEntities,
+                props.activeWorkspaceTab?.compositionContextPaths,
+                props.activeWorkspaceTab?.compositionTreeOrigin ?? "template"
+              );
+              if (props.focusEntity && treeNodeId) {
+                props.onRevealModelNode?.(props.focusEntity.id, treeNodeId);
+              }
             }
           }
         };
@@ -268,13 +329,21 @@ export function AutosarEditor(props: AutosarEditorProps) {
 
     return {
       nodes: visibleNodes,
-      edges: visibleEdges
+      edges: baseGraph.edges
     };
   }, [
     activeCompositionNodeId,
     activeCompositionPortId,
     graphResult,
+    visibleGraphNode?.id,
+    props.activeWorkspaceTab?.compositionContextPaths,
+    props.activeWorkspaceTab?.compositionTreeOrigin,
+    props.modelEntities,
+    props.navigationEntities,
+    props.rootCompositionId,
     props.onCopyText,
+    props.onFocusModelEntity,
+    props.onRevealModelNode,
     props.onOpenPortInterface,
     props.onOpenPortDetails,
     props.onOpenSwcView,
@@ -282,9 +351,9 @@ export function AutosarEditor(props: AutosarEditorProps) {
     selectedPort
   ]);
 
-  let fitViewOptions = { padding: 0.2, maxZoom: 1.1, minZoom: 0.35 };
+  let fitViewOptions = { padding: 0.2, maxZoom: 1.1, minZoom: 0.08 };
   if (shouldIsolateCompositionNode) {
-    fitViewOptions = { padding: 0.12, maxZoom: 0.95, minZoom: 0.35 };
+    fitViewOptions = { padding: 0.12, maxZoom: 0.95, minZoom: 0.08 };
   }
 
   // Centering must run after React Flow measures its custom nodes. Estimated
@@ -342,6 +411,46 @@ export function AutosarEditor(props: AutosarEditorProps) {
         shouldIsolateCompositionNode
       );
 
+      if (activeCompositionPortId) {
+        const canvasRect = flowCanvasRef.current?.getBoundingClientRect();
+        const bottomPanelRect = flowCanvasRef.current
+          ?.querySelector<HTMLElement>(".graph-bottom-panel-container")
+          ?.getBoundingClientRect();
+        let visibleCanvasHeight = canvasRect?.height ?? 0;
+        if (canvasRect && bottomPanelRect) {
+          visibleCanvasHeight = Math.max(0, Math.min(canvasRect.height, bottomPanelRect.top - canvasRect.top));
+        }
+        const portZoom = getTallNodePortZoom(
+          targetHeight,
+          visibleCanvasHeight
+        );
+        if (portZoom !== undefined) {
+          const portHandle = Array.from(
+            flowCanvasRef.current?.querySelectorAll<HTMLElement>("[data-autosar-port-id]") ?? []
+          ).find((element) => element.dataset.autosarPortId === activeCompositionPortId);
+          if (portHandle) {
+            const portRect = portHandle.getBoundingClientRect();
+            const portCenter = reactFlowRef.current.screenToFlowPosition({
+              x: portRect.left + portRect.width / 2,
+              y: portRect.top + portRect.height / 2
+            });
+            // React Flow centers within the whole canvas. Shift the target up
+            // so an expanded bottom panel cannot cover the selected port.
+            const panelOffset = ((canvasRect?.height ?? 0) - visibleCanvasHeight) / (2 * portZoom);
+            void reactFlowRef.current.setCenter(portCenter.x, portCenter.y + panelOffset, {
+              zoom: portZoom,
+              duration: 220
+            });
+            return;
+          }
+          if (attempt < GRAPH_FOCUS_RETRY_COUNT) {
+            attempt += 1;
+            frameId = window.requestAnimationFrame(focusTargetNode);
+            return;
+          }
+        }
+      }
+
       void reactFlowRef.current.setCenter(focusBounds.x + focusBounds.width / 2, focusBounds.y + focusBounds.height / 2, {
         zoom,
         duration: 220
@@ -358,7 +467,7 @@ export function AutosarEditor(props: AutosarEditorProps) {
 
   let flowCanvasKey = "empty";
   if (graphResult) {
-    flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${props.preferredNodeId ?? ""}`;
+    flowCanvasKey = `${graphResult.scope}:${graphResult.focusId}:${props.preferredNodeId ?? ""}:${compositionContextKey ?? "template"}`;
   }
 
   function handleNodeClick(_event: React.MouseEvent, node: Node) {
@@ -394,12 +503,23 @@ export function AutosarEditor(props: AutosarEditorProps) {
       targetScope = "composition";
     }
 
+    let compositionContextPaths = props.activeWorkspaceTab?.compositionContextPaths;
+    let compositionTreeOrigin = props.activeWorkspaceTab?.compositionTreeOrigin;
+    if (targetScope === "composition" && graphNode.kind === "instance" && graphNode.semanticPath) {
+      compositionContextPaths = compositionContextPaths
+        ? [...compositionContextPaths, graphNode.semanticPath]
+        : [graphNode.semanticPath];
+      compositionTreeOrigin ??= "template";
+    }
+
     props.onFocusModelEntity?.({
       entityId: targetEntityId,
       semanticPath: targetSemanticPath,
       preferredScope: targetScope,
       preferredNodeId: undefined,
-      includeCompositionInternals: false
+      includeCompositionInternals: false,
+      compositionContextPaths,
+      compositionTreeOrigin
     });
   }
 

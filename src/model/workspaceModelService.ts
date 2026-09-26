@@ -18,6 +18,7 @@ import { buildReferenceInstancesByTargetId } from "./entityReferenceService";
 import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./autosarModel";
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
+import { buildVectorEcuModel } from "./vectorEcuModelService";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -26,6 +27,8 @@ const parser = new XMLParser({
   allowBooleanAttributes: true
 });
 
+const vectorMetadataPattern = "**/*.{dpa,dcf,dvgproj,dvgproject,dvcfg}";
+const arxmlPattern = "**/*.arxml";
 const modelInputPattern = "**/*.{arxml,dpa,dcf,dvgproj,dvgproject,dvcfg}";
 
 export class WorkspaceModelService implements vscode.Disposable {
@@ -36,6 +39,7 @@ export class WorkspaceModelService implements vscode.Disposable {
   private workspaceFolder?: vscode.WorkspaceFolder;
   private singleFilePath?: string;
   private indexingGeneration = 0;
+  private workspaceIndexPromise?: Promise<WorkspaceSnapshot | null>;
 
   constructor(private readonly logger: AutosarLogger = noopAutosarLogger) {
     const watcher = vscode.workspace.createFileSystemWatcher(modelInputPattern);
@@ -65,7 +69,48 @@ export class WorkspaceModelService implements vscode.Disposable {
     };
   }
 
-  async refresh() {
+  /**
+   * Returns the current workspace model when it is already available. If an
+   * index is running, every caller waits for that same operation instead of
+   * starting another parse of the workspace.
+   */
+  async ensureWorkspaceIndexed() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      return this.refresh();
+    }
+
+    const hasCurrentWorkspace =
+      this.workspace !== undefined &&
+      this.singleFilePath === undefined &&
+      this.workspaceFolder?.uri.toString() === workspaceFolder.uri.toString();
+
+    if (hasCurrentWorkspace) {
+      return this.workspace ?? null;
+    }
+
+    return this.refresh();
+  }
+
+  refresh(): Promise<WorkspaceSnapshot | null> {
+    if (this.workspaceIndexPromise) {
+      return this.workspaceIndexPromise;
+    }
+
+    const indexPromise = this.indexWorkspaceFolder();
+    this.workspaceIndexPromise = indexPromise;
+
+    const clearCompletedIndex = () => {
+      if (this.workspaceIndexPromise === indexPromise) {
+        this.workspaceIndexPromise = undefined;
+      }
+    };
+    void indexPromise.then(clearCompletedIndex, clearCompletedIndex);
+
+    return indexPromise;
+  }
+
+  private async indexWorkspaceFolder() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) {
       this.workspaceFolder = undefined;
@@ -154,21 +199,41 @@ export class WorkspaceModelService implements vscode.Disposable {
   private async indexWorkspace(workspaceFolder: vscode.WorkspaceFolder, generation: number) {
     const rootPath = workspaceFolder.uri.fsPath;
     this.logger.info(`Indexing AUTOSAR workspace: ${rootPath}`);
-    const explorerEntries = await collectModelExplorerEntries(workspaceFolder);
-    const vectorProject = await discoverVectorProject(rootPath, explorerEntries);
-    const arxmlEntries = explorerEntries.filter(
-      (entry) => entry.kind === "file" && entry.name.toLowerCase().endsWith(".arxml")
-    );
-    this.logger.info(`Discovered ${arxmlEntries.length} ARXML file(s) in workspace.`);
+    const metadataEntries = await collectModelExplorerEntries(workspaceFolder, vectorMetadataPattern);
+    let discoveredArxmlEntries: ExplorerEntry[] | undefined;
+    const findAllArxmlEntries = async () => {
+      if (!discoveredArxmlEntries) {
+        discoveredArxmlEntries = await collectModelExplorerEntries(workspaceFolder, arxmlPattern);
+      }
+      return discoveredArxmlEntries;
+    };
+    const vectorProject = await discoverVectorProject(rootPath, metadataEntries, findAllArxmlEntries);
     if (vectorProject) {
       this.logger.info(
         `Detected Vector DaVinci project metadata: ${vectorProject.project.metadataFiles
           .map((file) => file.relativePath)
           .join(", ")}`
       );
-      this.logger.info("Workspace project config file found; parsing ARXML inputs from project configuration.");
     } else {
-      this.logger.info("No workspace project config file found; parsing individual ARXML files discovered in workspace.");
+      this.logger.info("No Vector DaVinci project metadata found; scanning workspace ARXML files.");
+    }
+
+    const arxmlEntries = vectorProject
+      ? vectorProject.project.inputFiles.map((input): ExplorerEntry => ({
+          name: path.basename(input.filePath),
+          relativePath: input.relativePath,
+          filePath: input.filePath,
+          kind: "file",
+          openable: true
+        }))
+      : await findAllArxmlEntries();
+    const explorerEntries = [...metadataEntries, ...arxmlEntries].sort((left, right) =>
+      left.relativePath.localeCompare(right.relativePath)
+    );
+    if (vectorProject) {
+      this.logger.info(`Resolved ${arxmlEntries.length} ARXML input(s) from the selected Vector project.`);
+    } else {
+      this.logger.info(`Discovered ${arxmlEntries.length} ARXML file(s) in workspace.`);
     }
     const project: WorkspaceProjectInfo = vectorProject?.project ?? {
       kind: "folder",
@@ -186,13 +251,13 @@ export class WorkspaceModelService implements vscode.Disposable {
     const documents: ArxmlDocumentData[] = [];
 
     if (inputPaths.length === 0) {
-      this.logger.warning(`No ARXML files found in workspace: ${rootPath}`);
+      if (vectorProject) {
+        this.logger.warning(`No ARXML inputs resolved for Vector project: ${vectorProject.project.displayName}.`);
+      } else {
+        this.logger.warning(`No ARXML files found in workspace: ${rootPath}`);
+      }
     } else {
-      this.logger.info(`Parsing ${inputPaths.length} ARXML file(s) during workspace loading:`);
-      inputPaths
-        .map((filePath) => path.relative(rootPath, filePath))
-        .sort((left, right) => left.localeCompare(right))
-        .forEach((relativePath) => this.logger.info(`  ${relativePath}`));
+      this.logger.info(`Parsing ${inputPaths.length} ARXML file(s) during workspace loading.`);
     }
 
     for (const filePath of inputPaths) {
@@ -221,8 +286,15 @@ export class WorkspaceModelService implements vscode.Disposable {
       }))
       .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 
-    const entities = validatedDocuments.flatMap((document) => document.entities);
-    const connections = validatedDocuments.flatMap((document) => document.connections);
+    const vectorEcu = vectorProject
+      ? buildVectorEcuModel(validatedDocuments, vectorProject.project)
+      : undefined;
+    const flatExtractPath = vectorProject?.project.vectorEcuInputs?.flatExtractFilePath;
+    const canonicalDocuments = flatExtractPath
+      ? validatedDocuments.filter((document) => path.normalize(document.filePath).toLowerCase() !== path.normalize(flatExtractPath).toLowerCase())
+      : validatedDocuments;
+    const entities = canonicalDocuments.flatMap((document) => document.entities);
+    const connections = canonicalDocuments.flatMap((document) => document.connections);
     return {
       rootPath,
       workspaceKind: project.kind,
@@ -239,6 +311,7 @@ export class WorkspaceModelService implements vscode.Disposable {
       connectedPortsByPortId: buildConnectedPortsByPortId(entities, connections),
       referenceInstancesByTargetId: buildReferenceInstancesByTargetId(entities),
       connections,
+      vectorEcu,
       watched: true,
       lastIndexedAt: new Date().toISOString()
     } satisfies WorkspaceSnapshot;
@@ -314,9 +387,12 @@ export class WorkspaceModelService implements vscode.Disposable {
   }
 }
 
-async function collectModelExplorerEntries(workspaceFolder: vscode.WorkspaceFolder): Promise<ExplorerEntry[]> {
+async function collectModelExplorerEntries(
+  workspaceFolder: vscode.WorkspaceFolder,
+  pattern: string
+): Promise<ExplorerEntry[]> {
   const rootPath = workspaceFolder.uri.fsPath;
-  const uris = await vscode.workspace.findFiles(modelInputPattern, "**/{node_modules,.git,dist,out}/**");
+  const uris = await vscode.workspace.findFiles(pattern, "**/{node_modules,.git,dist,out}/**");
   return uris
     .filter((uri) => isInsideWorkspace(rootPath, uri.fsPath))
     .map((uri) => ({
@@ -345,7 +421,7 @@ async function parseModelDocument(
       validationScope
     });
     logger.info(
-      `Parsed ARXML: ${path.relative(rootPath, filePath)} (${model.entities.length} model entity/entities, ${model.connections.length} connection(s)).`
+      `    ${path.relative(rootPath, filePath)} (${model.entities.length} model entity, ${model.connections.length} connection(s)).`
     );
 
     return {

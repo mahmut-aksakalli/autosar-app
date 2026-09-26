@@ -11,6 +11,7 @@ import type {
 } from "../shared/contracts";
 import type { WorkspaceSnapshot } from "../shared/contracts";
 import { enrichPortCommunicationSpecsFromEntities, enrichPortInterfaceMetadataFromEntities } from "./autosarModel";
+import { buildNestedServiceConnections, buildRootServiceExternalConnections, getCompositionOccurrenceName, getRootServiceInstances } from "./vectorEcuModelService";
 
 export interface WorkspaceSnapshotProvider {
   getSnapshot(): WorkspaceSnapshot | null;
@@ -62,24 +63,39 @@ export class GraphService {
       };
     }
 
-    return buildCompositionGraph(focus, entities, connections, entityBySemanticPath, query.includeCompositionInternals === true);
+    return buildCompositionGraph(
+      focus,
+      workspace,
+      entityBySemanticPath,
+      query.includeCompositionInternals === true,
+      query.compositionContextPaths
+    );
   }
 }
 
 function buildCompositionGraph(
   focus: AutosarEntity,
-  entities: AutosarEntity[],
-  connections: PortConnection[],
+  workspace: WorkspaceSnapshot,
   entityBySemanticPath: Map<string, AutosarEntity>,
-  includeInternals: boolean
+  includeInternals: boolean,
+  compositionContextPaths: string[] | undefined
 ): SwcGraphResult {
+  const entities = workspace.entities;
+  const connections = workspace.connections;
   const warnings: ValidationIssue[] = [];
   const nodes = new Map<string, SwcGraphNode>();
   const edges: SwcGraphEdge[] = [];
 
   const focusSemanticPath = focus.semanticPath;
   const outerPorts = collectPortsForOwner(entities, focusSemanticPath);
-  nodes.set(focus.id, toComponentNode(focus, outerPorts));
+  const focusNode = toComponentNode(focus, outerPorts);
+  if (compositionContextPaths && (
+    compositionContextPaths.length > 0 || focus.id === workspace.vectorEcu?.rootCompositionId
+  )) {
+    focusNode.label = getCompositionOccurrenceName(workspace, focus.shortName, compositionContextPaths);
+    focusNode.metadata = { ...(focusNode.metadata ?? {}), TYPE: focus.shortName };
+  }
+  nodes.set(focus.id, focusNode);
 
   if (!includeInternals) {
     return {
@@ -91,9 +107,13 @@ function buildCompositionGraph(
     };
   }
 
-  const instances = entities.filter(
+  const authoredInstances = entities.filter(
     (entity) => entity.type === "instance" && entity.parentSemanticPath === focusSemanticPath
   );
+  const serviceInstances = compositionContextPaths && focus.id === workspace.vectorEcu?.rootCompositionId
+    ? getRootServiceInstances(workspace)
+    : [];
+  const instances = [...authoredInstances, ...serviceInstances];
 
   instances.forEach((instance) => {
     const typeEntity = instance.typeRef ? entityBySemanticPath.get(instance.typeRef) : undefined;
@@ -143,13 +163,90 @@ function buildCompositionGraph(
     }
   });
 
+  if (serviceInstances.length > 0) {
+    addRootServiceConnections(workspace, nodes, outerPorts, warnings, edges, focus.id);
+  }
+
+  const externalConnections = compositionContextPaths && compositionContextPaths.length > 0
+    ? buildNestedServiceConnections(workspace, nodes, compositionContextPaths)
+    : [];
+  if (serviceInstances.length > 0) {
+    externalConnections.push(...buildRootServiceExternalConnections(workspace, nodes));
+  }
+
   return {
     scope: "composition",
     focusId: focus.semanticPath ?? focus.id,
     nodes: Array.from(nodes.values()),
     edges,
-    warnings
+    warnings,
+    externalConnections
   };
+}
+
+function addRootServiceConnections(
+  workspace: WorkspaceSnapshot,
+  nodes: Map<string, SwcGraphNode>,
+  outerPorts: SwcGraphPort[],
+  warnings: ValidationIssue[],
+  edges: SwcGraphEdge[],
+  focusNodeId: string
+) {
+  const model = workspace.vectorEcu;
+  if (!model) {
+    return;
+  }
+  const servicePaths = new Set(getRootServiceInstances(workspace).map((instance) => instance.semanticPath));
+  const visibleInstancePaths = new Set(
+    Array.from(nodes.values())
+      .filter((node) => node.kind === "instance")
+      .map((node) => node.semanticPath)
+  );
+  const directInstanceByFlatPath = new Map<string, string>();
+  for (const mapping of model.instanceMappings) {
+    // Nested leaves belong to their own composition view; this view contains
+    // only the root composition's direct children.
+    if (mapping.upstreamContextPaths.length !== 0) {
+      continue;
+    }
+    if (visibleInstancePaths.has(mapping.upstreamInstancePath)) {
+      directInstanceByFlatPath.set(mapping.flatInstancePath, mapping.upstreamInstancePath);
+    }
+  }
+  for (const servicePath of servicePaths) {
+    if (servicePath) {
+      directInstanceByFlatPath.set(servicePath, servicePath);
+    }
+  }
+
+  for (const connection of model.flatConnections) {
+    if (connection.kind !== "assembly") {
+      continue;
+    }
+    const providerPath = connection.providerComponentRef;
+    const requesterPath = connection.requesterComponentRef;
+    if (!servicePaths.has(providerPath) && !servicePaths.has(requesterPath)) {
+      continue;
+    }
+    const provider = providerPath ? directInstanceByFlatPath.get(providerPath) : undefined;
+    const requester = requesterPath ? directInstanceByFlatPath.get(requesterPath) : undefined;
+    if (!provider || !requester) {
+      continue;
+    }
+    // Reuse the normal graph edge and port-handle resolution after translating
+    // flat instance paths to the visible prototype paths.
+    const edge: SwcGraphEdge | undefined = toGraphEdge(
+      { ...connection, providerComponentRef: provider, requesterComponentRef: requester },
+      nodes,
+      outerPorts,
+      warnings,
+      focusNodeId
+    );
+    if (edge) {
+      edge.connectionCategory = "service";
+      edges.push(edge);
+    }
+  }
 }
 
 function findFocusEntity(entities: AutosarEntity[], query: SwcGraphQuery) {
