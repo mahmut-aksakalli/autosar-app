@@ -41,7 +41,9 @@ export function SenderReceiverPortDetails(props: {
     const updateHeight = () => {
       window.cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        const availableHeight = window.innerHeight - tableWrap.getBoundingClientRect().top - 12;
+        const contentBottom = tableWrap.closest(".model-details-tab-content")
+          ?.getBoundingClientRect().bottom ?? window.innerHeight;
+        const availableHeight = contentBottom - tableWrap.getBoundingClientRect().top - 12;
         setTableViewportHeight(Math.max(260, availableHeight));
       });
     };

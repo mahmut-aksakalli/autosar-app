@@ -8,6 +8,7 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function ParameterDetails(props: {
   title: string;
@@ -20,11 +21,10 @@ export function ParameterDetails(props: {
   const measurementCalibration = formatMeasurementCalibrationOption(metadata["SW-CALIBRATION-ACCESS"] ?? "-");
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.parameter?.id ?? props.title}
+      tabs={[{ id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Parameter Name</span>
@@ -78,7 +78,7 @@ export function ParameterDetails(props: {
             </strong>
           </div>
         </div>
-      </div>
-    </div>
+      ) }]}
+    />
   );
 }

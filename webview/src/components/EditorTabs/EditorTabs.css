@@ -17,6 +17,7 @@
 }
 
 .editor-tab {
+  position: relative;
   display: flex;
   align-items: center;
   flex: 0 0 auto;
@@ -36,12 +37,29 @@
   color: #2f3944;
 }
 
+.editor-tab.active::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--accent, #2d78c4);
+  pointer-events: none;
+}
+
 .editor-tab-button,
 .editor-tab-close {
   min-height: 34px;
   border: 0;
   background: transparent;
   color: inherit;
+}
+
+.editor-tab-button:hover:not(:disabled),
+.editor-tab-close:hover:not(:disabled) {
+  background: transparent;
 }
 
 .editor-tab-button {

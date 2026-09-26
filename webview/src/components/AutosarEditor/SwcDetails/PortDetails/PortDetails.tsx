@@ -4,6 +4,7 @@ import type {
 } from "../../../../../../src/shared/contracts";
 import { formatBooleanMetadata } from "../../../Common/Details/DetailsFormatters";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import { CommunicationSpecsSection } from "./CommunicationSpecs";
 import { PortApiOptionsSection } from "./PortApiOptions";
 import { ConnectedPortsTable } from "./ConnectedPortsTable";
@@ -36,11 +37,11 @@ export function PortDetails(props: {
   const directionLabel = formatPortDirectionLabel(props.port?.direction, interfaceKind);
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.port?.id ?? props.title}
+      tabs={[
+        { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
@@ -77,20 +78,26 @@ export function PortDetails(props: {
             <strong>{props.port?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
-
-        <PortApiOptionsSection port={props.port} argumentValues={argumentValues} />
-        <CommunicationSpecsSection
-          rows={displayedSpecs}
-          interfaceKind={interfaceKind}
-          title={specsTitle}
-          onOpenReferencedEntity={props.onOpenReferencedEntity}
-          canOpenReferencedEntity={props.canOpenReferencedEntity}
-        />
-        <ConnectedPortsTable
-          connections={props.connectedPorts}
-          onConnectionSelect={props.onConnectedPortSelect}
-        />
-      </div>
-    </div>
+        ) },
+        { id: "api", label: "API Options", content: (
+          <PortApiOptionsSection port={props.port} argumentValues={argumentValues} />
+        ) },
+        { id: "members", label: specsTitle, count: displayedSpecs.length, content: (
+          <CommunicationSpecsSection
+            rows={displayedSpecs}
+            interfaceKind={interfaceKind}
+            title={specsTitle}
+            onOpenReferencedEntity={props.onOpenReferencedEntity}
+            canOpenReferencedEntity={props.canOpenReferencedEntity}
+          />
+        ) },
+        { id: "connections", label: "Connected Ports", count: props.connectedPorts.length, content: (
+          <ConnectedPortsTable
+            connections={props.connectedPorts}
+            onConnectionSelect={props.onConnectedPortSelect}
+          />
+        ) }
+      ]}
+    />
   );
 }

@@ -7,6 +7,7 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function PerInstanceMemoryDetails(props: {
   title: string;
@@ -17,11 +18,10 @@ export function PerInstanceMemoryDetails(props: {
   const metadata = props.item?.metadata ?? {};
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.item?.id ?? props.title}
+      tabs={[{ id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
@@ -69,7 +69,7 @@ export function PerInstanceMemoryDetails(props: {
             <strong>{formatReferenceShortName(metadata["SW-ADDR-METHOD-REF"])}</strong>
           </div>
         </div>
-      </div>
-    </div>
+      ) }]}
+    />
   );
 }

@@ -11,6 +11,7 @@ import {
   readBooleanMetadata
 } from "../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
+import { DetailsBottomTabs } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import { ClientServerPortDetails } from "./ClientServerPortDetails/ClientServerPortDetails";
 import { buildPortInterfaceDetailTables } from "./PortInterfaceDetailsHelper";
 import { SenderReceiverPortDetails } from "./SenderReceiverPortDetails/SenderReceiverPortDetails";
@@ -51,11 +52,12 @@ export function PortInterfaceDetails(props: {
   ];
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={`${props.entity.id}:${props.selectedInstancePath ?? ""}`}
+      initialTabId={props.selectedInstancePath ? "members" : "general"}
+      tabs={[
+        { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           {fields.map((field, index) => (
             <div key={`${field.label}:${index}`}>
@@ -66,7 +68,9 @@ export function PortInterfaceDetails(props: {
             </div>
           ))}
         </div>
-
+        ) },
+        { id: "members", label: "Members", count: interfaceMembers.length, content: (
+          <>
         {props.entity.interfaceKind === "sender-receiver" && (
           <SenderReceiverPortDetails
             members={interfaceMembers}
@@ -84,12 +88,16 @@ export function PortInterfaceDetails(props: {
         {[...details.tables, ...interfaceTables].map((table) => (
           <EntityDetailTable key={table.title} table={table} />
         ))}
-        <ReferenceInstancesTable
-          instances={props.referenceInstances}
-          onInstanceSelect={props.onReferenceInstanceSelect}
-        />
-      </div>
-    </div>
+          </>
+        ) },
+        { id: "instances", label: "Instances", count: props.referenceInstances.length, content: (
+          <ReferenceInstancesTable
+            instances={props.referenceInstances}
+            onInstanceSelect={props.onReferenceInstanceSelect}
+          />
+        ) }
+      ]}
+    />
   );
 }
 

@@ -8,6 +8,7 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function InterRunnableVariableDetails(props: {
   title: string;
@@ -19,11 +20,11 @@ export function InterRunnableVariableDetails(props: {
   const accessRows = props.variable?.details?.interRunnableVariableAccesses ?? [];
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.variable?.id ?? props.title}
+      tabs={[
+        { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
@@ -77,9 +78,12 @@ export function InterRunnableVariableDetails(props: {
             <strong>{formatReferenceShortName(metadata["SW-ADDR-METHOD-REF"])}</strong>
           </div>
         </div>
-        <InterRunnableVariableAccessTable rows={accessRows} />
-      </div>
-    </div>
+        ) },
+        { id: "access", label: "Access Points", count: accessRows.length, content: (
+          <InterRunnableVariableAccessTable rows={accessRows} />
+        ) }
+      ]}
+    />
   );
 }
 

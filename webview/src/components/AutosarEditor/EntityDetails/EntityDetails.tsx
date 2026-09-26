@@ -11,6 +11,7 @@ import {
   initValueTypeOptions
 } from "../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
+import { DetailsBottomTabs, type DetailsTab } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function EntityDetails(props: {
   title: string;
@@ -31,12 +32,8 @@ export function EntityDetails(props: {
     ...details.fields
   ];
 
-  return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+  const tabs: DetailsTab[] = [
+    { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           {fields.map((field, index) => (
             <div key={`${field.label}:${index}`}>
@@ -47,17 +44,30 @@ export function EntityDetails(props: {
             </div>
           ))}
         </div>
-        {details.tables.map((table) => (
-          <EntityDetailTable key={table.title} table={table} />
-        ))}
-        {props.referenceInstances && (
-          <ReferenceInstancesTable
-            instances={props.referenceInstances}
-            onInstanceSelect={props.onReferenceInstanceSelect}
-          />
-        )}
-      </div>
-    </div>
+    ) }
+  ];
+  if (details.tables.length > 0) {
+    tabs.push({
+      id: "members",
+      label: "Members",
+      count: details.tables.reduce((total, table) => total + table.rows.length, 0),
+      content: details.tables.map((table) => <EntityDetailTable key={table.title} table={table} />)
+    });
+  }
+  if (props.referenceInstances) {
+    tabs.push({
+      id: "instances",
+      label: "Instances",
+      count: props.referenceInstances.length,
+      content: <ReferenceInstancesTable
+        instances={props.referenceInstances}
+        onInstanceSelect={props.onReferenceInstanceSelect}
+      />
+    });
+  }
+
+  return (
+    <DetailsBottomTabs title={props.title} contextKey={props.entity.id} tabs={tabs} />
   );
 }
 

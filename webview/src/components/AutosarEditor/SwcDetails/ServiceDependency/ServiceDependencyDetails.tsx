@@ -4,6 +4,7 @@ import type {
   SwcInspectorItem
 } from "../../../../../../src/shared/contracts";
 import { normalizeAutosarEnumToken } from "../../../Common/Details/DetailsFormatters";
+import { DetailsBottomTabs, type DetailsTab } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import {
   getServiceNeedDetailRows,
   getServiceNeedSelectOptions,
@@ -35,25 +36,33 @@ export function ServiceDependencyDetails(props: { title: string; item?: SwcInspe
     : [];
   const assignedPorts = props.item?.details?.assignedPorts ?? [];
 
-  return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+  const tabs: DetailsTab[] = [
+    { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-port-fields">
           {detailRows.map((detail) => (
             <ServiceNeedDetailRow key={detail.label} detail={detail} />
           ))}
         </div>
-        {isNvBlockNeeds ? <NvmAssignedDataTable rows={assignedData} /> : null}
-        {isDiagnosticEnableConditionNeeds ? <ServiceDataAssignmentsTable rows={dataAssignments} /> : null}
-        <ServiceAssignedPortsTable
+    ) }
+  ];
+  if (isNvBlockNeeds) {
+    tabs.push({ id: "data", label: "Assigned Data", count: assignedData.length, content: <NvmAssignedDataTable rows={assignedData} /> });
+  }
+  if (isDiagnosticEnableConditionNeeds) {
+    tabs.push({ id: "data", label: "Data Assignments", count: dataAssignments.length, content: <ServiceDataAssignmentsTable rows={dataAssignments} /> });
+  }
+  tabs.push({
+    id: "ports",
+    label: "Assigned Ports",
+    count: assignedPorts.length,
+    content: <ServiceAssignedPortsTable
           rows={assignedPorts}
           title={isDiagnosticEnableConditionNeeds ? "Port Assignments" : "Assigned Ports"}
         />
-      </div>
-    </div>
+  });
+
+  return (
+    <DetailsBottomTabs title={props.title} contextKey={props.item?.id ?? props.title} tabs={tabs} />
   );
 }
 
