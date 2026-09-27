@@ -1,5 +1,4 @@
 import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../../src/shared/contracts";
-import { compareTableText } from "../SwcDetails/TableData/TableData";
 import { formatCalibrationAccess, formatInitValueTypeOption } from "../../Common/Details/DetailsFormatters";
 
 export function buildPortInterfaceDetailTables(
@@ -11,20 +10,8 @@ export function buildPortInterfaceDetailTables(
     return [];
   }
   if (entity.interfaceKind === "client-server") {
-    const applicationErrors = members
-      .filter((member) => member.kind === "applicationError")
-      .map((member) => ({
-        name: member.label,
-        code: metadata(member)["ERROR-CODE"] ?? "-"
-      }))
-      .sort((left, right) => compareAutosarErrorCodes(left.code, right.code) || compareTableText(left.name, right.name));
-    return [
-      {
-        title: "Application Errors",
-        columns: [{ key: "code", label: "Error Code" }, { key: "name", label: "Error" }],
-        rows: applicationErrors
-      }
-    ];
+    // Application errors are shown with the selected operation, not as a second member table.
+    return [];
   }
 
   if (entity.interfaceKind === "mode-switch") {
@@ -69,15 +56,4 @@ export function buildPortInterfaceDetailTables(
       addressing: metadata(member)["SW-ADDR-METHOD-REF"] ?? "-"
     }))
   }];
-}
-
-export function compareAutosarErrorCodes(left: string, right: string) {
-  const leftNumber = Number(left);
-  const rightNumber = Number(right);
-  const leftIsNumeric = Number.isFinite(leftNumber);
-  const rightIsNumeric = Number.isFinite(rightNumber);
-  if (leftIsNumeric && rightIsNumeric) return leftNumber - rightNumber;
-  if (leftIsNumeric) return -1;
-  if (rightIsNumeric) return 1;
-  return compareTableText(left, right);
 }

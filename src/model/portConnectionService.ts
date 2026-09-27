@@ -54,6 +54,8 @@ export function buildConnectedPortsByPortId(
       portId: targetPort?.id,
       ...(targetPort?.xmlPath ? { portXmlPath: targetPort.xmlPath } : {}),
       portName: targetPort?.shortName ?? getReferenceLeafName(targetPortRef),
+      ...(targetPort?.portDirection ? { portDirection: targetPort.portDirection } : {}),
+      ...(targetPort?.interfaceKind ? { interfaceKind: targetPort.interfaceKind } : {}),
       portInterface: getReferenceLeafName(targetPort?.typeRef),
       portInterfaceRef: targetPort?.typeRef,
       ownerEntityId: targetOwnerEntity?.id,

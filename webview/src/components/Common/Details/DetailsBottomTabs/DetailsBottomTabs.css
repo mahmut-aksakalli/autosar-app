@@ -60,6 +60,47 @@
   overscroll-behavior: contain;
 }
 
+/* General fields read as one continuous property sheet, not boxed cells. */
+.model-details-tab-content > .model-semantic-kv {
+  display: block;
+  flex: none;
+  overflow: visible;
+  padding: 0;
+}
+
+.model-details-tab-content > .model-semantic-kv > div,
+.model-details-tab-content > .model-semantic-kv > div:last-child {
+  display: grid;
+  grid-template-columns: minmax(170px, 240px) minmax(0, 1fr);
+  align-items: start;
+  min-height: 42px;
+  border: 0;
+  border-top: 1px solid #dfe5ec;
+}
+
+.model-details-tab-content > .model-semantic-kv > div:first-child {
+  border-top: 0;
+}
+
+.model-details-tab-content > .model-semantic-kv > div > span,
+.model-details-tab-content > .model-semantic-kv > div > strong {
+  min-width: 0;
+  padding: 8px 12px;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.model-details-tab-content > .model-semantic-kv > div > span {
+  color: #586b7f;
+  font-weight: 400;
+}
+
+.model-details-tab-content > .model-semantic-kv > div > strong {
+  color: #233344;
+  font-weight: 500;
+}
+
 .model-details-tab-content > .model-list-section:first-child,
 .model-details-tab-content > .model-port-argument-section:first-child,
 .model-details-tab-content > .model-port-comspec-section:first-child,
@@ -125,4 +166,15 @@
   color: #36516b;
   font-size: 11px;
   text-align: center;
+}
+
+@media (max-width: 820px) {
+  .model-details-tab-content > .model-semantic-kv > div,
+  .model-details-tab-content > .model-semantic-kv > div:last-child {
+    grid-template-columns: 1fr;
+  }
+
+  .model-details-tab-content > .model-semantic-kv > div > span {
+    padding-bottom: 0;
+  }
 }

@@ -1,6 +1,7 @@
 import type { NodeProps } from "@xyflow/react";
 import { useCallback, useState } from "react";
 import type { SwcGraphNode } from "../../../../../../src/shared/contracts";
+import { formatSwcKindSymbol } from "../../../Common/SwcKindSymbol";
 import { getPortRailWidth, type FlowNode } from "../AutosarSwcLayout";
 import { SwcNodeContextMenu } from "./SwcNodeContextMenu/SwcNodeContextMenu";
 import { SwcPorts } from "./SwcPorts/SwcPorts";
@@ -162,28 +163,5 @@ function formatSwcKindLabel(kind: SwcGraphNode["swcKind"]) {
       return "NvBlock SWC";
     default:
       return "SWC";
-  }
-}
-
-function formatSwcKindSymbol(kind: SwcGraphNode["swcKind"]) {
-  switch (kind) {
-    case "service":
-      return "S";
-    case "sensor-actuator":
-      return "A";
-    case "ecu-abstraction":
-      return "E";
-    case "complex-device-driver":
-      return "D";
-    case "nv-block":
-      return "N";
-    case "parameter":
-      return "P";
-    case "service-proxy":
-      return "X";
-    case "application":
-      return "C";
-    default:
-      return "G";
   }
 }

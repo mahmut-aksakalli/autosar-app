@@ -21,6 +21,7 @@ const DPA_REFERENCE_PATTERN = /(?:file:\/\/\/)?["'(<>\s=]([^"'<>?\r\n]+?\.dpa)\b
 export interface VectorProjectDiscovery {
   project: WorkspaceProjectInfo;
   projectInputFilePaths: string[];
+  supplementalTypeFilePaths: string[];
 }
 
 export function isVectorMetadataFile(fileName: string) {
@@ -52,6 +53,7 @@ export async function discoverVectorProject(
   const visitedMetadataPaths = new Set(metadataFiles.map((file) => normalizePath(file.filePath)));
 
   const inputsByPath = new Map<string, { filePath: string; sourceMetadataPath?: string }>();
+  const supplementalTypePaths = new Set<string>();
   const vectorEcuInputs: NonNullable<WorkspaceProjectInfo["vectorEcuInputs"]> = {};
   let hasDeclaredInputs = false;
 
@@ -78,6 +80,7 @@ export async function discoverVectorProject(
         sourceMetadataPath: metadataFile.filePath
       });
     });
+    result.supplementalTypeReferences.forEach((filePath) => supplementalTypePaths.add(filePath));
 
     // DPA and DCF files can refer to each other. Follow only explicit links
     // from the selected project and visit each metadata file once.
@@ -127,7 +130,8 @@ export async function discoverVectorProject(
       indexedInBackground: true,
       indexingStatus: "loading"
     },
-    projectInputFilePaths: inputFiles.map((input) => input.filePath)
+    projectInputFilePaths: inputFiles.map((input) => input.filePath),
+    supplementalTypeFilePaths: Array.from(supplementalTypePaths)
   };
 }
 
@@ -198,6 +202,7 @@ async function collectReferencesFromMetadata(
   const references = new Set<string>();
   const dcfReferences = new Set<string>();
   const dpaReferences = new Set<string>();
+  const supplementalTypeReferences: string[] = [];
   let hasDeclaredInputs = false;
   let match: RegExpExecArray | null;
 
@@ -256,6 +261,19 @@ async function collectReferencesFromMetadata(
         references.add(filePath)
       );
     }
+
+    // Platform and system-extract files contain type definitions, but
+    // must not become canonical ECU inputs: they duplicate SWCs and interfaces.
+    if (selectedDpaReferences?.platformFolder) {
+      const platformFiles = await resolveDpaFolderReference(rootPath, metadataDir, selectedDpaReferences.platformFolder);
+      supplementalTypeReferences.push(...platformFiles.sort());
+    }
+    if (selectedDpaReferences?.systemExtract) {
+      const systemExtractPath = await resolveProjectReference(rootPath, metadataDir, selectedDpaReferences.systemExtract, ".arxml");
+      if (systemExtractPath) {
+        supplementalTypeReferences.push(systemExtractPath);
+      }
+    }
   }
 
   let flatMapFilePath: string | undefined;
@@ -279,6 +297,7 @@ async function collectReferencesFromMetadata(
     references: Array.from(references),
     dcfReferences: Array.from(dcfReferences),
     dpaReferences: Array.from(dpaReferences),
+    supplementalTypeReferences,
     hasDeclaredInputs,
     flatMapFilePath,
     flatExtractFilePath
@@ -290,9 +309,13 @@ function collectDpaEcuReferences(content: string) {
     const parsed = vectorMetadataParser.parse(content) as Record<string, unknown>;
     const root = parsed.ProjectAssistant as Record<string, unknown> | undefined;
     const entries = root?.References as Record<string, unknown> | undefined;
+    const folders = root?.Folders as Record<string, unknown> | undefined;
+    const input = root?.Input as Record<string, unknown> | undefined;
     return {
       flatMap: collectXmlTextValues(entries?.FlatMap)[0],
-      flatExtract: collectXmlTextValues(entries?.FlatECUEX)[0]
+      flatExtract: collectXmlTextValues(entries?.FlatECUEX)[0],
+      platformFolder: collectXmlTextValues(folders?.AUTOSAR)[0],
+      systemExtract: collectXmlTextValues(input?.ECUEX)[0]
     };
   } catch {
     return undefined;

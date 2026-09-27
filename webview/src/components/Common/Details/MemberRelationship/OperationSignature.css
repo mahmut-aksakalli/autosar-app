@@ -1,0 +1,94 @@
+.model-operation-signature {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #b9cfe4;
+  border-radius: 4px;
+  background: #f9fbfd;
+  color: #20354d;
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.model-operation-signature-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.model-operation-signature-line:first-child {
+  align-items: center;
+}
+
+.model-operation-signature-line strong {
+  font-weight: 700;
+}
+
+.model-operation-signature-arguments {
+  display: grid;
+  gap: 2px;
+}
+
+.model-operation-signature-argument {
+  align-items: center;
+  padding-left: 4ch;
+}
+
+.model-operation-signature-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 1px 5px;
+  border: 1px solid #b9c7d6;
+  border-radius: 3px;
+  background: #edf2f7;
+  color: #526579;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.model-operation-signature-direction.is-in {
+  border-color: #a9d9bc;
+  background: #e2f5ec;
+  color: #1f6b46;
+}
+
+.model-operation-signature-direction.is-out {
+  border-color: #e7c293;
+  background: #fff0de;
+  color: #9a5418;
+}
+
+.model-operation-signature-direction.is-inout {
+  border-color: #c9b8e9;
+  background: #eee9fa;
+  color: #68499b;
+}
+
+.model-operation-signature-type {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1769af;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+button.model-operation-signature-type {
+  cursor: pointer;
+}
+
+button.model-operation-signature-type:hover,
+button.model-operation-signature-type:focus-visible {
+  text-decoration: underline;
+}

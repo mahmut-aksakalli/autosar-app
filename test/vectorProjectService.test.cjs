@@ -226,6 +226,26 @@ test("selects ECU model roles without indexing unrelated DPA products", async (c
   });
 });
 
+test("discovers platform and system type sources without adding them to ECU inputs", async (context) => {
+  const workspace = await createWorkspace(context);
+  await workspace.addFile(
+    "Project.dpa",
+    `<ProjectAssistant>
+      <Folders><AUTOSAR>Config/Platform</AUTOSAR></Folders>
+      <Input><ECUEX>Config/System/SystemExtract.arxml</ECUEX></Input>
+      <References><FlatECUEX>Config/System/FlatExtract.arxml</FlatECUEX></References>
+    </ProjectAssistant>`
+  );
+  const platform = await workspace.addFile("Config/Platform/PlatformTypes.arxml", "<AUTOSAR />");
+  const system = await workspace.addFile("Config/System/SystemExtract.arxml", "<AUTOSAR />");
+  const flatExtract = await workspace.addFile("Config/System/FlatExtract.arxml", "<AUTOSAR />");
+
+  const project = await discoverVectorProject(workspace.rootPath, workspace.entries);
+
+  assert.deepEqual(project.projectInputFilePaths, [flatExtract]);
+  assert.deepEqual(project.supplementalTypeFilePaths, [platform, system]);
+});
+
 async function createWorkspace(context) {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), "autosar-vector-project-"));
   const entries = [];

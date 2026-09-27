@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import type { CommunicationSpecDetail, PortInterfaceKind } from "../../../../../../src/shared/contracts";
+import { useState, type ReactNode } from "react";
+import type { AutosarEntity, CommunicationSpecDetail, InterfaceDetailMember, PortInterfaceKind } from "../../../../../../src/shared/contracts";
 import { CollapsibleSection } from "../../../Common/CollapsibleSection";
+import { MemberReferencePath } from "../../../Common/Details/MemberRelationship/MemberReferencePath";
+import { MemberRelationshipView } from "../../../Common/Details/MemberRelationship/MemberRelationshipView";
+import { OperationSignature } from "../../../Common/Details/MemberRelationship/OperationSignature";
+import { OperationPossibleErrors } from "../../../Common/Details/MemberRelationship/OperationPossibleErrors";
 import {
   formatHandleInvalidOption,
   formatInitValueTypeOption,
@@ -9,7 +13,8 @@ import {
   formatReferenceShortName,
   initValueTypeOptions,
   readBooleanMetadata,
-  readEnabledMetadata
+  readEnabledMetadata,
+  splitMetadataList
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import {
@@ -30,41 +35,10 @@ import {
 export function CommunicationSpecsSection(props: {
   rows: CommunicationSpecDetail[];
   interfaceKind: PortInterfaceKind;
+  interfaceRef?: string;
+  interfaceMembers?: InterfaceDetailMember[];
   title?: string;
-  onOpenReferencedEntity?: (referencePath: string) => void;
-  canOpenReferencedEntity?: (referencePath: string) => boolean;
-}) {
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  return (
-    <section className="model-list-section model-port-comspec-section">
-      <button
-        type="button"
-        className="model-list-section-toggle"
-        aria-expanded={isExpanded}
-        onClick={() => setIsExpanded((current) => !current)}
-      >
-        <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>{props.title ?? "Communication Specs"}</span>
-        <span className="model-list-section-count">{props.rows.length}</span>
-      </button>
-      {isExpanded && (
-        <CommunicationSpecsTable
-          rows={props.rows}
-          interfaceKind={props.interfaceKind}
-          embedded
-          onOpenReferencedEntity={props.onOpenReferencedEntity}
-          canOpenReferencedEntity={props.canOpenReferencedEntity}
-        />
-      )}
-    </section>
-  );
-}
-
-function CommunicationSpecsTable(props: {
-  rows: CommunicationSpecDetail[];
-  interfaceKind: PortInterfaceKind;
-  embedded?: boolean;
+  entities?: AutosarEntity[];
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
@@ -72,109 +46,87 @@ function CommunicationSpecsTable(props: {
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
     props.rows[0] ? getCommunicationSpecRowKey(props.rows[0]) : undefined
   );
-  const tableWrapRef = useRef<HTMLDivElement>(null);
-  const [tableViewportHeight, setTableViewportHeight] = useState<number>();
   // Use a value-based key instead of object identity because graph refreshes
   // replace the row objects even when the selected communication spec remains.
   const selectedRow = props.rows.find((row) => getCommunicationSpecRowKey(row) === selectedKey) ?? props.rows[0];
-
-  useEffect(() => {
-    const tableWrap = tableWrapRef.current;
-    if (!tableWrap) {
-      return;
-    }
-
-    // Keep the master-detail table within the visible webview. Do not measure
-    // on ancestor scroll: its viewport top changes while scrolling, which
-    // would make the table grow and continuously push later sections away.
-    let frameId = 0;
-    const updateHeight = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const availableHeight = window.innerHeight - tableWrap.getBoundingClientRect().top - 12;
-        setTableViewportHeight(Math.max(260, availableHeight));
-      });
-    };
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(document.body);
-    window.addEventListener("resize", updateHeight);
-    updateHeight();
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, [props.embedded, props.rows.length]);
+  const hasComSpecs = props.title !== "Interface Members";
+  const interfaceEntity = props.entities?.find((entity) =>
+    entity.type === "interface" && entity.semanticPath === props.interfaceRef
+  );
+  const members = interfaceEntity?.details?.interfaceMembers ?? props.interfaceMembers ?? [];
+  const selectedOperation = props.interfaceKind === "client-server" && selectedRow
+    ? members.find((member) => member.kind === "operation" && matchesMemberReference(selectedRow.dataElement, member))
+    : undefined;
+  const applicationErrors = members.filter((member) => member.kind === "applicationError");
+  const items = props.rows.map((row) => ({
+    key: getCommunicationSpecRowKey(row),
+    number: row.index,
+    label: formatReferenceShortName(row.dataElement),
+    description: hasComSpecs
+      ? `${formatCommunicationSpecDirectionLabel(row.comSpecDirection)} ComSpec`
+      : itemLabel
+  }));
+  let detailsContent: ReactNode = null;
+  if (!selectedRow) {
+    detailsContent = <div className="model-list-empty">Select a communication spec.</div>;
+  } else if (props.interfaceKind !== "client-server") {
+    detailsContent = (
+      <CommunicationSpecDetails
+        row={selectedRow}
+        itemLabel={itemLabel}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
+      />
+    );
+  }
 
   return (
-    <section className={props.embedded ? "model-port-comspec-table-section" : "model-list-section model-port-comspec-section"}>
-      {!props.embedded && <h3>Communication Specs</h3>}
-      {props.rows.length > 0 ? (
-        <div className="model-comspec-master-detail">
-          <div
-            ref={tableWrapRef}
-            className="model-runnable-table-scroll model-comspec-table-wrap"
-            style={tableViewportHeight ? { height: `${tableViewportHeight}px` } : undefined}
-          >
-            <table className="model-runnable-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "70px" }}>Index</th>
-                  <th>{itemLabel}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {props.rows.map((row) => {
-                  const rowKey = getCommunicationSpecRowKey(row);
-                  const isSelected = selectedRow ? rowKey === getCommunicationSpecRowKey(selectedRow) : false;
-                  return (
-                    <tr key={rowKey} className={isSelected ? "is-selected" : undefined}>
-                      <td title={row.index}>{row.index}</td>
-                      <td title={row.dataElement}>
-                        <button
-                          type="button"
-                          className="model-table-cell-button"
-                          aria-pressed={isSelected}
-                          onClick={() => setSelectedKey(rowKey)}
-                        >
-                          {formatReferenceShortName(row.dataElement)}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <aside className="model-comspec-detail-panel" aria-label={`${itemLabel} details`}>
-            {selectedRow ? (
-              <>
-                <div className="model-comspec-detail-heading">
-                  <span>{itemLabel}</span>
-                  <strong title={selectedRow.dataElement}>{formatReferenceShortName(selectedRow.dataElement)}</strong>
-                </div>
-                <CommunicationSpecDetails
-                  row={selectedRow}
-                  itemLabel={itemLabel}
-                  onOpenReferencedEntity={props.onOpenReferencedEntity}
-                  canOpenReferencedEntity={props.canOpenReferencedEntity}
-                />
-              </>
-            ) : (
-              <div className="model-list-empty">Select a communication spec.</div>
-            )}
-          </aside>
-        </div>
-      ) : (
-        <div className="model-list-empty">No communication specs discovered.</div>
-      )}
-    </section>
+    <MemberRelationshipView
+      title={hasComSpecs ? `${itemLabel}s and ComSpecs` : `${itemLabel}s`}
+      items={items}
+      selectedKey={selectedRow ? getCommunicationSpecRowKey(selectedRow) : undefined}
+      onSelect={setSelectedKey}
+      selectedKind={itemLabel}
+      selectedName={selectedRow ? formatReferenceShortName(selectedRow.dataElement) : undefined}
+      listFooter={selectedOperation && applicationErrors.length > 0 ? (
+        <OperationPossibleErrors
+          applicationErrors={applicationErrors}
+          selectedErrors={splitMetadataList(selectedOperation.metadata?.ERRORS)}
+        />
+      ) : undefined}
+      focus={selectedOperation ? (
+        <OperationSignature
+          key={selectedOperation.semanticPath ?? selectedOperation.label}
+          operation={selectedOperation}
+          entities={props.entities}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      ) : undefined}
+      path={!selectedOperation && selectedRow ? (
+        <MemberReferencePath
+          dataType={selectedRow.dataType}
+          dataConstraints={selectedRow.dataConstraints}
+          entities={props.entities}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      ) : undefined}
+    >
+      {detailsContent}
+    </MemberRelationshipView>
   );
 }
 
 function getCommunicationSpecRowKey(row: CommunicationSpecDetail) {
   return `${row.index}:${row.dataElement}:${row.comSpec}:${row.initValue}`;
+}
+
+function matchesMemberReference(reference: string, member: InterfaceDetailMember) {
+  if (reference.startsWith("/")) {
+    return reference === member.semanticPath;
+  }
+  return formatReferenceShortName(reference) === member.label;
 }
 
 function CommunicationSpecDetails(props: {

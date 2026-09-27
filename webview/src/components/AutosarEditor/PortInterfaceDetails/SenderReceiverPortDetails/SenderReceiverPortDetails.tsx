@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import type { InterfaceDetailMember } from "../../../../../../src/shared/contracts";
+import { useEffect, useState } from "react";
+import type { AutosarEntity, EntityDetailPayload, InterfaceDetailMember } from "../../../../../../src/shared/contracts";
 import { CollapsibleSection } from "../../../Common/CollapsibleSection";
+import { EntityDetailTable } from "../../../Common/Table/EntityDetailTable";
+import { MemberReferencePath } from "../../../Common/Details/MemberRelationship/MemberReferencePath";
+import { MemberRelationshipView } from "../../../Common/Details/MemberRelationship/MemberRelationshipView";
 import {
   formatHandleInvalidOption,
   formatMeasurementCalibrationOption,
@@ -12,6 +15,9 @@ import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 export function SenderReceiverPortDetails(props: {
   members: InterfaceDetailMember[];
   preferredMemberPath?: string;
+  entities?: AutosarEntity[];
+  comSpecsByMember?: Record<string, string[]>;
+  additionalTables?: EntityDetailPayload["tables"];
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
@@ -19,8 +25,6 @@ export function SenderReceiverPortDetails(props: {
   const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
     props.preferredMemberPath ?? dataElements[0]?.semanticPath ?? dataElements[0]?.label
   );
-  const tableWrapRef = useRef<HTMLDivElement>(null);
-  const [tableViewportHeight, setTableViewportHeight] = useState<number>();
   const selectedElement =
     dataElements.find((member) => (member.semanticPath ?? member.label) === selectedKey) ??
     dataElements[0];
@@ -31,97 +35,42 @@ export function SenderReceiverPortDetails(props: {
     }
   }, [props.preferredMemberPath]);
 
-  useEffect(() => {
-    const tableWrap = tableWrapRef.current;
-    if (!tableWrap) {
-      return;
-    }
-
-    let frameId = 0;
-    const updateHeight = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const contentBottom = tableWrap.closest(".model-details-tab-content")
-          ?.getBoundingClientRect().bottom ?? window.innerHeight;
-        const availableHeight = contentBottom - tableWrap.getBoundingClientRect().top - 12;
-        setTableViewportHeight(Math.max(260, availableHeight));
-      });
-    };
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(document.body);
-    window.addEventListener("resize", updateHeight);
-    updateHeight();
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, [dataElements.length]);
-
   return (
-    <section className="model-port-argument-section model-port-comspec-section">
-      <h3>Data Elements</h3>
-      {dataElements.length > 0 ? (
-        <div className="model-comspec-master-detail">
-          <div
-            ref={tableWrapRef}
-            className="model-runnable-table-scroll model-comspec-table-wrap"
-            style={tableViewportHeight ? { height: `${tableViewportHeight}px` } : undefined}
-          >
-            <table className="model-runnable-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "70px" }}>Index</th>
-                  <th>Data Element</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dataElements.map((member, index) => {
-                  const key = member.semanticPath ?? member.label;
-                  const isSelected =
-                    key === (selectedElement?.semanticPath ?? selectedElement?.label);
-                  return (
-                    <tr key={key} className={isSelected ? "is-selected" : undefined}>
-                      <td>{index + 1}</td>
-                      <td title={member.semanticPath ?? member.label}>
-                        <button
-                          type="button"
-                          className="model-table-cell-button"
-                          aria-pressed={isSelected}
-                          onClick={() => setSelectedKey(key)}
-                        >
-                          {member.label}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <aside className="model-comspec-detail-panel" aria-label="Data Element details">
-            {selectedElement ? (
-              <>
-                <div className="model-comspec-detail-heading">
-                  <span>Data Element</span>
-                  <strong title={selectedElement.semanticPath}>{selectedElement.label}</strong>
-                </div>
-                <PortInterfaceDataElementDetails
-                  member={selectedElement}
-                  onOpenReferencedEntity={props.onOpenReferencedEntity}
-                  canOpenReferencedEntity={props.canOpenReferencedEntity}
-                />
-              </>
-            ) : (
-              <div className="model-list-empty">Select a data element.</div>
-            )}
-          </aside>
-        </div>
+    <MemberRelationshipView
+      title="Data elements"
+      items={dataElements.map((member, index) => ({
+        key: member.semanticPath ?? member.label,
+        label: member.label,
+        number: String(index + 1),
+        description: props.comSpecsByMember?.[member.semanticPath ?? member.label]?.join("\n")
+      }))}
+      selectedKey={selectedElement?.semanticPath ?? selectedElement?.label}
+      onSelect={setSelectedKey}
+      selectedKind="Data Element"
+      selectedName={selectedElement?.label}
+      path={selectedElement ? (
+        <MemberReferencePath
+          dataType={selectedElement.metadata?.TYPE}
+          dataConstraints={selectedElement.metadata?.["DATA-CONSTRAINTS"]}
+          entities={props.entities}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
+      ) : undefined}
+    >
+      {selectedElement ? (
+        <PortInterfaceDataElementDetails
+          member={selectedElement}
+          onOpenReferencedEntity={props.onOpenReferencedEntity}
+          canOpenReferencedEntity={props.canOpenReferencedEntity}
+        />
       ) : (
-        <div className="model-list-empty">No data elements discovered.</div>
+        <div className="model-list-empty">Select a data element.</div>
       )}
-    </section>
+      {props.additionalTables?.map((table) => (
+        <EntityDetailTable key={table.title} table={table} />
+      ))}
+    </MemberRelationshipView>
   );
 }
 

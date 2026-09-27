@@ -1,0 +1,462 @@
+.model-port-hierarchy {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  max-width: 560px;
+  margin-bottom: 22px;
+  padding: 4px 0 0 20px;
+  color: #26384b;
+}
+
+/* Both hierarchies use the available width; the property sheet follows below. */
+.model-port-hierarchy.is-linear {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  margin-bottom: 0;
+  padding: 4px 0 0;
+}
+
+.model-port-hierarchy-chain {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.model-port-hierarchy.is-prototype .model-port-hierarchy-chain {
+  padding-right: 0;
+  padding-left: 24px;
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-card {
+  width: 100%;
+}
+
+/* Related cards keep their width for long names, but take less vertical space. */
+.model-port-hierarchy.is-linear .model-port-hierarchy-card:not(.is-current) {
+  gap: 0 14px;
+  padding: 2px 12px;
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-card:not(.is-current) .model-port-hierarchy-kind {
+  line-height: 12px;
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-card:not(.is-current) button,
+.model-port-hierarchy.is-linear .model-port-hierarchy-card:not(.is-current) strong {
+  min-height: 18px;
+  line-height: 18px;
+}
+
+.model-port-hierarchy-detail-link {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  top: calc(var(--port-focus-top) + var(--port-focus-height) / 2);
+  right: 0;
+  width: 24px;
+  height: calc(var(--port-chain-bottom) + 24px - var(--port-focus-top) - var(--port-focus-height) / 2);
+  border-top: 2px solid #2d78c4;
+  border-right: 2px solid #2d78c4;
+  border-bottom: 2px solid #2d78c4;
+}
+
+.model-port-hierarchy-detail-link::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2d78c4;
+}
+
+.model-port-general-panel {
+  min-width: 0;
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid #a8c8e8;
+  border-radius: 5px;
+  background: #ffffff;
+}
+
+.model-port-general-panel > .model-list-section,
+.model-port-general-panel > .model-port-argument-section,
+.model-port-general-panel > .model-port-comspec-section,
+.model-port-general-panel > .model-reference-instances-section {
+  margin: 0;
+  border: 0;
+}
+
+.model-port-general-panel > .model-port-api-arguments {
+  border-top: 1px solid #dfe5ec;
+}
+
+/* A prototype still references the interface below it. Route its details
+   branch around that card, from the left edge to the panel's center. */
+.model-port-hierarchy.is-prototype .model-port-hierarchy-detail-link {
+  right: auto;
+  left: 0;
+  width: 50%;
+  height: calc(var(--port-chain-bottom) + 40px - var(--port-focus-top) - var(--port-focus-height) / 2);
+  border-top: 0;
+  border-right: 0;
+  border-left: 2px solid #2d78c4;
+}
+
+.model-port-hierarchy.is-prototype .model-port-hierarchy-detail-link::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  border-top: 2px solid #2d78c4;
+}
+
+.model-port-hierarchy.is-prototype .model-port-hierarchy-detail-link::after {
+  display: none;
+}
+
+.model-port-hierarchy-detail-drop {
+  position: absolute;
+  top: 100%;
+  right: -1px;
+  width: 2px;
+  height: 16px;
+  background: #2d78c4;
+}
+
+.model-port-hierarchy-detail-drop::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2d78c4;
+}
+
+.model-port-hierarchy.is-prototype .model-port-general-panel {
+  margin-top: 56px;
+}
+
+/* Member relationships continue below the interface, unlike the other port tabs. */
+.model-port-hierarchy-member-link {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 54px;
+  overflow: visible;
+}
+
+.model-port-hierarchy-member-link svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.model-port-hierarchy-member-link svg path {
+  fill: none;
+  stroke: #2d78c4;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.model-port-hierarchy-member-link::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: calc(17% - 4px);
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #2d78c4;
+  border-bottom: 2px solid #2d78c4;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.model-port-hierarchy-member-link > span {
+  position: absolute;
+  top: 8px;
+  left: calc(50% + 12px);
+  padding: 2px 5px;
+  background: #fff;
+  color: #586b7f;
+  font-size: 11px;
+}
+
+.model-port-hierarchy.is-prototype.is-member-view .model-port-general-panel {
+  margin-top: 0;
+}
+
+.model-port-hierarchy.is-interface.is-member-view .model-port-general-panel {
+  margin-top: 0;
+}
+
+.model-port-general-panel .model-semantic-kv {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+  padding: 0 12px 8px;
+}
+
+.model-port-general-panel .model-semantic-kv > div,
+.model-port-general-panel .model-semantic-kv > div:last-child {
+  display: grid;
+  grid-template-columns: minmax(130px, 38%) minmax(0, 1fr);
+  align-items: start;
+  min-height: 40px;
+  border: 0;
+  border-top: 1px solid #dfe5ec;
+}
+
+.model-port-general-panel .model-semantic-kv > div:first-child {
+  border-top: 0;
+}
+
+.model-port-general-panel .model-semantic-kv > div > span,
+.model-port-general-panel .model-semantic-kv > div > strong {
+  min-width: 0;
+  padding: 8px 4px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.model-port-general-panel .model-semantic-kv > div > span {
+  color: #586b7f;
+  font-weight: 400;
+}
+
+.model-port-general-panel .model-semantic-kv > div > strong {
+  color: #233344;
+  font-weight: 500;
+}
+
+/* An interface is the last card, so its panel can use a direct vertical link. */
+.model-port-hierarchy.is-interface .model-port-hierarchy-detail-link {
+  position: relative;
+  top: auto;
+  right: auto;
+  align-self: flex-start;
+  width: 2px;
+  height: 24px;
+  margin-left: calc((100% - 24px) / 2);
+  border: 0;
+  background: #2d78c4;
+}
+
+.model-port-hierarchy.is-interface .model-port-general-panel {
+  margin-top: 0;
+}
+
+.model-port-hierarchy-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 3px 10px;
+  box-sizing: border-box;
+  width: min(300px, 100%);
+  max-width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd8e6;
+  border-radius: 5px;
+  background: #f9fbfd;
+  box-shadow: 0 1px 2px rgba(27, 54, 82, 0.05);
+}
+
+.model-port-hierarchy-card-content {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.model-port-hierarchy-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #a13131;
+}
+
+.model-port-hierarchy-icon svg {
+  display: block;
+  width: 25px;
+  height: 25px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: square;
+  stroke-linejoin: round;
+}
+
+/* In details, distinguish a receiver from a sender without changing graph handles. */
+.model-port-hierarchy-port-icon svg.is-receiver {
+  transform: rotate(180deg);
+}
+
+.model-port-hierarchy-icon svg text {
+  fill: currentColor;
+  stroke: none;
+  font: 700 10px sans-serif;
+}
+
+.model-port-hierarchy-icon svg circle,
+.model-port-hierarchy-icon svg ellipse {
+  fill: none;
+}
+
+.model-port-hierarchy-interface-icon {
+  color: #2d78c4;
+}
+
+.model-port-hierarchy-owner.is-composition .model-port-hierarchy-swc-icon {
+  color: #7656a5;
+}
+
+.model-port-hierarchy-owner.is-service .model-port-hierarchy-swc-icon {
+  color: #217a9a;
+}
+
+.model-port-hierarchy-card.is-current {
+  border-color: #2d78c4;
+  background: #eef6ff;
+  box-shadow: inset 3px 0 0 #2d78c4;
+}
+
+.model-port-hierarchy-kind,
+.model-port-hierarchy-heading {
+  color: #596e83;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.model-port-hierarchy-heading {
+  margin: 0 0 9px;
+}
+
+.model-port-hierarchy-card strong,
+.model-port-hierarchy-card button {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.model-port-hierarchy-card button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1769af;
+  cursor: pointer;
+}
+
+.model-port-hierarchy-card button:hover,
+.model-port-hierarchy-card button:focus-visible {
+  text-decoration: underline;
+}
+
+.model-port-hierarchy-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 35px;
+  margin-left: 20px;
+  padding-left: 16px;
+  color: #65798d;
+  font-size: 11px;
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-link {
+  margin-left: 0;
+  padding-left: calc(50% + 16px);
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-link::before {
+  left: 50%;
+}
+
+.model-port-hierarchy.is-linear .model-port-hierarchy-link::after {
+  left: calc(50% - 3px);
+}
+
+.model-port-hierarchy.is-interface .model-port-hierarchy-link {
+  margin-left: 20px;
+  padding-left: 16px;
+}
+
+.model-port-hierarchy.is-interface .model-port-hierarchy-link::before {
+  left: 0;
+}
+
+.model-port-hierarchy.is-interface .model-port-hierarchy-link::after {
+  left: -3px;
+}
+
+.model-port-hierarchy-link::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 5px;
+  left: 0;
+  border-left: 1px solid #8298af;
+}
+
+.model-port-hierarchy-link::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid #8298af;
+  border-bottom: 1px solid #8298af;
+  transform: rotate(45deg);
+}
+
+.model-port-hierarchy-branches {
+  display: grid;
+  gap: 8px;
+  box-sizing: border-box;
+  width: calc(100% - 20px);
+  max-height: 225px;
+  overflow-y: auto;
+  margin: 0 0 0 20px;
+  padding: 0 0 0 25px;
+  border-left: 1px solid #8298af;
+  list-style: none;
+}
+
+.model-port-hierarchy-branches li {
+  position: relative;
+  min-width: 0;
+}
+
+.model-port-hierarchy-branches li::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -25px;
+  width: 25px;
+  border-top: 1px solid #8298af;
+}
+
+.model-port-hierarchy-branches .model-port-hierarchy-card {
+  width: 100%;
+}
+
+.model-port-hierarchy-empty {
+  color: #65798d;
+  font-size: 12px;
+}

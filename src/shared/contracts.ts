@@ -345,6 +345,8 @@ export interface ConnectedPortReference {
   portId?: string;
   portXmlPath?: string;
   portName: string;
+  portDirection?: PortDirection;
+  interfaceKind?: PortInterfaceKind;
   portInterface: string;
   portInterfaceRef?: string;
   ownerEntityId?: string;

@@ -19,6 +19,7 @@ import { buildAutosarModel, enrichPortCommunicationSpecsFromEntities } from "./a
 import { AutosarSemanticValidationService } from "./autosarSemanticValidationService";
 import { discoverVectorProject } from "./vectorProjectService";
 import { buildVectorEcuModel } from "./vectorEcuModelService";
+import { selectReferencedSupplementalTypes } from "./supplementalTypeService";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -293,7 +294,26 @@ export class WorkspaceModelService implements vscode.Disposable {
     const canonicalDocuments = flatExtractPath
       ? validatedDocuments.filter((document) => path.normalize(document.filePath).toLowerCase() !== path.normalize(flatExtractPath).toLowerCase())
       : validatedDocuments;
-    const entities = canonicalDocuments.flatMap((document) => document.entities);
+    const canonicalEntities = canonicalDocuments.flatMap((document) => document.entities);
+    const supplementalCandidates: typeof canonicalEntities = [];
+    const canonicalFilePaths = new Set(inputPaths.map((filePath) => path.normalize(filePath).toLowerCase()));
+    for (const filePath of vectorProject?.supplementalTypeFilePaths ?? []) {
+      if (generation !== this.indexingGeneration) {
+        return null;
+      }
+      if (canonicalFilePaths.has(path.normalize(filePath).toLowerCase())) {
+        continue;
+      }
+      // These files may contain complete system extracts. Only referenced type
+      // definitions join the model; their other entities cannot duplicate the ECU.
+      const document = await parseModelDocument(rootPath, filePath, validationScope);
+      supplementalCandidates.push(...(document?.entities ?? []));
+    }
+    const supplementalTypes = selectReferencedSupplementalTypes(canonicalEntities, supplementalCandidates);
+    if (supplementalTypes.length > 0) {
+      this.logger.info(`Resolved ${supplementalTypes.length} referenced type definition(s) from Vector platform/system inputs.`);
+    }
+    const entities = [...canonicalEntities, ...supplementalTypes];
     const connections = canonicalDocuments.flatMap((document) => document.connections);
     return {
       rootPath,

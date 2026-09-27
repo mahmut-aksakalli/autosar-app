@@ -19,17 +19,33 @@ export function DetailsBottomTabs(props: {
   contextKey: string;
   initialTabId?: string;
   breadcrumbs?: DetailBreadcrumb[];
+  renderTabContent?: (content: ReactNode, tabId: string) => ReactNode;
 }) {
-  const [activeTabId, setActiveTabId] = useState(props.initialTabId ?? props.tabs[0]?.id);
+  const [tabSelection, setTabSelection] = useState({
+    contextKey: props.contextKey,
+    tabId: props.initialTabId ?? props.tabs[0]?.id
+  });
   const tabListRef = useRef<HTMLDivElement>(null);
+  const tabPanelRef = useRef<HTMLDivElement>(null);
   const idPrefix = useId();
+  // Derive the first tab for a new entity during render. Resetting it in an
+  // effect would paint the previous entity's tab for one frame.
+  const activeTabId = tabSelection.contextKey === props.contextKey
+    ? tabSelection.tabId
+    : props.initialTabId ?? props.tabs[0]?.id;
   const activeTab = props.tabs.find((tab) => tab.id === activeTabId) ?? props.tabs[0];
 
-  // A details component can be reused when the editor switches to another
-  // entity. Begin that entity on its General tab (or its requested member).
+  function selectTab(tabId: string) {
+    setTabSelection({ contextKey: props.contextKey, tabId });
+  }
+
+  // Relationship views keep their hierarchy in the tab panel. Reveal it again
+  // when switching away from a long table or member list.
   useEffect(() => {
-    setActiveTabId(props.initialTabId ?? props.tabs[0]?.id);
-  }, [props.contextKey, props.initialTabId]);
+    if (props.renderTabContent && tabPanelRef.current) {
+      tabPanelRef.current.scrollTop = 0;
+    }
+  }, [activeTabId, props.contextKey]);
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     let nextIndex: number;
@@ -50,7 +66,7 @@ export function DetailsBottomTabs(props: {
       return;
     }
     event.preventDefault();
-    setActiveTabId(nextTab.id);
+    selectTab(nextTab.id);
     tabListRef.current?.querySelectorAll<HTMLButtonElement>("[role=tab]")[nextIndex]?.focus();
   }
 
@@ -61,12 +77,15 @@ export function DetailsBottomTabs(props: {
       </div>
       {activeTab && (
         <div
+          ref={tabPanelRef}
           id={`${idPrefix}-panel-${activeTab.id}`}
           role="tabpanel"
           aria-labelledby={`${idPrefix}-tab-${activeTab.id}`}
           className="model-port-detail model-details-tab-content"
         >
-          {activeTab.content}
+          {props.renderTabContent
+            ? props.renderTabContent(activeTab.content, activeTab.id)
+            : activeTab.content}
         </div>
       )}
       <div ref={tabListRef} className="model-details-bottom-tabs" role="tablist" aria-label={`${props.title} sections`}>
@@ -80,7 +99,7 @@ export function DetailsBottomTabs(props: {
             aria-controls={tab.id === activeTab?.id ? `${idPrefix}-panel-${tab.id}` : undefined}
             tabIndex={tab.id === activeTab?.id ? 0 : -1}
             className={tab.id === activeTab?.id ? "is-active" : undefined}
-            onClick={() => setActiveTabId(tab.id)}
+            onClick={() => selectTab(tab.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
           >
             <span>{tab.label}</span>

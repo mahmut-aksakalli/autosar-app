@@ -1,10 +1,12 @@
 import type {
   AutosarEntity,
-  EntityReferenceInstance
+  EntityReferenceInstance,
+  PortDirection,
+  PortInterfaceKind
 } from "../../../../../src/shared/contracts";
-import { ReferenceInstancesTable } from "../../Common/Table/ReferenceInstancesTable";
 import { EntityDetailTable } from "../../Common/Table/EntityDetailTable";
 import {
+  formatAutosarTagText,
   formatInitValueTypeOption,
   formatReferenceShortName,
   initValueTypeOptions,
@@ -12,13 +14,17 @@ import {
 } from "../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
 import { DetailsBottomTabs, type DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { PortInterfaceHierarchy } from "../../Common/Details/PortHierarchy/PortHierarchy";
 import { ClientServerPortDetails } from "./ClientServerPortDetails/ClientServerPortDetails";
+import { buildMemberComSpecDescriptions } from "./PortInterfaceComSpecHelper";
 import { buildPortInterfaceDetailTables } from "./PortInterfaceDetailsHelper";
 import { SenderReceiverPortDetails } from "./SenderReceiverPortDetails/SenderReceiverPortDetails";
+import { formatPortDirectionLabel } from "../SwcDetails/PortDetails/CommunicationSpecHelper";
 
 export function PortInterfaceDetails(props: {
   title: string;
   entity: AutosarEntity;
+  modelEntities?: AutosarEntity[];
   referenceInstances: EntityReferenceInstance[];
   selectedInstancePath?: string;
   onReferenceInstanceSelect?: (instance: EntityReferenceInstance) => void;
@@ -30,6 +36,15 @@ export function PortInterfaceDetails(props: {
   const details = props.entity.details?.entity ?? { fields: [], tables: [] };
   const interfaceMembers = props.entity.details?.interfaceMembers ?? [];
   const interfaceTables = buildPortInterfaceDetailTables(props.entity, interfaceMembers);
+  const additionalTables = [...details.tables, ...interfaceTables];
+  const memberCount = props.entity.interfaceKind === "client-server"
+    ? interfaceMembers.filter((member) => member.kind === "operation").length
+    : interfaceMembers.length;
+  const comSpecsByMember = buildMemberComSpecDescriptions(
+    interfaceMembers,
+    props.referenceInstances,
+    props.modelEntities ?? []
+  );
   const interfaceType =
     details.fields.find((field) => field.label === "Interface Type")?.value ?? "-";
   const isService =
@@ -58,24 +73,39 @@ export function PortInterfaceDetails(props: {
       contextKey={`${props.entity.id}:${props.selectedInstancePath ?? ""}`}
       breadcrumbs={props.breadcrumbs}
       initialTabId={props.selectedInstancePath ? "members" : "general"}
+      renderTabContent={(content, tabId) => (
+        <PortInterfaceHierarchy
+          detailsFromInterface={tabId === "members"}
+          interfaceName={props.entity.shortName}
+          interfaceKind={props.entity.interfaceKind}
+          portReferences={props.referenceInstances}
+          onPortOpen={props.onReferenceInstanceSelect}
+          formatPortType={(instanceType) => formatPortPrototypeInstanceType(instanceType, props.entity.interfaceKind)}
+        >
+          {content}
+        </PortInterfaceHierarchy>
+      )}
       tabs={[
         { id: "general", label: "General", content: (
-        <div className="model-semantic-kv model-port-fields">
-          {fields.map((field, index) => (
-            <div key={`${field.label}:${index}`}>
-              <span>{field.label}</span>
-              <strong title={field.value}>
-                <PortInterfaceFieldValue field={field} />
-              </strong>
-            </div>
-          ))}
-        </div>
+          <div className="model-semantic-kv model-port-fields">
+            {fields.map((field, index) => (
+              <div key={`${field.label}:${index}`}>
+                <span>{field.label}</span>
+                <strong title={field.value}>
+                  <PortInterfaceFieldValue field={field} />
+                </strong>
+              </div>
+            ))}
+          </div>
         ) },
-        { id: "members", label: "Members", count: interfaceMembers.length, content: (
+        { id: "members", label: "Members", count: memberCount, content: (
           <>
         {props.entity.interfaceKind === "sender-receiver" && (
           <SenderReceiverPortDetails
             members={interfaceMembers}
+            entities={props.modelEntities}
+            comSpecsByMember={comSpecsByMember}
+            additionalTables={additionalTables}
             preferredMemberPath={props.selectedInstancePath}
             onOpenReferencedEntity={props.onOpenReferencedEntity}
             canOpenReferencedEntity={props.canOpenReferencedEntity}
@@ -84,23 +114,42 @@ export function PortInterfaceDetails(props: {
         {props.entity.interfaceKind === "client-server" && (
           <ClientServerPortDetails
             members={interfaceMembers}
+            entities={props.modelEntities}
+            comSpecsByMember={comSpecsByMember}
+            additionalTables={additionalTables}
             preferredMemberPath={props.selectedInstancePath}
+            onOpenReferencedEntity={props.onOpenReferencedEntity}
+            canOpenReferencedEntity={props.canOpenReferencedEntity}
           />
         )}
-        {[...details.tables, ...interfaceTables].map((table) => (
+        {props.entity.interfaceKind !== "sender-receiver" &&
+          props.entity.interfaceKind !== "client-server" && additionalTables.map((table) => (
           <EntityDetailTable key={table.title} table={table} />
         ))}
           </>
-        ) },
-        { id: "instances", label: "Instances", count: props.referenceInstances.length, content: (
-          <ReferenceInstancesTable
-            instances={props.referenceInstances}
-            onInstanceSelect={props.onReferenceInstanceSelect}
-          />
         ) }
       ]}
     />
   );
+}
+
+function formatPortPrototypeInstanceType(
+  instanceType: string,
+  interfaceKind: PortInterfaceKind | undefined
+): string {
+  const normalizedType = instanceType.toUpperCase();
+  let direction: PortDirection;
+  if (normalizedType === "P-PORT-PROTOTYPE") {
+    direction = "provided";
+  } else if (normalizedType === "R-PORT-PROTOTYPE") {
+    direction = "required";
+  } else if (normalizedType === "PR-PORT-PROTOTYPE") {
+    direction = "provided-required";
+  } else {
+    return formatAutosarTagText(instanceType);
+  }
+
+  return `${formatPortDirectionLabel(direction, interfaceKind)} port prototype`;
 }
 
 function PortInterfaceFieldValue(props: {

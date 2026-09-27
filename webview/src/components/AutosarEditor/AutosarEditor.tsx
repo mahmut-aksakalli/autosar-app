@@ -41,6 +41,7 @@ import { getConnectionTreeNodeId, getDelegationNavigationTarget } from "./Autosa
 import { SwcDetails } from "./SwcDetails/SwcDetails";
 import { EntityDetails } from "./EntityDetails/EntityDetails";
 import { PortInterfaceDetails } from "./PortInterfaceDetails/PortInterfaceDetails";
+import { DetailsLoading } from "../Common/Details/DetailsLoading";
 
 const GRAPH_FOCUS_RETRY_COUNT = 8;
 
@@ -569,11 +570,18 @@ export function AutosarEditor(props: AutosarEditorProps) {
       }
 
       if (props.focusEntity.type === "interface") {
-        activeContent = (
+        activeContent = !props.focusEntity.details?.entity ? (
+          <DetailsLoading
+            title={props.activeWorkspaceTab.title}
+            breadcrumbs={detailBreadcrumbs}
+            message="Loading port interface details…"
+          />
+        ) : (
           <PortInterfaceDetails
             title={props.activeWorkspaceTab.title}
             breadcrumbs={detailBreadcrumbs}
             entity={props.focusEntity}
+            modelEntities={props.modelEntities}
             referenceInstances={referenceInstances ?? []}
             selectedInstancePath={props.activeWorkspaceTab.itemId}
             onReferenceInstanceSelect={props.onReferenceInstanceSelect}
@@ -599,7 +607,9 @@ export function AutosarEditor(props: AutosarEditorProps) {
         tab={props.activeWorkspaceTab}
         breadcrumbs={detailBreadcrumbs}
         focusEntity={props.focusEntity}
+        modelEntities={props.modelEntities}
         graphResult={graphResult}
+        graphError={error}
         inspector={inspector}
         connectedPortsByPortId={props.connectedPortsByPortId}
         onConnectedPortSelect={props.onConnectedPortSelect}
