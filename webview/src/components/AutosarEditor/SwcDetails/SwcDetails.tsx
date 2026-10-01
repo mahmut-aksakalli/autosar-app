@@ -249,7 +249,13 @@ export function SwcDetails(props: {
       props.tab.sectionId && props.tab.itemId
         ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
         : findInspectorItemInSections(inspectorData, ["serviceDependencies"], props.tab.itemId);
-    return <ServiceDependencyDetails title={props.tab.title} item={item} breadcrumbs={props.breadcrumbs} />;
+    return <ServiceDependencyDetails
+      title={props.tab.title}
+      item={item}
+      breadcrumbs={props.breadcrumbs}
+      onOpenReferencedEntity={props.onOpenReferencedEntity}
+      canOpenReferencedEntity={props.canOpenReferencedEntity}
+    />;
   }
 
   if (props.tab.kind === "runnable") {

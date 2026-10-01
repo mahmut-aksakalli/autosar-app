@@ -19,6 +19,7 @@ export function DetailsBottomTabs(props: {
   contextKey: string;
   initialTabId?: string;
   breadcrumbs?: DetailBreadcrumb[];
+  topContent?: ReactNode;
   renderTabContent?: (content: ReactNode, tabId: string) => ReactNode;
 }) {
   const [tabSelection, setTabSelection] = useState({
@@ -42,7 +43,7 @@ export function DetailsBottomTabs(props: {
   // Relationship views keep their hierarchy in the tab panel. Reveal it again
   // when switching away from a long table or member list.
   useEffect(() => {
-    if (props.renderTabContent && tabPanelRef.current) {
+    if ((props.renderTabContent || props.topContent) && tabPanelRef.current) {
       tabPanelRef.current.scrollTop = 0;
     }
   }, [activeTabId, props.contextKey]);
@@ -83,6 +84,7 @@ export function DetailsBottomTabs(props: {
           aria-labelledby={`${idPrefix}-tab-${activeTab.id}`}
           className="model-port-detail model-details-tab-content"
         >
+          {props.topContent}
           {props.renderTabContent
             ? props.renderTabContent(activeTab.content, activeTab.id)
             : activeTab.content}

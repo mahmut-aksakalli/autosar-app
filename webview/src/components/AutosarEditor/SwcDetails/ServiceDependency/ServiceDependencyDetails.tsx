@@ -5,6 +5,8 @@ import type {
 } from "../../../../../../src/shared/contracts";
 import { normalizeAutosarEnumToken } from "../../../Common/Details/DetailsFormatters";
 import { DetailsBottomTabs, type DetailBreadcrumb, type DetailsTab } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailRelationship, referenceRelationship, type DetailRelationshipNode } from "../../../Common/Details/DetailRelationship/DetailRelationship";
+import { DetailGeneralPanel } from "../../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
 import {
   getServiceNeedDetailRows,
   getServiceNeedSelectOptions,
@@ -13,7 +15,13 @@ import {
 } from "./ServiceDependencyHelper";
 import type { NvmAssignedDataDetail, ServiceNeedDisplayDetail } from "./ServiceDependencyHelper";
 
-export function ServiceDependencyDetails(props: { title: string; item?: SwcInspectorItem; breadcrumbs?: DetailBreadcrumb[] }) {
+export function ServiceDependencyDetails(props: {
+  title: string;
+  item?: SwcInspectorItem;
+  breadcrumbs?: DetailBreadcrumb[];
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
+}) {
   const metadata = props.item?.metadata ?? {};
   const serviceNeedDetails = parseServiceNeedDetailFields(
     props.item?.details?.serviceNeedFields ?? [],
@@ -35,14 +43,35 @@ export function ServiceDependencyDetails(props: { title: string; item?: SwcInspe
     ? props.item?.details?.assignedData ?? []
     : [];
   const assignedPorts = props.item?.details?.assignedPorts ?? [];
+  const owner = props.breadcrumbs?.[0];
+  const relationshipTargets: DetailRelationshipNode[] = assignedPorts.map((port) => ({
+    role: "Assigned Port",
+    name: port.portPrototype,
+    referencePath: port.portPrototypeRef
+  }));
+  for (const assignment of dataAssignments) {
+    relationshipTargets.push({
+      role: "Assigned Data",
+      name: assignment.dataElementPrototype,
+      referencePath: assignment.dataElementPrototypeRef
+    });
+  }
+  for (const assignment of assignedData) {
+    const reference = referenceRelationship("Assigned Data", assignment.value);
+    if (reference?.referencePath?.startsWith("/")) {
+      relationshipTargets.push(reference);
+    }
+  }
 
   const tabs: DetailsTab[] = [
     { id: "general", label: "General", content: (
+      <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           {detailRows.map((detail) => (
             <ServiceNeedDetailRow key={detail.label} detail={detail} />
           ))}
         </div>
+      </DetailGeneralPanel>
     ) }
   ];
   if (isNvBlockNeeds) {
@@ -62,7 +91,21 @@ export function ServiceDependencyDetails(props: { title: string; item?: SwcInspe
   });
 
   return (
-    <DetailsBottomTabs title={props.title} contextKey={props.item?.id ?? props.title} breadcrumbs={props.breadcrumbs} tabs={tabs} />
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.item?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
+      topContent={<DetailRelationship
+        source={owner ? { role: "Software Component", name: owner.label, onClick: owner.onClick } : undefined}
+        sourceLink="declares"
+        current={{ role: "Service Need", name: props.item?.label ?? "-" }}
+        targets={relationshipTargets}
+        targetLink="assigns"
+        onOpenReference={props.onOpenReferencedEntity}
+        canOpenReference={props.canOpenReferencedEntity}
+      />}
+      tabs={tabs}
+    />
   );
 }
 

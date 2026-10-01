@@ -597,6 +597,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
             entity={props.focusEntity}
             referenceInstances={referenceInstances}
             onReferenceInstanceSelect={props.onReferenceInstanceSelect}
+            onOpenReferencedEntity={props.onOpenReferencedEntity}
+            canOpenReferencedEntity={props.canOpenReferencedEntity}
           />
         );
       }

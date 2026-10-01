@@ -8,6 +8,8 @@ import {
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
 import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailRelationship, referenceRelationship } from "../../../Common/Details/DetailRelationship/DetailRelationship";
+import { DetailGeneralPanel } from "../../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
 
 export function PerInstanceMemoryDetails(props: {
   title: string;
@@ -17,13 +19,28 @@ export function PerInstanceMemoryDetails(props: {
   breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.item?.metadata ?? {};
+  const targets = [
+    referenceRelationship("Data Type", metadata.TYPE),
+    referenceRelationship("Nvm Block Need", metadata["NVM-BLOCK-NEED"]),
+    referenceRelationship("Addressing Method", metadata["SW-ADDR-METHOD-REF"])
+  ].filter((target) => target !== undefined);
+  const owner = props.breadcrumbs?.[0];
 
   return (
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.item?.id ?? props.title}
       breadcrumbs={props.breadcrumbs}
+      topContent={<DetailRelationship
+        source={owner ? { role: "Software Component", name: owner.label, onClick: owner.onClick } : undefined}
+        sourceLink="defines"
+        current={{ role: "Per-Instance Memory", name: props.item?.label ?? "-" }}
+        targets={targets}
+        onOpenReference={props.onOpenReferencedEntity}
+        canOpenReference={props.canOpenReferencedEntity}
+      />}
       tabs={[{ id: "general", label: "General", content: (
+        <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
@@ -71,6 +88,7 @@ export function PerInstanceMemoryDetails(props: {
             <strong>{formatReferenceShortName(metadata["SW-ADDR-METHOD-REF"])}</strong>
           </div>
         </div>
+        </DetailGeneralPanel>
       ) }]}
     />
   );

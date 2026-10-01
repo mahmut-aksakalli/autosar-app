@@ -1,0 +1,245 @@
+.model-detail-relationship {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px 12px 0;
+}
+
+.model-detail-relationship-chain {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.model-detail-relationship.is-left-aligned,
+.model-detail-relationship.is-left-aligned .model-detail-relationship-chain {
+  align-items: flex-start;
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-link {
+  width: 100%;
+}
+
+/* Match the port-interface hierarchy: full-width cards with a left-hand
+   relationship rail, while the final connection drops to the panel center. */
+.model-detail-relationship.is-left-aligned .model-detail-relationship-card.is-current,
+.model-detail-relationship.is-left-aligned .model-detail-relationship-targets {
+  width: 100%;
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-targets {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-branches {
+  width: calc(100% - 20px);
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-card:not(.is-current) {
+  min-height: 0;
+  padding: 3px 12px;
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-chain > .model-detail-relationship-link {
+  box-sizing: border-box;
+  justify-content: flex-start;
+  padding-left: 36px;
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-chain > .model-detail-relationship-link::before {
+  left: 20px;
+}
+
+.model-detail-relationship.is-left-aligned .model-detail-relationship-chain > .model-detail-relationship-link::after {
+  left: 16px;
+}
+
+.model-detail-relationship-heading {
+  align-self: flex-start;
+  margin: 0 0 9px 20px;
+  color: #596e83;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.model-detail-relationship-branches {
+  display: grid;
+  gap: 8px;
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: min(540px, calc(100% - 20px));
+  max-height: 225px;
+  overflow-y: auto;
+  margin: 0 0 0 20px;
+  padding: 0 8px 0 25px;
+  border-left: 1px solid #8298af;
+  list-style: none;
+}
+
+.model-detail-relationship-branches li {
+  position: relative;
+  min-width: 0;
+}
+
+.model-detail-relationship-branches li::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -25px;
+  width: 25px;
+  border-top: 1px solid #8298af;
+}
+
+.model-detail-relationship-branches .model-detail-relationship-card {
+  width: 100%;
+}
+
+.model-detail-relationship-empty {
+  align-self: flex-start;
+  margin-left: 20px;
+  color: #65798d;
+  font-size: 12px;
+}
+
+.model-detail-relationship-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: min(330px, 100%);
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #cbd8e6;
+  border-radius: 5px;
+  background: #f9fbfd;
+  color: #20354d;
+}
+
+.model-detail-relationship-card.is-current {
+  width: min(520px, 100%);
+  min-height: 52px;
+  border-color: #2d78c4;
+  background: #eef6ff;
+}
+
+.model-detail-relationship-card-content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.model-detail-relationship-card-content small {
+  color: #586b7f;
+  font-size: 11px;
+}
+
+.model-detail-relationship-card-content strong,
+.model-detail-relationship-card-content button {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  text-align: left;
+}
+
+.model-detail-relationship-card-content button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1769af;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.model-detail-relationship-card-content button:hover,
+.model-detail-relationship-card-content button:focus-visible {
+  text-decoration: underline;
+}
+
+.model-detail-relationship .model-member-reference-symbol {
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  color: #2d78c4;
+}
+
+.model-detail-relationship .model-member-reference-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+
+.model-detail-relationship .model-member-reference-symbol svg text {
+  fill: currentColor;
+  stroke: none;
+  font: 700 10px sans-serif;
+}
+
+.model-detail-relationship .model-member-reference-symbol.is-constant,
+.model-detail-relationship .model-member-reference-symbol.is-parameter {
+  color: #a35c24;
+}
+
+.model-detail-relationship .model-member-reference-symbol.is-mode,
+.model-detail-relationship .model-member-reference-symbol.is-service {
+  color: #7656a5;
+}
+
+.model-detail-relationship .model-member-reference-symbol.is-variable,
+.model-detail-relationship .model-member-reference-symbol.is-memory {
+  color: #217a9a;
+}
+
+.model-detail-relationship-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 8px;
+  width: min(820px, 100%);
+}
+
+.model-detail-relationship-targets .model-detail-relationship-card {
+  width: 100%;
+}
+
+.model-detail-relationship-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 42px;
+  color: #586b7f;
+  font-size: 11px;
+}
+
+.model-detail-relationship-link::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 5px;
+  left: 50%;
+  border-left: 2px solid #2d78c4;
+}
+
+.model-detail-relationship-link::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: calc(50% - 4px);
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #2d78c4;
+  border-bottom: 2px solid #2d78c4;
+  transform: rotate(45deg);
+}
+
+.model-detail-relationship-link span {
+  position: relative;
+  padding: 2px 7px;
+  background: #fff;
+}
+

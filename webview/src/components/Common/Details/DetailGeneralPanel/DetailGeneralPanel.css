@@ -1,0 +1,48 @@
+.model-detail-general-panel {
+  min-width: 0;
+  margin: 0 0 24px;
+  overflow: hidden;
+  border: 1px solid #a8c8e8;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.model-detail-general-panel .model-semantic-kv {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+  padding: 0 12px 8px;
+}
+
+.model-detail-general-panel .model-semantic-kv > div,
+.model-detail-general-panel .model-semantic-kv > div:last-child {
+  display: grid;
+  grid-template-columns: minmax(130px, 38%) minmax(0, 1fr);
+  align-items: start;
+  min-height: 40px;
+  border: 0;
+  border-top: 1px solid #dfe5ec;
+}
+
+.model-detail-general-panel .model-semantic-kv > div:first-child {
+  border-top: 0;
+}
+
+.model-detail-general-panel .model-semantic-kv > div > span,
+.model-detail-general-panel .model-semantic-kv > div > strong {
+  min-width: 0;
+  padding: 8px 4px;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.model-detail-general-panel .model-semantic-kv > div > span {
+  color: #586b7f;
+  font-weight: 400;
+}
+
+.model-detail-general-panel .model-semantic-kv > div > strong {
+  color: #233344;
+  font-weight: 500;
+}
