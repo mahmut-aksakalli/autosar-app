@@ -73,6 +73,8 @@ interface AutosarEditorProps {
   instances: SwcInstanceReference[];
   logEntries: AutosarLogEntry[];
   activeBottomPanelTab: BottomPanelTab;
+  bottomPanelHeight: number;
+  isBottomPanelMinimized: boolean;
   connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   referenceInstancesByTargetId: Record<string, EntityReferenceInstance[]>;
   onFocusModelEntity?: (selection: {
@@ -107,6 +109,8 @@ interface AutosarEditorProps {
   onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   onReferenceInstanceSelect?: (instance: EntityReferenceInstance) => void;
   onBottomPanelTabChange: (tab: BottomPanelTab) => void;
+  onBottomPanelHeightChange: (height: number) => void;
+  onBottomPanelMinimizedChange: (isMinimized: boolean) => void;
   onInstanceSelect: (instance: SwcInstanceReference) => void;
 }
 
@@ -550,6 +554,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
         activeInstanceId={activeCompositionNodeId ?? props.preferredNodeId}
         logEntries={props.logEntries}
         activeBottomPanelTab={props.activeBottomPanelTab}
+        bottomPanelHeight={props.bottomPanelHeight}
+        isBottomPanelMinimized={props.isBottomPanelMinimized}
         fitViewOptions={fitViewOptions}
         onInit={(controller) => {
           reactFlowRef.current = controller;
@@ -557,6 +563,8 @@ export function AutosarEditor(props: AutosarEditorProps) {
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
         onBottomPanelTabChange={props.onBottomPanelTabChange}
+        onBottomPanelHeightChange={props.onBottomPanelHeightChange}
+        onBottomPanelMinimizedChange={props.onBottomPanelMinimizedChange}
         onInstanceSelect={props.onInstanceSelect}
       />
     );

@@ -13,7 +13,7 @@ import type {
   WorkspaceSnapshot
 } from "../../../src/shared/contracts";
 import { AutosarEditor } from "./AutosarEditor/AutosarEditor";
-import type { BottomPanelTab } from "./AutosarEditor/AutosarSwc/BottomPanel/BottomPanel";
+import { DEFAULT_BOTTOM_PANEL_HEIGHT, type BottomPanelTab } from "./AutosarEditor/AutosarSwc/BottomPanel/BottomPanel";
 import type { SwcNodeView } from "./AutosarEditor/AutosarSwc/AutosarSwcLayout";
 import { EditorTabs } from "./EditorTabs/EditorTabsView";
 import {
@@ -36,6 +36,9 @@ export function AutosarApp() {
   const [workspace, setWorkspace] = useState(initialState.workspace);
   const logEntries = useLogEntries(initialState.logEntries ?? []);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<BottomPanelTab>("output");
+  // Graph content remounts as editor tabs change; panel layout belongs to the app.
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(DEFAULT_BOTTOM_PANEL_HEIGHT);
+  const [isBottomPanelMinimized, setIsBottomPanelMinimized] = useState(false);
   const modelEntities = useMemo(() => getModelEntities(workspace), [workspace]);
   const [modelFocusEntityId, setModelFocusEntityId] = useState(() =>
     getInitialFocusEntityId(initialState, modelEntities)
@@ -395,6 +398,8 @@ export function AutosarApp() {
           instances={visibleSwcInstances}
           logEntries={logEntries}
           activeBottomPanelTab={activeBottomPanelTab}
+          bottomPanelHeight={bottomPanelHeight}
+          isBottomPanelMinimized={isBottomPanelMinimized}
           connectedPortsByPortId={workspace.connectedPortsByPortId ?? {}}
           referenceInstancesByTargetId={workspace.referenceInstancesByTargetId ?? {}}
           onConnectedPortSelect={openConnectedPortDetails}
@@ -409,6 +414,8 @@ export function AutosarApp() {
           onOpenPortDetails={openPortDetailsFromGraph}
           onOpenWorkspaceTab={tabs.openTab}
           onBottomPanelTabChange={setActiveBottomPanelTab}
+          onBottomPanelHeightChange={setBottomPanelHeight}
+          onBottomPanelMinimizedChange={setIsBottomPanelMinimized}
           onInstanceSelect={openSwcInstanceFromPanel}
         />
       </div>
