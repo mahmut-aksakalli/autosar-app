@@ -7,6 +7,7 @@ export interface DetailRelationshipNode {
   role: string;
   name: string;
   valueType?: string;
+  facts?: Array<{ label: string; value: string; wide?: boolean }>;
   referencePath?: string;
   onClick?: () => void;
 }
@@ -100,7 +101,7 @@ function RelationshipCard(props: {
     : undefined);
 
   return (
-    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}`} title={referencePath ?? props.node.name}>
+    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}${props.node.facts?.length ? " has-facts" : ""}`} title={referencePath ?? (props.node.name || props.node.role)}>
       <ReferenceSymbol role={props.node.role} />
       <span className="model-detail-relationship-card-content">
         <small>{props.node.role}</small>
@@ -110,8 +111,18 @@ function RelationshipCard(props: {
           </button>
         ) : props.node.valueType ? (
           <strong><InitValueDisplay value={props.node.name} type={props.node.valueType} /></strong>
-        ) : (
+        ) : props.node.name ? (
           <strong>{props.node.name}</strong>
+        ) : null}
+        {props.node.facts && (
+          <span className="model-detail-relationship-facts">
+            {props.node.facts.map((fact) => (
+              <span className={`model-detail-relationship-fact${fact.wide ? " is-wide" : ""}`} key={fact.label}>
+                <small>{fact.label}</small>
+                <strong title={fact.value}>{fact.value}</strong>
+              </span>
+            ))}
+          </span>
         )}
       </span>
     </div>

@@ -14,6 +14,8 @@ import { InitValueDisplay } from "../../Common/Details/InitValueDisplay";
 import { DetailsBottomTabs, type DetailBreadcrumb, type DetailsTab } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import { DetailRelationship, referenceRelationship, type DetailRelationshipNode } from "../../Common/Details/DetailRelationship/DetailRelationship";
 import { DetailGeneralPanel } from "../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
+import { getDataConstraintRuleNodes } from "./DataConstraintRules";
+import { getUnitRelationshipTargets } from "./UnitRelationship";
 
 const DATA_TYPE_ENTITY_TYPES = new Set([
   "application-data-type",
@@ -48,6 +50,9 @@ export function EntityDetails(props: {
   ];
   const packagePath = props.entity.parentSemanticPath ?? props.entity.packagePath;
   const isConstant = props.entity.type === "constant";
+  const isDataConstraint = props.entity.type === "data-constraint";
+  const isUnit = props.entity.type === "unit";
+  const isChainOnly = isConstant || isDataConstraint || isUnit;
   const showReferencingBranches = DATA_TYPE_ENTITY_TYPES.has(props.entity.type) || isConstant;
   const referencingBranches = showReferencingBranches
     ? [...(props.referenceInstances ?? [])]
@@ -82,6 +87,12 @@ export function EntityDetails(props: {
         valueType: metadata["VALUE-SPEC-TYPE"] ?? "-"
       }];
     }
+  } else if (isDataConstraint) {
+    targetLink = "has rules";
+    relationshipTargets = getDataConstraintRuleNodes(details);
+  } else if (isUnit) {
+    targetLink = "has properties";
+    relationshipTargets = getUnitRelationshipTargets(details);
   } else if (props.entity.type === "mode-declaration-group") {
     targetLink = "has modes";
     const initialMode = details.fields.find((field) => field.label === "Initial Mode")?.value;
@@ -96,7 +107,7 @@ export function EntityDetails(props: {
   }
 
   const tabs: DetailsTab[] = [
-    { id: "general", label: "General", content: isConstant ? null : (
+    { id: "general", label: "General", content: isChainOnly ? null : (
       <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           {fields.map((field, index) => (
@@ -111,7 +122,7 @@ export function EntityDetails(props: {
       </DetailGeneralPanel>
     ) }
   ];
-  if (details.tables.length > 0) {
+  if (details.tables.length > 0 && !isDataConstraint) {
     tabs.push({
       id: "members",
       label: "Members",
@@ -145,12 +156,12 @@ export function EntityDetails(props: {
             referencePath: packagePath
           } : undefined}
           sourceBranches={referencingBranches}
-          sourceHeading={`Instances referencing this ${props.entity.type === "constant" ? "constant" : "data type"}`}
+          sourceHeading={`Instances referencing this ${isConstant ? "constant" : isDataConstraint ? "data constraint" : isUnit ? "unit" : "data type"}`}
           current={{ role: formatAutosarTagText(props.entity.rawTagName), name: props.entity.shortName }}
           targets={relationshipTargets}
           targetLink={targetLink}
           compactTargets={DATA_TYPE_ENTITY_TYPES.has(props.entity.type)}
-          showDetailsLink={!isConstant}
+          showDetailsLink={!isChainOnly}
           onOpenReference={props.onOpenReferencedEntity}
           canOpenReference={props.canOpenReferencedEntity}
         />

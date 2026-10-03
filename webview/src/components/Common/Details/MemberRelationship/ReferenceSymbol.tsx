@@ -3,6 +3,7 @@ type SymbolKind =
   | "swc"
   | "runnable"
   | "constant"
+  | "unit"
   | "mode"
   | "variable"
   | "parameter"
@@ -27,6 +28,7 @@ function getSymbolKind(entityType: string | undefined, role: string): SymbolKind
   if (kind.includes("software component")) return "swc";
   if (kind.includes("runnable") && !kind.includes("variable")) return "runnable";
   if (kind.includes("constant")) return "constant";
+  if (kind === "unit" || kind.includes("unit properties")) return "unit";
   if (kind === "mode" || kind.includes("mode declaration")) return "mode";
   if (kind.includes("inter runnable variable")) return "variable";
   if (kind.includes("parameter")) return "parameter";
@@ -54,6 +56,7 @@ export function ReferenceSymbol(props: { entityType?: string; role: string }) {
         {kind === "swc" && <><rect x="5" y="5" width="14" height="14" rx="2" /><path d="M2 9h3M2 15h3M19 9h3M19 15h3" /></>}
         {kind === "runnable" && <><circle cx="12" cy="12" r="9" /><text x="12" y="16" textAnchor="middle">R</text></>}
         {kind === "constant" && <><rect x="4" y="4" width="16" height="16" rx="3" /><text x="12" y="16" textAnchor="middle">C</text></>}
+        {kind === "unit" && <><circle cx="12" cy="12" r="9" /><text x="12" y="16" textAnchor="middle">U</text></>}
         {kind === "mode" && <><circle cx="12" cy="12" r="9" /><text x="12" y="16" textAnchor="middle">M</text></>}
         {kind === "variable" && <><rect x="4" y="4" width="16" height="16" rx="3" /><text x="12" y="16" textAnchor="middle">V</text></>}
         {kind === "parameter" && <><circle cx="12" cy="12" r="9" /><text x="12" y="16" textAnchor="middle">P</text></>}
