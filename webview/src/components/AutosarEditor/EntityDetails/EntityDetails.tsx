@@ -47,7 +47,8 @@ export function EntityDetails(props: {
     ...details.fields
   ];
   const packagePath = props.entity.parentSemanticPath ?? props.entity.packagePath;
-  const showReferencingBranches = DATA_TYPE_ENTITY_TYPES.has(props.entity.type) || props.entity.type === "constant";
+  const isConstant = props.entity.type === "constant";
+  const showReferencingBranches = DATA_TYPE_ENTITY_TYPES.has(props.entity.type) || isConstant;
   const referencingBranches = showReferencingBranches
     ? [...(props.referenceInstances ?? [])]
       .sort((left, right) =>
@@ -67,7 +68,7 @@ export function EntityDetails(props: {
     .filter((reference) => reference !== undefined);
   let relationshipTargets = referenceFields;
   let targetLink = "references";
-  if (props.entity.type === "constant") {
+  if (isConstant) {
     targetLink = "has value";
     const valueReference = referenceRelationship("Value Reference", metadata["VALUE-SPEC-REF"]);
     if (valueReference) {
@@ -95,7 +96,7 @@ export function EntityDetails(props: {
   }
 
   const tabs: DetailsTab[] = [
-    { id: "general", label: "General", content: (
+    { id: "general", label: "General", content: isConstant ? null : (
       <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           {fields.map((field, index) => (
@@ -148,6 +149,7 @@ export function EntityDetails(props: {
           current={{ role: formatAutosarTagText(props.entity.rawTagName), name: props.entity.shortName }}
           targets={relationshipTargets}
           targetLink={targetLink}
+          showDetailsLink={!isConstant}
           onOpenReference={props.onOpenReferencedEntity}
           canOpenReference={props.canOpenReferencedEntity}
         />

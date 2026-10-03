@@ -22,6 +22,7 @@ export function DetailRelationship(props: {
   current: DetailRelationshipNode;
   targets?: DetailRelationshipNode[];
   targetLink?: string;
+  showDetailsLink?: boolean;
   onOpenReference?: (referencePath: string) => void;
   canOpenReference?: (referencePath: string) => boolean;
 }) {
@@ -77,7 +78,7 @@ export function DetailRelationship(props: {
           </>
         )}
       </div>
-      <RelationshipLink label="details" />
+      {props.showDetailsLink !== false && <RelationshipLink label="details" />}
     </div>
   );
 }
