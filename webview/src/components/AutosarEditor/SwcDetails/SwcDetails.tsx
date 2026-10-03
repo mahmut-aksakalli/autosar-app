@@ -267,6 +267,8 @@ export function SwcDetails(props: {
         runnable={runnable}
         filePath={props.focusEntity.filePath}
         xmlPath={runnable?.xmlPath ?? props.tab.xmlPath}
+        onOpenReferencedEntity={props.onOpenReferencedEntity}
+        canOpenReferencedEntity={props.canOpenReferencedEntity}
       />
     );
   }

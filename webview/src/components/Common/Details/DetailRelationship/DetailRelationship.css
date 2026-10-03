@@ -26,6 +26,7 @@
 /* Match the port-interface hierarchy: full-width cards with a left-hand
    relationship rail, while the final connection drops to the panel center. */
 .model-detail-relationship.is-left-aligned .model-detail-relationship-card.is-current,
+.model-detail-relationship.is-left-aligned .model-detail-relationship-chain > .model-detail-relationship-card,
 .model-detail-relationship.is-left-aligned .model-detail-relationship-targets {
   width: 100%;
 }
