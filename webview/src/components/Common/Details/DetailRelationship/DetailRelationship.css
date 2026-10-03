@@ -35,6 +35,18 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Data types may point to several peer references. Keep those cards compact
+   and wrap them across the row instead of stacking full-width cards. */
+.model-detail-relationship.is-left-aligned.has-compact-targets .model-detail-relationship-targets {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.model-detail-relationship.is-left-aligned.has-compact-targets .model-detail-relationship-targets .model-detail-relationship-card {
+  flex: 0 1 260px;
+  width: min(260px, 100%);
+}
+
 .model-detail-relationship.is-left-aligned .model-detail-relationship-branches {
   width: calc(100% - 20px);
 }

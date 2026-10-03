@@ -149,6 +149,7 @@ export function EntityDetails(props: {
           current={{ role: formatAutosarTagText(props.entity.rawTagName), name: props.entity.shortName }}
           targets={relationshipTargets}
           targetLink={targetLink}
+          compactTargets={DATA_TYPE_ENTITY_TYPES.has(props.entity.type)}
           showDetailsLink={!isConstant}
           onOpenReference={props.onOpenReferencedEntity}
           canOpenReference={props.canOpenReferencedEntity}

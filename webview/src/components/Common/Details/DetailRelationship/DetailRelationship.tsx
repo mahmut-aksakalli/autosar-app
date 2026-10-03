@@ -22,6 +22,7 @@ export function DetailRelationship(props: {
   current: DetailRelationshipNode;
   targets?: DetailRelationshipNode[];
   targetLink?: string;
+  compactTargets?: boolean;
   showDetailsLink?: boolean;
   onOpenReference?: (referencePath: string) => void;
   canOpenReference?: (referencePath: string) => boolean;
@@ -30,7 +31,7 @@ export function DetailRelationship(props: {
 
   return (
     <div
-      className={`model-detail-relationship${props.align === "left" ? " is-left-aligned" : ""}`}
+      className={`model-detail-relationship${props.align === "left" ? " is-left-aligned" : ""}${props.compactTargets ? " has-compact-targets" : ""}`}
       aria-label={`${props.current.name} relationships`}
     >
       <div className="model-detail-relationship-chain">
