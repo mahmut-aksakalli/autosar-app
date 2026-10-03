@@ -8,6 +8,9 @@ export interface DetailRelationshipNode {
   role: string;
   name: string;
   badge?: string;
+  symbolType?: string;
+  inlineValue?: string;
+  highlight?: "initial-mode";
   valueType?: string;
   facts?: Array<{ label: string; value: string; wide?: boolean }>;
   referencePath?: string;
@@ -110,22 +113,25 @@ function RelationshipCard(props: {
     : undefined);
 
   return (
-    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}${props.node.facts?.length ? " has-facts" : ""}`} title={referencePath ?? (props.node.name || props.node.role)}>
-      <ReferenceSymbol role={props.node.role} />
+    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}${props.node.facts?.length ? " has-facts" : ""}${props.node.highlight === "initial-mode" ? " is-initial-mode" : ""}`} title={referencePath ?? (props.node.name || props.node.role)}>
+      <ReferenceSymbol entityType={props.node.symbolType} role={props.node.role} />
       <span className="model-detail-relationship-card-content">
         <span className="model-detail-relationship-card-role">
           <small>{props.node.role}</small>
           {props.node.badge && <span className="model-detail-relationship-card-badge">{props.node.badge}</span>}
         </span>
-        {canOpen ? (
-          <button type="button" onClick={open} title={`Open ${props.node.name}`}>
-            {props.node.name}
-          </button>
-        ) : props.node.valueType ? (
-          <strong><InitValueDisplay value={props.node.name} type={props.node.valueType} /></strong>
-        ) : props.node.name ? (
-          <strong>{props.node.name}</strong>
-        ) : null}
+        <span className="model-detail-relationship-name-line">
+          {canOpen ? (
+            <button type="button" onClick={open} title={`Open ${props.node.name}`}>
+              {props.node.name}
+            </button>
+          ) : props.node.valueType ? (
+            <strong><InitValueDisplay value={props.node.name} type={props.node.valueType} /></strong>
+          ) : props.node.name ? (
+            <strong>{props.node.name}</strong>
+          ) : null}
+          {props.node.inlineValue && <span className="model-detail-relationship-inline-value">{props.node.inlineValue}</span>}
+        </span>
         {props.node.facts && (
           <span className="model-detail-relationship-facts">
             {props.node.facts.map((fact) => (
