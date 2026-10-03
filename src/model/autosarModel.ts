@@ -2,6 +2,7 @@ import path from "node:path";
 import type {
   AutosarEntity,
   AutosarEntityReference,
+  ImplementationTypeDetail,
   PortDirection,
   PortInterfaceKind,
   PortKind,
@@ -21,6 +22,7 @@ import {
 } from "./autosarVersionAdapters";
 import type { ArxmlValidationMetadata } from "../shared/contracts";
 import { hydratePresentationDetails } from "./presentationDetails";
+import { collectImplementationTypeDetail } from "./implementationTypeDetails";
 
 const PORT_TAGS = new Set(["P-PORT-PROTOTYPE", "R-PORT-PROTOTYPE", "PR-PORT-PROTOTYPE"]);
 const CONNECTION_TAGS = new Set(["ASSEMBLY-SW-CONNECTOR", "DELEGATION-SW-CONNECTOR"]);
@@ -971,6 +973,7 @@ interface EntityDetailTable {
 interface EntityDetailPayload {
   fields: EntityDetailField[];
   tables: EntityDetailTable[];
+  implementationType?: ImplementationTypeDetail;
 }
 
 function collectEntityMetadata(type: EntityType, tagName: string, record: Record<string, unknown>) {
@@ -1061,6 +1064,7 @@ function buildEntityDetailPayload(
 ): EntityDetailPayload | undefined {
   const fields: EntityDetailField[] = [];
   const tables: EntityDetailTable[] = [];
+  let implementationType: ImplementationTypeDetail | undefined;
   const addField = (label: string, value: string | undefined, valueType?: string) => {
     fields.push({ label, value: value ?? "-", valueType });
   };
@@ -1102,6 +1106,7 @@ function buildEntityDetailPayload(
     addField("Structure Has Optional Elements", readNestedSimpleValue(record, "IS-STRUCT-WITH-OPTIONAL-ELEMENT"));
     addField("Type Emitter", readNestedSimpleValue(record, "TYPE-EMITTER"));
     addField("Symbol", readNestedSimpleValue(record["SYMBOL-PROPS"], "SYMBOL"));
+    implementationType = collectImplementationTypeDetail(record);
     const rows = collectContainedRecords(record, "SUB-ELEMENTS", "IMPLEMENTATION-DATA-TYPE-ELEMENT").map((element) => ({
       name: extractShortName(element) ?? "-",
       category: readNestedSimpleValue(element, "CATEGORY") ?? "-",
@@ -1208,7 +1213,7 @@ function buildEntityDetailPayload(
     return undefined;
   }
 
-  return { fields, tables };
+  return { fields, tables, implementationType };
 }
 
 function addSwDataDefinitionFields(

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { formatReferenceShortName } from "../DetailsFormatters";
 import { InitValueDisplay } from "../InitValueDisplay";
 import { ReferenceSymbol } from "../MemberRelationship/ReferenceSymbol";
@@ -6,6 +7,7 @@ import "./DetailRelationship.css";
 export interface DetailRelationshipNode {
   role: string;
   name: string;
+  badge?: string;
   valueType?: string;
   facts?: Array<{ label: string; value: string; wide?: boolean }>;
   referencePath?: string;
@@ -24,6 +26,7 @@ export function DetailRelationship(props: {
   targets?: DetailRelationshipNode[];
   targetLink?: string;
   compactTargets?: boolean;
+  memberContent?: ReactNode;
   showDetailsLink?: boolean;
   onOpenReference?: (referencePath: string) => void;
   canOpenReference?: (referencePath: string) => boolean;
@@ -64,6 +67,12 @@ export function DetailRelationship(props: {
           </>
         )}
         <RelationshipCard node={props.current} current />
+        {props.memberContent && (
+          <>
+            <RelationshipLink label="has members" />
+            <div className="model-detail-relationship-member-content">{props.memberContent}</div>
+          </>
+        )}
         {targets.length > 0 && (
           <>
             <RelationshipLink label={props.targetLink ?? "references"} />
@@ -104,7 +113,10 @@ function RelationshipCard(props: {
     <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}${props.node.facts?.length ? " has-facts" : ""}`} title={referencePath ?? (props.node.name || props.node.role)}>
       <ReferenceSymbol role={props.node.role} />
       <span className="model-detail-relationship-card-content">
-        <small>{props.node.role}</small>
+        <span className="model-detail-relationship-card-role">
+          <small>{props.node.role}</small>
+          {props.node.badge && <span className="model-detail-relationship-card-badge">{props.node.badge}</span>}
+        </span>
         {canOpen ? (
           <button type="button" onClick={open} title={`Open ${props.node.name}`}>
             {props.node.name}

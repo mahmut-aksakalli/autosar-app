@@ -1,0 +1,101 @@
+.model-type-declaration {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 18px;
+  border: 1px solid #b9cfe4;
+  border-radius: 4px;
+  background: #f9fbfd;
+  color: #20354d;
+  font-family: var(--vscode-editor-font-family, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.model-type-declaration-group {
+  min-width: 0;
+}
+
+.model-type-declaration-line {
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.model-type-declaration-line strong {
+  font-weight: 700;
+}
+
+.model-type-declaration-category,
+.model-type-declaration-optional {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  padding: 0 6px;
+  border: 1px solid #a9c5e2;
+  border-radius: 3px;
+  background: #e7f2fc;
+  color: #225d91;
+  font-family: var(--vscode-font-family);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+  vertical-align: baseline;
+}
+
+.model-type-declaration-category.is-union {
+  border-color: #cbb7e5;
+  background: #f1eafa;
+  color: #694994;
+}
+
+.model-type-declaration-category.is-array {
+  border-color: #b7d6c3;
+  background: #e8f5ed;
+  color: #2b6a49;
+}
+
+.model-type-declaration-category.is-member {
+  border-color: #c9d5e1;
+  background: #eef2f6;
+  color: #526579;
+}
+
+.model-type-declaration-optional {
+  margin: 0 0 0 9px;
+  border-color: #e6c58d;
+  background: #fff2d9;
+  color: #8a5a13;
+}
+
+.model-type-declaration button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1769af;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.model-type-declaration button:hover,
+.model-type-declaration button:focus-visible {
+  text-decoration: underline;
+}
+
+.model-type-declaration-annotations,
+.model-type-declaration-comment {
+  color: #66798c;
+  font-size: 11px;
+}
+
+.model-type-declaration-annotations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+}
+
+.model-type-declaration-missing {
+  color: #8a6371;
+  font-style: italic;
+}

@@ -16,6 +16,7 @@ import { DetailRelationship, referenceRelationship, type DetailRelationshipNode 
 import { DetailGeneralPanel } from "../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
 import { getDataConstraintRuleNodes } from "./DataConstraintRules";
 import { getUnitRelationshipTargets } from "./UnitRelationship";
+import { ImplementationTypeDeclaration } from "./ImplementationTypeDeclaration/ImplementationTypeDeclaration";
 
 const DATA_TYPE_ENTITY_TYPES = new Set([
   "application-data-type",
@@ -52,7 +53,15 @@ export function EntityDetails(props: {
   const isConstant = props.entity.type === "constant";
   const isDataConstraint = props.entity.type === "data-constraint";
   const isUnit = props.entity.type === "unit";
-  const isChainOnly = isConstant || isDataConstraint || isUnit;
+  const isImplementationType = props.entity.type === "implementation-data-type";
+  const implementationType = isImplementationType ? details.implementationType : undefined;
+  const implementationCategory = isImplementationType
+    ? implementationType?.category ?? details.fields.find((field) => field.label === "Category")?.value
+    : undefined;
+  const showImplementationDeclaration = Boolean(
+    implementationType && ["STRUCTURE", "UNION", "ARRAY"].includes(implementationCategory?.toUpperCase() ?? "")
+  );
+  const isChainOnly = isConstant || isDataConstraint || isUnit || isImplementationType;
   const showReferencingBranches = DATA_TYPE_ENTITY_TYPES.has(props.entity.type) || isConstant;
   const referencingBranches = showReferencingBranches
     ? [...(props.referenceInstances ?? [])]
@@ -71,7 +80,22 @@ export function EntityDetails(props: {
   const referenceFields: DetailRelationshipNode[] = details.fields
     .map((field) => referenceRelationship(field.label, field.value.startsWith("/") ? field.value : undefined))
     .filter((reference) => reference !== undefined);
+  const implementationReferences = implementationType
+    ? implementationType.references
+      .map((reference) => referenceRelationship(reference.label, reference.path))
+      .filter((reference) => reference !== undefined)
+    : [];
+  const implementationFacts = isImplementationType ? [
+    ...(packagePath ? [{ label: "Package Path", value: packagePath, wide: true }] : []),
+    ...(metadata.DESCRIPTION ? [{ label: "Description", value: metadata.DESCRIPTION, wide: true }] : []),
+    ...details.fields
+      .filter((field) => field.label !== "Category" && field.value !== "-" && !field.value.startsWith("/"))
+      .map((field) => ({ label: field.label, value: field.value }))
+  ] : undefined;
   let relationshipTargets = referenceFields;
+  if (implementationType) {
+    relationshipTargets = showImplementationDeclaration ? [] : implementationReferences;
+  }
   let targetLink = "references";
   if (isConstant) {
     targetLink = "has value";
@@ -122,7 +146,7 @@ export function EntityDetails(props: {
       </DetailGeneralPanel>
     ) }
   ];
-  if (details.tables.length > 0 && !isDataConstraint) {
+  if (!isImplementationType && details.tables.length > 0 && !isDataConstraint) {
     tabs.push({
       id: "members",
       label: "Members",
@@ -157,10 +181,23 @@ export function EntityDetails(props: {
           } : undefined}
           sourceBranches={referencingBranches}
           sourceHeading={`Instances referencing this ${isConstant ? "constant" : isDataConstraint ? "data constraint" : isUnit ? "unit" : "data type"}`}
-          current={{ role: formatAutosarTagText(props.entity.rawTagName), name: props.entity.shortName }}
+          current={{
+            role: formatAutosarTagText(props.entity.rawTagName),
+            name: props.entity.shortName,
+            badge: implementationCategory?.replaceAll("_", " "),
+            facts: implementationFacts
+          }}
           targets={relationshipTargets}
           targetLink={targetLink}
           compactTargets={DATA_TYPE_ENTITY_TYPES.has(props.entity.type)}
+          memberContent={showImplementationDeclaration && implementationType ? (
+            <ImplementationTypeDeclaration
+              name={props.entity.shortName}
+              detail={implementationType}
+              onOpenReference={props.onOpenReferencedEntity}
+              canOpenReference={props.canOpenReferencedEntity}
+            />
+          ) : undefined}
           showDetailsLink={!isChainOnly}
           onOpenReference={props.onOpenReferencedEntity}
           canOpenReference={props.canOpenReferencedEntity}

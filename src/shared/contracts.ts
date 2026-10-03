@@ -46,6 +46,25 @@ export interface EntityDetailPayload {
     columns: Array<{ key: string; label: string }>;
     rows: Array<Record<string, string>>;
   }>;
+  implementationType?: ImplementationTypeDetail;
+}
+
+export interface ImplementationTypeElementDetail {
+  name: string;
+  category: string;
+  references: Array<{ label: string; path: string }>;
+  arraySize?: string;
+  sizeSemantics?: string;
+  optional?: string;
+  children: ImplementationTypeElementDetail[];
+}
+
+export interface ImplementationTypeDetail {
+  category: string;
+  references: Array<{ label: string; path: string }>;
+  arraySize?: string;
+  sizeSemantics?: string;
+  elements: ImplementationTypeElementDetail[];
 }
 
 export interface InterfaceDetailMember {

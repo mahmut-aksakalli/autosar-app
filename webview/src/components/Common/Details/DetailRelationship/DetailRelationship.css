@@ -176,6 +176,24 @@
   min-width: 0;
 }
 
+.model-detail-relationship-card-role {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.model-detail-relationship-card-badge {
+  padding: 1px 6px;
+  border: 1px solid #a9c5e2;
+  border-radius: 3px;
+  background: #e7f2fc;
+  color: #225d91;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 .model-detail-relationship-card-content small {
   color: #586b7f;
   font-size: 11px;
@@ -246,6 +264,11 @@
 }
 
 .model-detail-relationship-targets .model-detail-relationship-card {
+  width: 100%;
+}
+
+.model-detail-relationship-member-content {
+  box-sizing: border-box;
   width: 100%;
 }
 
