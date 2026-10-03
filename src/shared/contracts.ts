@@ -292,7 +292,10 @@ export interface ModelWorkspaceTab {
   focusEntityId: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  preferredPortId?: string;
   includeCompositionInternals?: boolean;
+  compositionContextPaths?: string[];
+  compositionTreeOrigin?: "template" | "root";
   entityId?: string;
   sectionId?: SwcInspectorSectionId;
   itemId?: string;
@@ -342,6 +345,8 @@ export interface ConnectedPortReference {
   portId?: string;
   portXmlPath?: string;
   portName: string;
+  portDirection?: PortDirection;
+  interfaceKind?: PortInterfaceKind;
   portInterface: string;
   portInterfaceRef?: string;
   ownerEntityId?: string;
@@ -402,6 +407,10 @@ export interface WorkspaceProjectInfo {
   }>;
   indexedInBackground: boolean;
   indexingStatus?: "idle" | "loading" | "complete";
+  vectorEcuInputs?: {
+    flatMapFilePath?: string;
+    flatExtractFilePath?: string;
+  };
 }
 
 export interface WorkspaceSnapshot {
@@ -415,6 +424,7 @@ export interface WorkspaceSnapshot {
   connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   referenceInstancesByTargetId: Record<string, EntityReferenceInstance[]>;
   connections: PortConnection[];
+  vectorEcu?: VectorEcuModel;
   watched: boolean;
   lastIndexedAt: string;
 }
@@ -488,6 +498,27 @@ export interface SwcGraphNode {
   ports: SwcGraphPort[];
 }
 
+export interface VectorEcuInstanceMapping {
+  flatInstancePath: string;
+  upstreamInstancePath: string;
+  upstreamContextPaths: string[];
+}
+
+export interface VectorEcuPortMapping {
+  flatPortPath: string;
+  upstreamPortPath: string;
+}
+
+export interface VectorEcuModel {
+  rootCompositionId: string;
+  rootPrototypeName: string;
+  flatCompositionId: string;
+  flatEntities: AutosarEntity[];
+  flatConnections: PortConnection[];
+  instanceMappings: VectorEcuInstanceMapping[];
+  portMappings: VectorEcuPortMapping[];
+}
+
 export interface SwcGraphEdge {
   id: string;
   kind: SwcGraphEdgeKind;
@@ -499,6 +530,20 @@ export interface SwcGraphEdge {
   filePath: string;
   xmlPath?: string;
   warning?: string;
+  connectionCategory?: "service";
+}
+
+export interface SwcGraphExternalConnection {
+  nodeId: string;
+  portId: string;
+  componentName: string;
+  portName: string;
+  category: "service";
+  targetCompositionId: string;
+  targetCompositionContextPaths?: string[];
+  targetTreeNodeId?: string;
+  targetNodeId: string;
+  targetPortId: string;
 }
 
 export interface SwcGraphResult {
@@ -507,6 +552,7 @@ export interface SwcGraphResult {
   nodes: SwcGraphNode[];
   edges: SwcGraphEdge[];
   warnings: ValidationIssue[];
+  externalConnections?: SwcGraphExternalConnection[];
 }
 
 export interface SwcGraphQuery {
@@ -514,6 +560,7 @@ export interface SwcGraphQuery {
   focusId?: string;
   depth: number;
   includeCompositionInternals?: boolean;
+  compositionContextPaths?: string[];
 }
 
 export interface SearchInputDocument {

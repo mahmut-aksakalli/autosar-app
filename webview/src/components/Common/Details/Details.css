@@ -12,8 +12,7 @@
   gap: 12px;
   min-height: 42px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: #f7f9fc;
+  background: #ffffff;
 }
 
 .model-semantic-header strong {
@@ -55,6 +54,28 @@
 
 .model-semantic-surface > .empty-state {
   flex: 1 1 auto;
+}
+
+.model-details-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px;
+  color: #586b7f;
+  font-size: 13px;
+}
+
+.model-details-loading-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #cbd8e6;
+  border-top-color: #2d78c4;
+  border-radius: 50%;
+  animation: model-details-loading-spin 0.8s linear infinite;
+}
+
+@keyframes model-details-loading-spin {
+  to { transform: rotate(360deg); }
 }
 
 .model-semantic-table {
@@ -159,8 +180,7 @@
   font-weight: 600;
 }
 
-.model-port-argument-section,
-.model-port-comspec-table-section {
+.model-port-argument-section {
   border-top: 1px solid #dbe6f2;
 }
 
@@ -172,8 +192,7 @@
   margin-top: 14px;
 }
 
-.model-port-argument-section h3,
-.model-port-comspec-table-section h3 {
+.model-port-argument-section h3 {
   margin: 0;
   padding: 8px 10px;
   border-bottom: 1px solid #dbe6f2;
@@ -393,48 +412,6 @@
   color: var(--accent);
 }
 
-.model-comspec-master-detail {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1.1fr);
-  align-items: start;
-  min-height: 260px;
-  border-top: 1px solid #dbe6f2;
-}
-
-.model-comspec-detail-panel {
-  min-width: 0;
-  height: 100%;
-  background: #fbfdff;
-}
-
-.model-comspec-detail-heading {
-  display: grid;
-  gap: 2px;
-  padding: 10px;
-  border-bottom: 1px solid #dbe6f2;
-  background: rgba(239, 245, 251, 0.9);
-}
-
-.model-comspec-detail-heading span {
-  color: #637584;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.model-comspec-detail-heading strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #173f67;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.model-comspec-detail-panel .model-communication-spec-details {
-  padding: 10px;
-}
-
 .model-operation-errors-table th:first-child,
 .model-operation-errors-table td:first-child {
   width: 72px;
@@ -445,22 +422,6 @@
 .model-operation-errors-table td:nth-child(2) {
   width: 100px;
   white-space: nowrap;
-}
-
-.model-comspec-table-wrap {
-  min-width: 0;
-  min-height: 260px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  border-right: 1px solid #dbe6f2;
-}
-
-.model-comspec-table-wrap .model-runnable-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 
 .model-communication-spec-details {

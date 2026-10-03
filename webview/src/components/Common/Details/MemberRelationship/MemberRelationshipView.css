@@ -1,0 +1,346 @@
+.model-member-relationship {
+  --member-detail-gap: 88px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(210px, 34%) minmax(0, 1fr);
+  gap: var(--member-detail-gap);
+  min-width: 0;
+  padding: 12px;
+}
+
+.model-member-relationship-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.model-member-relationship-left:not(.has-footer) .model-member-relationship-list {
+  flex: 1;
+}
+
+.model-member-relationship-list,
+.model-member-relationship-detail {
+  min-width: 0;
+  border: 1px solid #cbd8e6;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.model-member-relationship-list {
+  overflow: hidden;
+}
+
+.model-member-relationship-list h3 {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dbe6f2;
+  background: #f7f9fc;
+  color: #20354d;
+  font-size: 13px;
+  text-align: left;
+}
+
+.model-member-relationship-list ul {
+  max-height: 420px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.model-member-relationship-list li + li {
+  margin-top: 4px;
+}
+
+.model-member-relationship-list li button {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #20354d;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-member-relationship-list li button:hover {
+  background: #f0f6fc;
+}
+
+.model-member-relationship-list li button.is-selected {
+  border-color: #a8c8e8;
+  background: #e8f2fd;
+}
+
+.model-member-relationship-list li button:focus-visible {
+  outline: 2px solid #2d78c4;
+  outline-offset: -2px;
+}
+
+.model-member-relationship-list-footer {
+  min-width: 0;
+}
+
+.model-member-relationship-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #edf2f8;
+  color: #526579;
+  font-size: 11px;
+}
+
+.model-member-relationship-item-text {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.model-member-relationship-item-text strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.model-member-relationship-item-text small {
+  color: #586b7f;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.model-member-relationship-detail {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 16px 12px;
+}
+
+.model-member-relationship-focus,
+.model-member-reference-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-sizing: border-box;
+  width: min(280px, 100%);
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid #b9cfe4;
+  border-radius: 4px;
+  background: #f9fbfd;
+  color: #20354d;
+}
+
+.model-member-relationship-focus > span:last-child,
+.model-member-reference-card-content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.model-member-relationship-focus strong,
+.model-member-reference-card strong,
+.model-member-reference-card button {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.model-member-relationship-focus small,
+.model-member-reference-card small {
+  color: #586b7f;
+  font-size: 11px;
+}
+
+.model-member-relationship-symbol {
+  display: grid;
+  place-items: center;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  border: 1px solid #617c99;
+  border-radius: 3px;
+  color: #2d78c4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.model-member-reference-symbol {
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  color: #2d78c4;
+}
+
+.model-member-reference-symbol svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.model-member-reference-symbol svg text {
+  fill: currentColor;
+  stroke: none;
+  font: 700 10px sans-serif;
+}
+
+.model-member-reference-symbol.is-implementation,
+.model-member-reference-symbol.is-base {
+  color: #7656a5;
+}
+
+.model-member-reference-symbol.is-compu {
+  color: #217a9a;
+}
+
+.model-member-reference-symbol.is-constraint {
+  color: #a35c24;
+}
+
+.model-member-relationship-properties {
+  width: 100%;
+  min-width: 0;
+  margin-top: 16px;
+  border-top: 1px solid #dbe6f2;
+}
+
+.model-member-relationship-detail-link {
+  position: absolute;
+  top: 12px;
+  left: calc(-1px - var(--member-detail-gap));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--member-detail-gap);
+  height: 16px;
+  color: #586b7f;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.model-member-relationship-detail-link::before {
+  content: "";
+  position: absolute;
+  top: 28px;
+  left: 0;
+  width: 100%;
+  border-top: 2px solid #2d78c4;
+}
+
+.model-member-relationship-detail-link::after {
+  content: "";
+  position: absolute;
+  top: 25px;
+  right: -1px;
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid #2d78c4;
+  border-right: 2px solid #2d78c4;
+  transform: rotate(45deg);
+}
+
+.model-member-reference-path {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.model-member-reference-link {
+  width: 1px;
+  height: 18px;
+  background: #8298af;
+}
+
+.model-member-reference-branches {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  padding-top: 22px;
+}
+
+.model-member-reference-branches::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 22px;
+  border-left: 1px solid #8298af;
+}
+
+.model-member-reference-branch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  flex: 1 1 180px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.model-member-reference-branch::before {
+  content: "";
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  height: 22px;
+  border-left: 1px solid #8298af;
+}
+
+.model-member-reference-branches:has(> .model-member-reference-branch + .model-member-reference-branch)::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 10%;
+  right: 10%;
+  border-top: 1px solid #8298af;
+}
+
+.model-member-reference-branch > .model-member-reference-branches {
+  margin-top: 0;
+}
+
+.model-member-reference-card {
+  width: min(240px, 100%);
+}
+
+.model-member-reference-card button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1769af;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-member-reference-card button:hover,
+.model-member-reference-card button:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 700px) {
+  .model-member-relationship {
+    --member-detail-gap: 52px;
+    grid-template-columns: minmax(150px, 38%) minmax(0, 1fr);
+  }
+}
+

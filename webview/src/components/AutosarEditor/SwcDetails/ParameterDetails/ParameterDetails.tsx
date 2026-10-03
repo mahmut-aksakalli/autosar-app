@@ -8,23 +8,41 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailRelationship, referenceRelationship } from "../../../Common/Details/DetailRelationship/DetailRelationship";
+import { DetailGeneralPanel } from "../../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
 
 export function ParameterDetails(props: {
   title: string;
   parameter?: SwcInspectorItem;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.parameter?.metadata ?? {};
   const scope = formatParameterScopeOption(metadata.SCOPE);
   const measurementCalibration = formatMeasurementCalibrationOption(metadata["SW-CALIBRATION-ACCESS"] ?? "-");
+  const targets = [
+    referenceRelationship("Data Type", metadata.TYPE),
+    referenceRelationship("Addressing Method", metadata["SW-ADDR-METHOD-REF"])
+  ].filter((target) => target !== undefined);
+  const owner = props.breadcrumbs?.[0];
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.parameter?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
+      topContent={<DetailRelationship
+        source={owner ? { role: "Software Component", name: owner.label, onClick: owner.onClick } : undefined}
+        sourceLink="defines"
+        current={{ role: "Calibration Parameter", name: props.parameter?.label ?? "-" }}
+        targets={targets}
+        onOpenReference={props.onOpenReferencedEntity}
+        canOpenReference={props.canOpenReferencedEntity}
+      />}
+      tabs={[{ id: "general", label: "General", content: (
+        <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Parameter Name</span>
@@ -78,7 +96,8 @@ export function ParameterDetails(props: {
             </strong>
           </div>
         </div>
-      </div>
-    </div>
+        </DetailGeneralPanel>
+      ) }]}
+    />
   );
 }

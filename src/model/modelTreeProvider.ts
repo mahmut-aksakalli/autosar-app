@@ -7,6 +7,7 @@ import type {
   SwcInspectorSectionId,
   WorkspaceSnapshot
 } from "../shared/contracts";
+import { getRootServiceInstances } from "./vectorEcuModelService";
 
 export type { ModelWorkspaceTab } from "../shared/contracts";
 
@@ -14,9 +15,11 @@ export interface ModelTreeNode {
   id: string;
   label: string;
   icon?: string;
+  tooltip?: string;
   focusEntityId?: string;
   preferredScope?: SwcGraphScope;
   preferredNodeId?: string;
+  compositionContextPaths?: string[];
   workspaceTab?: ModelWorkspaceTab;
   selectable?: boolean;
   forceExpanded?: boolean;
@@ -72,6 +75,7 @@ export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeNode>
     item.id = node.id;
     item.contextValue = node.selectable ? `autosarModelNode.${node.workspaceTab?.kind ?? "entity"}` : "autosarModelGroup";
     item.iconPath = getNodeIconPath(node);
+    item.tooltip = node.tooltip;
     if (node.selectable) {
       item.command = {
         command: "autosarModelView.selectTreeNode",
@@ -228,7 +232,15 @@ function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeG
       portsByOwner.set(port.parentSemanticPath!, ports);
     });
 
-  const compositionTree: ModelTreeNode[] = compositions.map((composition) => makeCompositionNode(composition, entities));
+  const rootComposition = compositions.find((composition) => composition.id === workspace.vectorEcu?.rootCompositionId);
+  const makeCompositionTreeNode = (composition: AutosarEntity): ModelTreeNode => {
+    const ports = portsByOwner.get(composition.semanticPath ?? "") ?? [];
+    if (composition.id === rootComposition?.id) {
+      return makeRootCompositionNode(composition, ports, workspace);
+    }
+    return makeCompositionNode(composition, ports, workspace);
+  };
+  const compositionTree: ModelTreeNode[] = compositions.map(makeCompositionTreeNode);
   const componentChildren = swcs.map((swc): ModelTreeNode => makeSwcNode(swc, portsByOwner.get(swc.semanticPath ?? "") ?? []));
   const componentFamilies = new Map<string, { entities: AutosarEntity[]; children: ModelTreeNode[] }>();
 
@@ -247,7 +259,7 @@ function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeG
   return [
     makeTopLevelNode("software-compositions", "Software Compositions", () =>
       groupingMode === "packages"
-        ? buildPackageFolderTree(compositions, (composition) => makeCompositionNode(composition, entities), "software-compositions")
+        ? buildPackageFolderTree(compositions, makeCompositionTreeNode, "software-compositions")
         : compositionTree
     ),
     makeTopLevelNode("software-components", "Software Components", () =>
@@ -305,30 +317,11 @@ function buildModelTree(workspace: WorkspaceSnapshot | null, groupingMode: TreeG
   ];
 }
 
-function makeCompositionNode(composition: AutosarEntity, entities: AutosarEntity[]): ModelTreeNode {
-    const children = entities
-      .filter(
-        (entity) =>
-          entity.type === "instance" &&
-          entity.parentSemanticPath &&
-          composition.semanticPath &&
-          entity.parentSemanticPath === composition.semanticPath
-      )
-      .map((instance): ModelTreeNode => ({
-        id: `${composition.id}:${instance.id}`,
-        label: instance.shortName,
-        icon: "I",
-        focusEntityId: composition.id,
-        preferredScope: "composition",
-        preferredNodeId: instance.id,
-        selectable: true,
-        workspaceTab: makeModelTab(composition, "graph", `Graph: ${instance.shortName}`, {
-          preferredScope: "composition",
-          preferredNodeId: instance.id
-        })
-      }))
-      .sort((left, right) => left.label.localeCompare(right.label));
-
+function makeCompositionNode(
+  composition: AutosarEntity,
+  ports: AutosarEntity[],
+  workspace: WorkspaceSnapshot
+): ModelTreeNode {
   return {
     id: composition.id,
     label: composition.shortName,
@@ -336,11 +329,122 @@ function makeCompositionNode(composition: AutosarEntity, entities: AutosarEntity
     focusEntityId: composition.id,
     preferredScope: "composition",
     workspaceTab: makeModelTab(composition, "graph", "Graph", {
-      preferredScope: "composition"
+      preferredScope: "composition",
+      compositionTreeOrigin: "template"
     }),
     selectable: true,
-    children
+    children: [
+      makePortsWorkspaceNode(composition, ports, "composition", { compositionTreeOrigin: "template" }),
+      ...makeCompositionChildren(composition, workspace, undefined, 0, "template")
+    ]
   };
+}
+
+function makeRootCompositionNode(
+  composition: AutosarEntity,
+  ports: AutosarEntity[],
+  workspace: WorkspaceSnapshot
+): ModelTreeNode {
+  const contextPaths: string[] = [];
+  const instanceChildren = [
+    ...makeCompositionChildren(composition, workspace, contextPaths, 0, "root"),
+    ...makeRootServiceInstanceNodes(composition, workspace)
+  ].sort((left, right) => left.label.localeCompare(right.label));
+  return {
+    id: composition.id,
+    label: composition.shortName,
+    icon: "C",
+    tooltip: `Root software composition instance ${workspace.vectorEcu?.rootPrototypeName ?? composition.shortName}`,
+    focusEntityId: composition.id,
+    preferredScope: "composition",
+    compositionContextPaths: contextPaths,
+    selectable: true,
+    workspaceTab: makeModelTab(composition, "graph", `Graph: ${composition.shortName}`, {
+      preferredScope: "composition",
+      compositionContextPaths: contextPaths,
+      compositionTreeOrigin: "root"
+    }),
+    children: [
+      makePortsWorkspaceNode(composition, ports, "composition", {
+        compositionContextPaths: contextPaths,
+        compositionTreeOrigin: "root"
+      }),
+      ...instanceChildren
+    ]
+  };
+}
+
+function makeRootServiceInstanceNodes(
+  composition: AutosarEntity,
+  workspace: WorkspaceSnapshot
+): ModelTreeNode[] {
+  const contextPaths: string[] = [];
+  return getRootServiceInstances(workspace).map((serviceInstance): ModelTreeNode => ({
+    id: `${composition.id}:service:${serviceInstance.id}`,
+    label: serviceInstance.shortName,
+    icon: "S",
+    tooltip: `Service instance linked from FlatExtract: ${serviceInstance.semanticPath ?? serviceInstance.shortName}`,
+    focusEntityId: composition.id,
+    preferredScope: "composition",
+    preferredNodeId: serviceInstance.id,
+    compositionContextPaths: contextPaths,
+    selectable: true,
+    workspaceTab: makeModelTab(composition, "graph", `Graph: ${serviceInstance.shortName}`, {
+      preferredScope: "composition",
+      preferredNodeId: serviceInstance.id,
+      compositionContextPaths: contextPaths,
+      compositionTreeOrigin: "root"
+    })
+  })).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function makeCompositionChildren(
+  composition: AutosarEntity,
+  workspace: WorkspaceSnapshot,
+  contextPaths: string[] | undefined,
+  depth: number,
+  treeOrigin: "template" | "root"
+): ModelTreeNode[] {
+  if (!composition.semanticPath || depth > 8) {
+    return [];
+  }
+  const instances = workspace.entities.filter((entity) => {
+    return entity.type === "instance" && entity.parentSemanticPath === composition.semanticPath;
+  });
+
+  return instances.map((instance): ModelTreeNode => {
+    const typeEntity = workspace.entities.find((entity) => entity.semanticPath === instance.typeRef);
+    const isComposition = typeEntity?.type === "composition";
+    let childContext: string[] | undefined;
+    if (instance.semanticPath) {
+      // Descendants of a composition prototype belong to that prototype even
+      // when the containing composition was opened as a type template.
+      childContext = [...(contextPaths ?? []), instance.semanticPath];
+    }
+    const contextKey = contextPaths?.join(":") ?? "template";
+    const treeNodeId = treeOrigin === "template" && contextPaths
+      ? `${composition.id}:template:${contextKey}:${instance.id}`
+      : `${composition.id}:${contextKey}:${instance.id}`;
+    return {
+      id: treeNodeId,
+      label: instance.shortName,
+      icon: isComposition ? "C" : "I",
+      focusEntityId: composition.id,
+      preferredScope: "composition",
+      preferredNodeId: instance.id,
+      compositionContextPaths: contextPaths,
+      selectable: true,
+      workspaceTab: makeModelTab(composition, "graph", `Graph: ${instance.shortName}`, {
+        preferredScope: "composition",
+        preferredNodeId: instance.id,
+        compositionContextPaths: contextPaths,
+        compositionTreeOrigin: treeOrigin
+      }),
+      children: isComposition
+        ? makeCompositionChildren(typeEntity, workspace, childContext, depth + 1, treeOrigin)
+        : undefined
+    };
+  }).sort((left, right) => left.label.localeCompare(right.label));
 }
 
 function makeSwcNode(swc: AutosarEntity, ports: AutosarEntity[]): ModelTreeNode {
@@ -562,24 +666,7 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
         })
       }))
     },
-    {
-      ...makeSwcWorkspaceNode(swc, "ports", "Ports"),
-      children: ports
-        .slice()
-        .sort((left, right) => left.shortName.localeCompare(right.shortName))
-        .map((port) => ({
-          id: `${swc.id}:port:${port.id}`,
-          label: port.shortName,
-          icon: formatPortIcon(port),
-          focusEntityId: swc.id,
-          preferredScope: "swc" as const,
-          selectable: true,
-          workspaceTab: makeModelTab(swc, "port", `Port: ${port.shortName}`, {
-            entityId: port.id,
-            xmlPath: port.xmlPath
-          })
-        }))
-    },
+    makePortsWorkspaceNode(swc, ports, "swc"),
     {
       ...makeSwcWorkspaceNode(swc, "interRunnableVariables", "Inter-Runnable Variables", interRunnableVariables.length),
       children: interRunnableVariables
@@ -614,6 +701,40 @@ function buildSwcWorkspaceChildren(swc: AutosarEntity, ports: AutosarEntity[]): 
     },
     makeServiceNeedsWorkspaceNode(swc, serviceDependencies)
   ];
+}
+
+function makePortsWorkspaceNode(
+  owner: AutosarEntity,
+  ports: AutosarEntity[],
+  scope: SwcGraphScope,
+  tabOptions: Partial<ModelWorkspaceTab> = {}
+): ModelTreeNode {
+  return {
+    id: `${owner.id}:ports`,
+    label: "Ports",
+    icon: formatModelWorkspaceIcon("ports"),
+    focusEntityId: owner.id,
+    preferredScope: scope,
+    selectable: true,
+    workspaceTab: makeModelTab(owner, "ports", "Ports", { ...tabOptions, preferredScope: scope }),
+    children: ports
+      .slice()
+      .sort((left, right) => left.shortName.localeCompare(right.shortName))
+      .map((port) => ({
+        id: `${owner.id}:port:${port.id}`,
+        label: port.shortName,
+        icon: formatPortIcon(port),
+        focusEntityId: owner.id,
+        preferredScope: scope,
+        selectable: true,
+        workspaceTab: makeModelTab(owner, "port", `Port: ${port.shortName}`, {
+          ...tabOptions,
+          preferredScope: scope,
+          entityId: port.id,
+          xmlPath: port.xmlPath
+        })
+      }))
+  };
 }
 
 function makeServiceNeedsWorkspaceNode(swc: AutosarEntity, serviceDependencies: SwcInspectorItem[]): ModelTreeNode {
@@ -720,6 +841,8 @@ function makeModelTab(
       options.entityId ?? options.itemId ?? options.preferredNodeId ?? options.serviceType ?? "main"
     }${
       options.includeCompositionInternals ? ":internals" : ""
+    }${options.compositionContextPaths ? `:context:${options.compositionContextPaths.join("|") || "root"}` : ""}${
+      options.compositionTreeOrigin === "template" ? ":template-origin" : ""
     }`,
     title: titlePrefix.includes(":") ? titlePrefix : `${titlePrefix}: ${entity.shortName}`,
     pinned: options.pinned,
@@ -728,6 +851,8 @@ function makeModelTab(
     preferredScope: options.preferredScope,
     preferredNodeId: options.preferredNodeId,
     includeCompositionInternals: options.includeCompositionInternals,
+    compositionContextPaths: options.compositionContextPaths,
+    compositionTreeOrigin: options.compositionTreeOrigin,
     entityId: options.entityId,
     sectionId: options.sectionId,
     itemId: options.itemId,

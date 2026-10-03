@@ -28,3 +28,20 @@ test("closing the active tab activates the first remaining tab", () => {
 
   assert.equal(next.activeTabId, "first");
 });
+
+test("dragging a tab reorders it without changing the active tab", () => {
+  const state = {
+    tabs: [tab("first", true), tab("second", true), tab("third", true)],
+    activeTabId: "second"
+  };
+
+  const next = workspaceTabsReducer(state, {
+    type: "reorder",
+    tabId: "first",
+    targetTabId: "third",
+    position: "after"
+  });
+
+  assert.deepEqual(next.tabs.map((entry) => entry.id), ["second", "third", "first"]);
+  assert.equal(next.activeTabId, "second");
+});

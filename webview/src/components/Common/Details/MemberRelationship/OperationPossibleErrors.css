@@ -1,0 +1,75 @@
+.model-operation-errors {
+  width: 100%;
+  min-width: 0;
+}
+
+.model-operation-errors-connector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  color: #586b7f;
+  font-size: 11px;
+}
+
+.model-operation-errors-connector::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 5px;
+  left: 50%;
+  border-left: 2px solid #2d78c4;
+}
+
+.model-operation-errors-connector::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: calc(50% - 4px);
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #2d78c4;
+  border-bottom: 2px solid #2d78c4;
+  transform: rotate(45deg);
+}
+
+.model-operation-errors-connector span {
+  position: relative;
+  padding: 2px 7px;
+  background: #fff;
+}
+
+.model-operation-errors .model-port-argument-section {
+  border: 1px solid #cbd8e6;
+  border-radius: 5px;
+}
+
+.model-operation-errors .model-port-argument-section h3 {
+  padding: 10px 12px;
+  background: #f7f9fc;
+  color: #20354d;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.model-operation-errors .model-runnable-table-scroll {
+  max-height: 240px;
+}
+
+.model-operation-errors .model-runnable-table th,
+.model-operation-errors .model-runnable-table td {
+  padding: 6px 4px;
+  font-size: 11px;
+}
+
+.model-operation-errors .model-operation-errors-table th:first-child,
+.model-operation-errors .model-operation-errors-table td:first-child {
+  width: 40px;
+}
+
+.model-operation-errors .model-operation-errors-table th:nth-child(2),
+.model-operation-errors .model-operation-errors-table td:nth-child(2) {
+  width: 55px;
+}

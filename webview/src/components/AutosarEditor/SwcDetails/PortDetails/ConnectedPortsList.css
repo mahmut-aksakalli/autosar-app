@@ -1,0 +1,28 @@
+.model-connected-port-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.model-connected-port-list .model-port-hierarchy-heading {
+  margin: 0;
+}
+
+.model-connected-port-list ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model-connected-port-list .model-port-hierarchy-card {
+  width: 100%;
+}
+
+.model-connected-port-interface {
+  color: #596e83;
+  font-size: 11px;
+  line-height: 14px;
+  overflow-wrap: anywhere;
+}

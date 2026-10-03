@@ -5,6 +5,7 @@ import type {
   SwcInspectorData
 } from "../../../../../src/shared/contracts";
 import type { ModelWorkspaceTab } from "../../EditorTabs/EditorTabs";
+import type { DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import {
   collectInspectorItems,
   findInspectorItem,
@@ -23,17 +24,21 @@ import { VariablesTable } from "./TableData/VariablesTable";
 import { SimpleTable } from "./TableData/SimpleTable";
 import { PortsTable } from "./TableData/PortsTable";
 import { RunnablesTable } from "./TableData/RunnablesTable";
+import { DetailsLoading } from "../../Common/Details/DetailsLoading";
 
 export function SwcDetails(props: {
   tab: ModelWorkspaceTab;
   focusEntity?: AutosarEntity;
+  modelEntities?: AutosarEntity[];
   graphResult?: SwcGraphResult;
+  graphError?: string;
   inspector?: SwcInspectorData;
   connectedPortsByPortId: Record<string, ConnectedPortReference[]>;
   onConnectedPortSelect?: (connection: ConnectedPortReference) => void;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const inspectorData = props.inspector ?? props.focusEntity?.inspector;
   const ports = props.graphResult?.nodes.find((node) => node.id === props.focusEntity?.id)?.ports ?? props.graphResult?.nodes[0]?.ports ?? [];
@@ -47,6 +52,7 @@ export function SwcDetails(props: {
     return (
       <RunnablesTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         swcName={props.focusEntity.shortName}
         runnables={runnables}
         focusEntityId={props.focusEntity.id}
@@ -59,6 +65,7 @@ export function SwcDetails(props: {
     return (
       <PortsTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         ports={ports}
         focusEntityId={props.focusEntity.id}
         onOpenWorkspaceTab={props.onOpenWorkspaceTab}
@@ -70,6 +77,7 @@ export function SwcDetails(props: {
     return (
       <VariablesTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         items={collectInspectorItems(inspectorData, ["calibrationVariables", "interfaceParameters"])}
         focusEntityId={props.focusEntity.id}
         detailKind="parameter"
@@ -92,6 +100,7 @@ export function SwcDetails(props: {
     return (
       <VariablesTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         items={collectInspectorItems(inspectorData, ["interRunnableVariables"])}
         focusEntityId={props.focusEntity.id}
         detailKind="interRunnableVariable"
@@ -113,6 +122,7 @@ export function SwcDetails(props: {
     return (
       <VariablesTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         items={collectInspectorItems(inspectorData, ["perInstanceMemory"])}
         focusEntityId={props.focusEntity.id}
         detailKind="perInstanceMemoryItem"
@@ -137,6 +147,7 @@ export function SwcDetails(props: {
     return (
       <VariablesTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         items={serviceItems}
         focusEntityId={props.focusEntity.id}
         detailKind="serviceDependency"
@@ -157,10 +168,24 @@ export function SwcDetails(props: {
     const port =
       ports.find((entry) => entry.id === props.tab.entityId || entry.xmlPath === props.tab.xmlPath) ??
       props.graphResult?.nodes.flatMap((node) => node.ports).find((entry) => entry.id === props.tab.entityId);
+    if (!port) {
+      return (
+        <DetailsLoading
+          title={props.tab.title}
+          breadcrumbs={props.breadcrumbs}
+          message={props.graphError ?? (props.graphResult ? "Port details are unavailable." : "Loading port details…")}
+          loading={!props.graphError && !props.graphResult}
+        />
+      );
+    }
     return (
       <PortDetails
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         port={port}
+        modelEntities={props.modelEntities}
+        ownerKind={props.focusEntity.type === "composition" ? "Software composition" : "Software component"}
+        ownerSwcKind={props.focusEntity.swcKind}
         connectedPorts={port ? props.connectedPortsByPortId[port.id] ?? [] : []}
         onConnectedPortSelect={props.onConnectedPortSelect}
         filePath={port?.filePath ?? props.focusEntity.filePath}
@@ -179,6 +204,7 @@ export function SwcDetails(props: {
     return (
       <ParameterDetails
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         parameter={item}
         onOpenReferencedEntity={props.onOpenReferencedEntity}
         canOpenReferencedEntity={props.canOpenReferencedEntity}
@@ -194,6 +220,7 @@ export function SwcDetails(props: {
     return (
       <InterRunnableVariableDetails
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         variable={item}
         onOpenReferencedEntity={props.onOpenReferencedEntity}
         canOpenReferencedEntity={props.canOpenReferencedEntity}
@@ -209,6 +236,7 @@ export function SwcDetails(props: {
     return (
       <PerInstanceMemoryDetails
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         item={item}
         onOpenReferencedEntity={props.onOpenReferencedEntity}
         canOpenReferencedEntity={props.canOpenReferencedEntity}
@@ -221,7 +249,13 @@ export function SwcDetails(props: {
       props.tab.sectionId && props.tab.itemId
         ? findInspectorItem(inspectorData, props.tab.sectionId, props.tab.itemId)
         : findInspectorItemInSections(inspectorData, ["serviceDependencies"], props.tab.itemId);
-    return <ServiceDependencyDetails title={props.tab.title} item={item} />;
+    return <ServiceDependencyDetails
+      title={props.tab.title}
+      item={item}
+      breadcrumbs={props.breadcrumbs}
+      onOpenReferencedEntity={props.onOpenReferencedEntity}
+      canOpenReferencedEntity={props.canOpenReferencedEntity}
+    />;
   }
 
   if (props.tab.kind === "runnable") {
@@ -229,6 +263,7 @@ export function SwcDetails(props: {
     return (
       <RunnableDetails
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         runnable={runnable}
         filePath={props.focusEntity.filePath}
         xmlPath={runnable?.xmlPath ?? props.tab.xmlPath}
@@ -240,6 +275,7 @@ export function SwcDetails(props: {
     return (
       <SimpleTable
         title={props.tab.title}
+        breadcrumbs={props.breadcrumbs}
         emptyLabel="No behavior details discovered."
         columns={[
           { key: "section", label: "Section" },
@@ -270,6 +306,7 @@ export function SwcDetails(props: {
   return (
     <SimpleTable
       title={props.tab.title}
+      breadcrumbs={props.breadcrumbs}
       emptyLabel={getEmptyLabel(props.tab.kind)}
       columns={getDetailsColumns(props.tab.kind)}
       rows={rows}

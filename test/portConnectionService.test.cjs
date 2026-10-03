@@ -8,8 +8,8 @@ test("indexes both sides of an assembly connection with connected port details",
     entity("receiver-swc", "swc", "ReceiverSwc", "/Components/ReceiverSwc"),
     instance("sender-instance", "SenderInstance", "/Composition/SenderInstance", "/Components/SenderSwc"),
     instance("receiver-instance", "ReceiverInstance", "/Composition/ReceiverInstance", "/Components/ReceiverSwc"),
-    port("sender-port", "Output", "/Components/SenderSwc/Output", "/Components/SenderSwc", "/Interfaces/Signal"),
-    port("receiver-port", "Input", "/Components/ReceiverSwc/Input", "/Components/ReceiverSwc", "/Interfaces/Signal")
+    port("sender-port", "Output", "/Components/SenderSwc/Output", "/Components/SenderSwc", "/Interfaces/Signal", "provided"),
+    port("receiver-port", "Input", "/Components/ReceiverSwc/Input", "/Components/ReceiverSwc", "/Interfaces/Signal", "required")
   ];
   const connections = [
     {
@@ -33,6 +33,8 @@ test("indexes both sides of an assembly connection with connected port details",
       connectionId: "connection-1",
       portId: "receiver-port",
       portName: "Input",
+      portDirection: "required",
+      interfaceKind: "sender-receiver",
       portInterface: "Signal",
       portInterfaceRef: "/Interfaces/Signal",
       ownerEntityId: "receiver-swc",
@@ -43,6 +45,7 @@ test("indexes both sides of an assembly connection with connected port details",
   ]);
   assert.equal(index["receiver-port"][0].swcName, "SenderInstance");
   assert.equal(index["receiver-port"][0].portName, "Output");
+  assert.equal(index["receiver-port"][0].portDirection, "provided");
 });
 
 test("ignores a connection when the source port cannot be resolved", () => {
@@ -73,10 +76,12 @@ function instance(id, shortName, semanticPath, typeRef) {
   };
 }
 
-function port(id, shortName, semanticPath, parentSemanticPath, typeRef) {
+function port(id, shortName, semanticPath, parentSemanticPath, typeRef, portDirection) {
   return {
     ...entity(id, "port", shortName, semanticPath),
     parentSemanticPath,
-    typeRef
+    typeRef,
+    portDirection,
+    interfaceKind: "sender-receiver"
   };
 }

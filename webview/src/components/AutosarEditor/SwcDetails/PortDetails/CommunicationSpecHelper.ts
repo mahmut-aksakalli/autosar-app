@@ -123,6 +123,12 @@ export function getCommunicationSpecItemLabel(interfaceKind: PortInterfaceKind) 
 }
 
 export function formatCommunicationSpecDirectionLabel(direction: string) {
+  if (direction === "sender") {
+    return "Sender";
+  }
+  if (direction === "receiver") {
+    return "Receiver";
+  }
   if (direction === "client") {
     return "Client";
   }
@@ -189,7 +195,8 @@ export function normalizeCommunicationSpecDetails(values: CommunicationSpecDetai
 }
 
 export function mapInterfaceMemberDetails(members: InterfaceDetailMember[]): CommunicationSpecDetail[] {
-  return members.map((member, index) => {
+  // Application errors belong to the interface, not to its operation/ComSpec list.
+  return members.filter((member) => member.kind !== "applicationError").map((member, index) => {
       const metadata = member.metadata ?? {};
       const semanticPath = stringifyAccessPointCell(member.semanticPath);
       const label = stringifyAccessPointCell(member.label);

@@ -2,7 +2,8 @@ import { Handle, Position } from "@xyflow/react";
 import type React from "react";
 import { useCallback, useState } from "react";
 import type { SwcGraphPort } from "../../../../../../../src/shared/contracts";
-import { getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
+import { PortSymbol } from "../../../../Common/PortSymbol";
+import { getPortConnectionCategory, getPortConnectionHandleId, type FlowNodeData } from "../../AutosarSwcLayout";
 import { SwcPortContextMenu } from "./SwcPortContextMenu/SwcPortContextMenu";
 import { HighlightedText } from "../../SearchBox/HighlightedText";
 
@@ -52,8 +53,12 @@ export function SwcPorts(props: SwcPortsProps) {
       {props.ports.map((port) => {
         const connections = props.portConnections?.[port.id];
         const hasConnections = Boolean(connections && connections.length > 0);
+        const connectionCategory = getPortConnectionCategory(connections);
         const interfaceName = getReferenceLeafName(port.interfaceRef);
         let portClassName = `autosar-port autosar-port-${port.direction} side-${props.side}`;
+        if (connectionCategory) {
+          portClassName += ` has-${connectionCategory}-connection`;
+        }
         if (port.id === props.highlightedPortId) {
           portClassName += " is-highlighted-target";
         }
@@ -88,6 +93,7 @@ export function SwcPorts(props: SwcPortsProps) {
             {/* The AUTOSAR symbol is also the single React Flow connection point for this port. */}
             <Handle
               id={port.id}
+              data-autosar-port-id={port.id}
               type={getPortHandleType(port.direction)}
               position={getPortHandlePosition(props.side)}
               className="autosar-port-handle"
@@ -128,7 +134,7 @@ export function SwcPorts(props: SwcPortsProps) {
               <PortSymbol
                 direction={port.direction}
                 interfaceKind={port.interfaceKind}
-                side={props.side}
+                className={`autosar-port-symbol-mark side-${props.side}`}
               />
               {interfaceName && (
                 <span className="autosar-port-interface-tooltip" role="tooltip">
@@ -218,14 +224,15 @@ function PortConnectionList(props: {
       {props.connections.map((connection, index) => (
         <span
           key={`${connection.componentName}:${connection.portName}:${index}`}
-          className={labelClassName}
+          className={`${labelClassName} is-${connection.category}`}
+          title={getConnectionCategoryTitle(connection.category)}
           onClick={(event) => {
             event.stopPropagation();
-            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection);
           }}
           onDoubleClick={(event) => {
             event.stopPropagation();
-            props.onNavigate?.(connection.targetNodeId, connection.targetPortId);
+            props.onNavigate?.(connection);
           }}
         >
           <span className="autosar-port-connection-component">
@@ -250,6 +257,16 @@ function PortConnectionList(props: {
       ))}
     </span>
   );
+}
+
+function getConnectionCategoryTitle(category: "assembly" | "delegation" | "service") {
+  if (category === "delegation") {
+    return "Delegation connection";
+  }
+  if (category === "service") {
+    return "ECU service connection";
+  }
+  return "SWC connection";
 }
 
 function getPortHandleType(direction: "provided" | "required" | "provided-required") {
@@ -293,96 +310,4 @@ function getReferenceLeafName(reference: string | undefined) {
 
   const segments = reference.split("/").filter(Boolean);
   return segments[segments.length - 1] ?? reference;
-}
-
-function PortSymbol(props: {
-  direction: "provided" | "required" | "provided-required";
-  interfaceKind?: string;
-  side: "left" | "right";
-}) {
-  const className = `autosar-port-symbol-mark side-${props.side}`;
-
-  if (props.interfaceKind === "nv-data") {
-    return (
-      <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
-        <ellipse cx="16" cy="6" rx="9" ry="3.5" />
-        <path d="M7 6V18" />
-        <path d="M25 6V18" />
-        <path d="M7 12C7 13.9 11 15.5 16 15.5C21 15.5 25 13.9 25 12" />
-        <path d="M7 18C7 19.9 11 21.5 16 21.5C21 21.5 25 19.9 25 18" />
-      </svg>
-    );
-  }
-
-  if (props.interfaceKind === "parameter") {
-    return (
-      <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
-        <path d="M4 6H28" />
-        <path d="M4 12H28" />
-        <path d="M4 18H28" />
-        <circle cx="11" cy="6" r="2.5" />
-        <circle cx="21" cy="12" r="2.5" />
-        <circle cx="15" cy="18" r="2.5" />
-      </svg>
-    );
-  }
-
-  if (props.interfaceKind === "mode-switch") {
-    return (
-      <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
-        <path d="M9 4V20" />
-        <path d="M23 4V20" />
-        <path d="M9 7H18L14 3" />
-        <path d="M23 17H14L18 21" />
-      </svg>
-    );
-  }
-
-  if (props.interfaceKind === "trigger") {
-    return (
-      <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
-        <path d="M18 2L8 13H15L13 22L24 10H17L18 2Z" />
-      </svg>
-    );
-  }
-
-  if (props.direction === "provided-required") {
-    return (
-      <svg className={className} viewBox="0 0 32 24" aria-hidden="true">
-        <path d="M2 12H30" />
-        <path d="M10 4L2 12L10 20" />
-        <path d="M22 4L30 12L22 20" />
-      </svg>
-    );
-  }
-
-  if (props.interfaceKind === "client-server" && props.direction === "provided") {
-    return (
-      <svg className={className} viewBox="0 0 28 28" aria-hidden="true">
-        <circle cx="14" cy="14" r="9.5" />
-      </svg>
-    );
-  }
-
-  if (props.interfaceKind === "client-server" && props.direction === "required") {
-    return (
-      <svg className={className} viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M10.25 5.75A9.25 9.25 0 1 1 10.25 22.25" />
-      </svg>
-    );
-  }
-
-  if (props.direction === "provided") {
-    return (
-      <svg className={className} viewBox="0 0 28 22" aria-hidden="true">
-        <path d="M3 2L22 11L3 20Z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className={className} viewBox="0 0 28 22" aria-hidden="true">
-      <path d="M3 2L22 11L3 20Z" />
-    </svg>
-  );
 }

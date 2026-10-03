@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { PortDefinedArgumentValueDetail, SwcGraphPort } from "../../../../../../src/shared/contracts";
 import {
   readBooleanMetadata,
@@ -9,66 +8,51 @@ export function PortApiOptionsSection(props: {
   port?: SwcGraphPort;
   argumentValues: PortDefinedArgumentValueDetail[];
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
-
   return (
-    <section className="model-list-section model-port-api-section">
-      <button
-        type="button"
-        className="model-list-section-toggle"
-        aria-expanded={isExpanded}
-        onClick={() => setIsExpanded((current) => !current)}
-      >
-        <span className="model-list-section-chevron" aria-hidden="true" />
-        <span>Port API Options</span>
-      </button>
-      {isExpanded && (
-        <>
-          <div className="model-semantic-kv model-port-fields">
-            <div>
-              <span>Enable indirect API</span>
-              <strong>
-                <input
-                  type="checkbox"
-                  checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-INDIRECT-API"]) === true}
-                  disabled
-                  readOnly
-                />
-              </strong>
-            </div>
-            <div>
-              <span>Enable API usage by address</span>
-              <strong>
-                <input
-                  type="checkbox"
-                  checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"]) === true}
-                  disabled
-                  readOnly
-                />
-              </strong>
-            </div>
-            <div>
-              <span>Transformation Error Handling</span>
-              <strong>
-                <input
-                  type="checkbox"
-                  checked={readTransformationErrorHandlingMetadata(props.port?.metadata?.["TRANSFORMATION-ERROR-HANDLING"])}
-                  disabled
-                  readOnly
-                />
-              </strong>
-            </div>
-          </div>
-          <PortDefinedArgumentTable rows={props.argumentValues} />
-        </>
-      )}
-    </section>
+    <>
+      <div className="model-semantic-kv model-port-fields">
+        <div>
+          <span>Enable indirect API</span>
+          <strong>
+            <input
+              type="checkbox"
+              checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-INDIRECT-API"]) === true}
+              disabled
+              readOnly
+            />
+          </strong>
+        </div>
+        <div>
+          <span>Enable API usage by address</span>
+          <strong>
+            <input
+              type="checkbox"
+              checked={readBooleanMetadata(props.port?.metadata?.["ENABLE-API-USAGE-BY-ADDRESS"]) === true}
+              disabled
+              readOnly
+            />
+          </strong>
+        </div>
+        <div>
+          <span>Transformation Error Handling</span>
+          <strong>
+            <input
+              type="checkbox"
+              checked={readTransformationErrorHandlingMetadata(props.port?.metadata?.["TRANSFORMATION-ERROR-HANDLING"])}
+              disabled
+              readOnly
+            />
+          </strong>
+        </div>
+      </div>
+      <PortDefinedArgumentTable rows={props.argumentValues} />
+    </>
   );
 }
 
 function PortDefinedArgumentTable(props: { rows: PortDefinedArgumentValueDetail[] }) {
   return (
-    <section className="model-port-argument-section">
+    <section className="model-port-argument-section model-port-api-arguments">
       <h3>Port defined argument values</h3>
       {props.rows.length > 0 ? (
         <div className="model-runnable-table-scroll">

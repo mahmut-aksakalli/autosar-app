@@ -10,6 +10,8 @@ import { compareTableText, normalizeTableSearch } from "./TableData";
 import type { DetailsTableItem, DetailsTableRow, SortDirection } from "./TableData";
 import { SortableResizableTableHeader } from "../../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../../Common/Table/useResizableTableColumns";
+import { BreadcrumbTrail } from "../../../Common/Details/DetailsBottomTabs/BreadcrumbTrail";
+import type { DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 
 export function VariablesTable(props: {
   title: string;
@@ -21,6 +23,7 @@ export function VariablesTable(props: {
   filterPlaceholder: string;
   columns: Array<{ key: string; label: string }>;
   onOpenWorkspaceTab?: (tab: ModelWorkspaceTab) => void;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; direction: SortDirection }>({
@@ -92,7 +95,7 @@ export function VariablesTable(props: {
   return (
     <div className="model-semantic-surface">
       <div className="model-semantic-header">
-        <strong>{props.title}</strong>
+        <BreadcrumbTrail title={props.title} breadcrumbs={props.breadcrumbs} />
         <label className="model-table-search">
           <span>Search</span>
           <input

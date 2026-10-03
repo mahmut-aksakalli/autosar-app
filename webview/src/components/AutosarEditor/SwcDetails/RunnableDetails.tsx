@@ -9,6 +9,7 @@ import { compareAccessPointRows, compareTriggerEventRows, normalizeTableSearch }
 import { SortableResizableTableHeader } from "../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../Common/Table/useResizableTableColumns";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "../../Common/Details/DetailsFormatters";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 
 export function RunnableDetails(props: {
@@ -16,6 +17,7 @@ export function RunnableDetails(props: {
   runnable?: SwcInspectorItem;
   filePath?: string;
   xmlPath?: string;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const concurrent = readBooleanMetadata(props.runnable?.metadata?.CONCURRENT);
   const activationReasonDetails = props.runnable?.details?.activationReasons ?? [];
@@ -25,11 +27,12 @@ export function RunnableDetails(props: {
   const triggerEventDetails = props.runnable?.details?.triggerEvents ?? [];
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-runnable-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.runnable?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
+      tabs={[
+        { id: "general", label: "General", content: (
         <div className="model-semantic-kv model-runnable-fields">
           <div>
             <span>Name</span>
@@ -58,11 +61,18 @@ export function RunnableDetails(props: {
             <strong>{props.runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
-        <RunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
-        <RunnableAccessPointsTable details={accessPointDetails} fallbackItems={accessPoints} />
-        <RunnableActivationReasonsTable details={activationReasonDetails} />
-      </div>
-    </div>
+        ) },
+        { id: "triggers", label: "Trigger Events", count: triggerEventDetails.length || triggerEvents.length, content: (
+          <RunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
+        ) },
+        { id: "access", label: "Access Points", count: accessPointDetails.length || accessPoints.length, content: (
+          <RunnableAccessPointsTable details={accessPointDetails} fallbackItems={accessPoints} />
+        ) },
+        { id: "reasons", label: "Activation Reasons", count: activationReasonDetails.length, content: (
+          <RunnableActivationReasonsTable details={activationReasonDetails} />
+        ) }
+      ]}
+    />
   );
 }
 

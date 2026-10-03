@@ -8,22 +8,41 @@ import {
 } from "../../../Common/Details/DetailsFormatters";
 import { InitValueDisplay } from "../../../Common/Details/InitValueDisplay";
 import { ReferenceValue } from "../../../Common/Details/ReferenceValue";
+import { DetailsBottomTabs, type DetailBreadcrumb } from "../../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailRelationship, referenceRelationship } from "../../../Common/Details/DetailRelationship/DetailRelationship";
+import { DetailGeneralPanel } from "../../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
 
 export function InterRunnableVariableDetails(props: {
   title: string;
   variable?: SwcInspectorItem;
   onOpenReferencedEntity?: (referencePath: string) => void;
   canOpenReferencedEntity?: (referencePath: string) => boolean;
+  breadcrumbs?: DetailBreadcrumb[];
 }) {
   const metadata = props.variable?.metadata ?? {};
   const accessRows = props.variable?.details?.interRunnableVariableAccesses ?? [];
+  const targets = [
+    referenceRelationship("Data Type", metadata.TYPE),
+    referenceRelationship("Addressing Method", metadata["SW-ADDR-METHOD-REF"])
+  ].filter((target) => target !== undefined);
+  const owner = props.breadcrumbs?.[0];
 
   return (
-    <div className="model-semantic-surface">
-      <div className="model-semantic-header">
-        <strong>{props.title}</strong>
-      </div>
-      <div className="model-port-detail">
+    <DetailsBottomTabs
+      title={props.title}
+      contextKey={props.variable?.id ?? props.title}
+      breadcrumbs={props.breadcrumbs}
+      topContent={<DetailRelationship
+        source={owner ? { role: "Software Component", name: owner.label, onClick: owner.onClick } : undefined}
+        sourceLink="defines"
+        current={{ role: "Inter-Runnable Variable", name: props.variable?.label ?? "-" }}
+        targets={targets}
+        onOpenReference={props.onOpenReferencedEntity}
+        canOpenReference={props.canOpenReferencedEntity}
+      />}
+      tabs={[
+        { id: "general", label: "General", content: (
+        <DetailGeneralPanel>
         <div className="model-semantic-kv model-port-fields">
           <div>
             <span>Name</span>
@@ -77,9 +96,13 @@ export function InterRunnableVariableDetails(props: {
             <strong>{formatReferenceShortName(metadata["SW-ADDR-METHOD-REF"])}</strong>
           </div>
         </div>
-        <InterRunnableVariableAccessTable rows={accessRows} />
-      </div>
-    </div>
+        </DetailGeneralPanel>
+        ) },
+        { id: "access", label: "Access Points", count: accessRows.length, content: (
+          <InterRunnableVariableAccessTable rows={accessRows} />
+        ) }
+      ]}
+    />
   );
 }
 
