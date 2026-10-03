@@ -32,6 +32,11 @@ Currently, it supports exploring individual arxml files and Vector project works
 - Switch between tree view and package explorer. Filter/Search for anything on tree view easily
     - ![explorer-tree-filter-feature](/resources/gifs/explorer-tree-filter-feature.gif)
 
+- Semantic visualization of Port, Data types, constants details.
+    - ![port-details](/resources/gifs/port-details.gif)
+    - ![port-details](/resources/gifs/datatype-details.gif)
+    - ![port-details](/resources/gifs/mode-declaration-details.gif)
+
 ## Install
 
 ```bash

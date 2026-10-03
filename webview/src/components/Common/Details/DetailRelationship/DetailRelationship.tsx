@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { formatReferenceShortName } from "../DetailsFormatters";
 import { InitValueDisplay } from "../InitValueDisplay";
 import { ReferenceSymbol } from "../MemberRelationship/ReferenceSymbol";
@@ -6,7 +7,12 @@ import "./DetailRelationship.css";
 export interface DetailRelationshipNode {
   role: string;
   name: string;
+  badge?: string;
+  symbolType?: string;
+  inlineValue?: string;
+  highlight?: "initial-mode";
   valueType?: string;
+  facts?: Array<{ label: string; value: string; wide?: boolean }>;
   referencePath?: string;
   onClick?: () => void;
 }
@@ -22,6 +28,9 @@ export function DetailRelationship(props: {
   current: DetailRelationshipNode;
   targets?: DetailRelationshipNode[];
   targetLink?: string;
+  compactTargets?: boolean;
+  memberContent?: ReactNode;
+  showDetailsLink?: boolean;
   onOpenReference?: (referencePath: string) => void;
   canOpenReference?: (referencePath: string) => boolean;
 }) {
@@ -29,7 +38,7 @@ export function DetailRelationship(props: {
 
   return (
     <div
-      className={`model-detail-relationship${props.align === "left" ? " is-left-aligned" : ""}`}
+      className={`model-detail-relationship${props.align === "left" ? " is-left-aligned" : ""}${props.compactTargets ? " has-compact-targets" : ""}`}
       aria-label={`${props.current.name} relationships`}
     >
       <div className="model-detail-relationship-chain">
@@ -61,6 +70,12 @@ export function DetailRelationship(props: {
           </>
         )}
         <RelationshipCard node={props.current} current />
+        {props.memberContent && (
+          <>
+            <RelationshipLink label="has members" />
+            <div className="model-detail-relationship-member-content">{props.memberContent}</div>
+          </>
+        )}
         {targets.length > 0 && (
           <>
             <RelationshipLink label={props.targetLink ?? "references"} />
@@ -77,7 +92,7 @@ export function DetailRelationship(props: {
           </>
         )}
       </div>
-      <RelationshipLink label="details" />
+      {props.showDetailsLink !== false && <RelationshipLink label="details" />}
     </div>
   );
 }
@@ -98,18 +113,34 @@ function RelationshipCard(props: {
     : undefined);
 
   return (
-    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}`} title={referencePath ?? props.node.name}>
-      <ReferenceSymbol role={props.node.role} />
+    <div className={`model-detail-relationship-card${props.current ? " is-current" : ""}${props.node.facts?.length ? " has-facts" : ""}${props.node.highlight === "initial-mode" ? " is-initial-mode" : ""}`} title={referencePath ?? (props.node.name || props.node.role)}>
+      <ReferenceSymbol entityType={props.node.symbolType} role={props.node.role} />
       <span className="model-detail-relationship-card-content">
-        <small>{props.node.role}</small>
-        {canOpen ? (
-          <button type="button" onClick={open} title={`Open ${props.node.name}`}>
-            {props.node.name}
-          </button>
-        ) : props.node.valueType ? (
-          <strong><InitValueDisplay value={props.node.name} type={props.node.valueType} /></strong>
-        ) : (
-          <strong>{props.node.name}</strong>
+        <span className="model-detail-relationship-card-role">
+          <small>{props.node.role}</small>
+          {props.node.badge && <span className="model-detail-relationship-card-badge">{props.node.badge}</span>}
+        </span>
+        <span className="model-detail-relationship-name-line">
+          {canOpen ? (
+            <button type="button" onClick={open} title={`Open ${props.node.name}`}>
+              {props.node.name}
+            </button>
+          ) : props.node.valueType ? (
+            <strong><InitValueDisplay value={props.node.name} type={props.node.valueType} /></strong>
+          ) : props.node.name ? (
+            <strong>{props.node.name}</strong>
+          ) : null}
+          {props.node.inlineValue && <span className="model-detail-relationship-inline-value">{props.node.inlineValue}</span>}
+        </span>
+        {props.node.facts && (
+          <span className="model-detail-relationship-facts">
+            {props.node.facts.map((fact) => (
+              <span className={`model-detail-relationship-fact${fact.wide ? " is-wide" : ""}`} key={fact.label}>
+                <small>{fact.label}</small>
+                <strong title={fact.value}>{fact.value}</strong>
+              </span>
+            ))}
+          </span>
         )}
       </span>
     </div>

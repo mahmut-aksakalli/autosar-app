@@ -18,7 +18,6 @@ import type {
 } from "../../../../../src/shared/contracts";
 import {
   BottomPanel,
-  DEFAULT_BOTTOM_PANEL_HEIGHT,
   type BottomPanelTab
 } from "./BottomPanel/BottomPanel";
 import type { FlowNode } from "./AutosarSwcLayout";
@@ -69,6 +68,8 @@ interface AutosarSwcProps {
   activeInstanceId?: string;
   logEntries: AutosarLogEntry[];
   activeBottomPanelTab: BottomPanelTab;
+  bottomPanelHeight: number;
+  isBottomPanelMinimized: boolean;
   fitViewOptions: {
     padding: number;
     maxZoom: number;
@@ -78,6 +79,8 @@ interface AutosarSwcProps {
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onNodeDoubleClick: (event: React.MouseEvent, node: Node) => void;
   onBottomPanelTabChange: (tab: BottomPanelTab) => void;
+  onBottomPanelHeightChange: (height: number) => void;
+  onBottomPanelMinimizedChange: (isMinimized: boolean) => void;
   onInstanceSelect: (instance: SwcInstanceReference) => void;
 }
 
@@ -90,10 +93,6 @@ interface GraphSearchMatch {
 export function AutosarSwc(props: AutosarSwcProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
-  // Panel layout lives above the keyed ReactFlow instance so navigating to a
-  // different SWC does not discard the user's chosen height or minimized state.
-  const [bottomPanelHeight, setBottomPanelHeight] = useState(DEFAULT_BOTTOM_PANEL_HEIGHT);
-  const [isBottomPanelMinimized, setIsBottomPanelMinimized] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AutosarSwcController | null>(null);
   const normalizedSearchQuery = searchQuery.trim();
@@ -294,11 +293,11 @@ export function AutosarSwc(props: AutosarSwcProps) {
             instances={props.instances}
             activeInstanceId={props.activeInstanceId}
             logEntries={props.logEntries}
-            panelHeight={bottomPanelHeight}
-            isMinimized={isBottomPanelMinimized}
+            panelHeight={props.bottomPanelHeight}
+            isMinimized={props.isBottomPanelMinimized}
             onActiveTabChange={props.onBottomPanelTabChange}
-            onHeightChange={setBottomPanelHeight}
-            onMinimizedChange={setIsBottomPanelMinimized}
+            onHeightChange={props.onBottomPanelHeightChange}
+            onMinimizedChange={props.onBottomPanelMinimizedChange}
             onInstanceSelect={props.onInstanceSelect}
           />
         </Panel>

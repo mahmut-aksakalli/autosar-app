@@ -10,6 +10,8 @@ import { SortableResizableTableHeader } from "../../Common/Table/TableHeaders";
 import { useResizableTableColumns } from "../../Common/Table/useResizableTableColumns";
 import { formatTimeInterval, readBooleanMetadata, splitMetadataList } from "../../Common/Details/DetailsFormatters";
 import { DetailsBottomTabs, type DetailBreadcrumb } from "../../Common/Details/DetailsBottomTabs/DetailsBottomTabs";
+import { DetailGeneralPanel } from "../../Common/Details/DetailGeneralPanel/DetailGeneralPanel";
+import { DetailRelationship, referenceRelationship } from "../../Common/Details/DetailRelationship/DetailRelationship";
 import type { AccessPointTableColumnKey, SortDirection, TriggerEventTableColumnKey } from "./TableData/TableData";
 
 export function RunnableDetails(props: {
@@ -18,6 +20,8 @@ export function RunnableDetails(props: {
   filePath?: string;
   xmlPath?: string;
   breadcrumbs?: DetailBreadcrumb[];
+  onOpenReferencedEntity?: (referencePath: string) => void;
+  canOpenReferencedEntity?: (referencePath: string) => boolean;
 }) {
   const concurrent = readBooleanMetadata(props.runnable?.metadata?.CONCURRENT);
   const activationReasonDetails = props.runnable?.details?.activationReasons ?? [];
@@ -25,14 +29,26 @@ export function RunnableDetails(props: {
   const accessPointDetails = props.runnable?.details?.accessPoints ?? [];
   const triggerEvents = splitMetadataList(props.runnable?.metadata?.["TRIGGER-EVENTS"]);
   const triggerEventDetails = props.runnable?.details?.triggerEvents ?? [];
+  const owner = props.breadcrumbs?.[0];
+  const addressingMethod = referenceRelationship("Addressing Method", props.runnable?.metadata?.["SW-ADDR-METHOD-REF"]);
 
   return (
     <DetailsBottomTabs
       title={props.title}
       contextKey={props.runnable?.id ?? props.title}
       breadcrumbs={props.breadcrumbs}
+      topContent={<DetailRelationship
+        align="left"
+        source={owner ? { role: "Software Component", name: owner.label, onClick: owner.onClick } : undefined}
+        sourceLink="defines"
+        current={{ role: "Runnable", name: props.runnable?.label ?? "-" }}
+        targets={addressingMethod ? [addressingMethod] : []}
+        onOpenReference={props.onOpenReferencedEntity}
+        canOpenReference={props.canOpenReferencedEntity}
+      />}
       tabs={[
         { id: "general", label: "General", content: (
+        <DetailGeneralPanel>
         <div className="model-semantic-kv model-runnable-fields">
           <div>
             <span>Name</span>
@@ -61,6 +77,7 @@ export function RunnableDetails(props: {
             <strong>{props.runnable?.metadata?.DESCRIPTION ?? "-"}</strong>
           </div>
         </div>
+        </DetailGeneralPanel>
         ) },
         { id: "triggers", label: "Trigger Events", count: triggerEventDetails.length || triggerEvents.length, content: (
           <RunnableTriggerEventsTable details={triggerEventDetails} fallbackItems={triggerEvents} />
