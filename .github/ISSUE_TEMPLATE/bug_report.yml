@@ -1,0 +1,34 @@
+name: Bug report
+description: Report a bug in AUTOSAR Classic Explorer
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: input
+    id: affected_ref
+    attributes:
+      label: Branch, tag, or commit
+      description: Enter the branch, tag, or full commit SHA where you observed the bug.
+      placeholder: development, v1.0.6, or a full commit SHA
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and include any error messages.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the actions and ARXML file or example that reproduce the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: false

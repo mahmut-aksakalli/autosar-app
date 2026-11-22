@@ -1,0 +1,105 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to build
+        required: false
+        type: string
+      triage:
+        description: Preserve build logs for bug triage
+        required: false
+        default: false
+        type: boolean
+      issue_number:
+        description: Issue number receiving the build report artifact
+        required: false
+        default: 0
+        type: number
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        run: npm ci 2>&1 | tee -a triage-build.log
+        continue-on-error: ${{ inputs.triage }}
+
+      - name: Type-check
+        id: typecheck
+        run: npm run typecheck 2>&1 | tee -a triage-build.log
+        continue-on-error: ${{ inputs.triage }}
+
+      - name: Run tests
+        id: tests
+        run: npm test 2>&1 | tee -a triage-build.log
+        continue-on-error: ${{ inputs.triage }}
+
+      - name: Build
+        id: compile
+        run: npm run compile 2>&1 | tee -a triage-build.log
+        continue-on-error: ${{ inputs.triage }}
+
+      - name: Summarize build checks
+        if: always() && inputs.triage
+        env:
+          TRIAGE_REF: ${{ inputs.ref || github.sha }}
+          INSTALL_RESULT: ${{ steps.install.outcome }}
+          TYPECHECK_RESULT: ${{ steps.typecheck.outcome }}
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          BUILD_RESULT: ${{ steps.compile.outcome }}
+        run: |
+          {
+            printf 'Reported ref: `%s`\n' "$TRIAGE_REF"
+            printf 'Dependency installation: %s\n' "$INSTALL_RESULT"
+            printf 'Type-check: %s\n' "$TYPECHECK_RESULT"
+            printf 'Tests: %s\n' "$TEST_RESULT"
+            printf 'Production build: %s\n' "$BUILD_RESULT"
+          } > triage-build-summary.md
+
+      - name: Upload build results for issue triage
+        if: always() && inputs.triage
+        uses: actions/upload-artifact@v4
+        with:
+          name: bug-triage-build-${{ inputs.issue_number }}
+          path: |
+            triage-build.log
+            triage-build-summary.md
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail if a triage build check failed
+        if: always() && inputs.triage
+        env:
+          INSTALL_RESULT: ${{ steps.install.outcome }}
+          TYPECHECK_RESULT: ${{ steps.typecheck.outcome }}
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          BUILD_RESULT: ${{ steps.compile.outcome }}
+        run: |
+          if [[ "$INSTALL_RESULT" != "success" || \
+                "$TYPECHECK_RESULT" != "success" || \
+                "$TEST_RESULT" != "success" || \
+                "$BUILD_RESULT" != "success" ]]; then
+            exit 1
+          fi
