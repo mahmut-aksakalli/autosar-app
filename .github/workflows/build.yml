@@ -19,6 +19,20 @@ on:
         required: false
         default: 0
         type: number
+      fail_on_triage_failure:
+        description: Fail the reusable workflow if any triage build check fails
+        required: false
+        default: true
+        type: boolean
+      ref_resolved:
+        description: Whether the requested ref was resolved to a branch, tag, or commit
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      triage_summary:
+        description: Summary of checks run for bug triage
+        value: ${{ jobs.build.outputs.triage_summary }}
 
 permissions:
   contents: read
@@ -28,55 +42,82 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      triage_summary: ${{ steps.summary.outputs.report }}
     steps:
       - name: Check out repository
+        id: checkout
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
+        continue-on-error: ${{ inputs.triage }}
 
       - name: Set up Node.js
+        id: setup_node
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+        continue-on-error: ${{ inputs.triage }}
 
       - name: Install dependencies
         id: install
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         run: npm ci 2>&1 | tee -a triage-build.log
         continue-on-error: ${{ inputs.triage }}
 
       - name: Type-check
         id: typecheck
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         run: npm run typecheck 2>&1 | tee -a triage-build.log
         continue-on-error: ${{ inputs.triage }}
 
       - name: Run tests
         id: tests
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         run: npm test 2>&1 | tee -a triage-build.log
         continue-on-error: ${{ inputs.triage }}
 
       - name: Build
         id: compile
+        if: ${{ !inputs.triage || inputs.ref_resolved }}
         run: npm run compile 2>&1 | tee -a triage-build.log
         continue-on-error: ${{ inputs.triage }}
 
       - name: Summarize build checks
+        id: summary
         if: always() && inputs.triage
         env:
           TRIAGE_REF: ${{ inputs.ref || github.sha }}
+          CHECKOUT_RESULT: ${{ steps.checkout.outcome }}
+          NODE_SETUP_RESULT: ${{ steps.setup_node.outcome }}
           INSTALL_RESULT: ${{ steps.install.outcome }}
           TYPECHECK_RESULT: ${{ steps.typecheck.outcome }}
           TEST_RESULT: ${{ steps.tests.outcome }}
           BUILD_RESULT: ${{ steps.compile.outcome }}
+          REF_RESOLVED: ${{ inputs.ref_resolved }}
         run: |
           {
-            printf 'Reported ref: `%s`\n' "$TRIAGE_REF"
-            printf 'Dependency installation: %s\n' "$INSTALL_RESULT"
-            printf 'Type-check: %s\n' "$TYPECHECK_RESULT"
-            printf 'Tests: %s\n' "$TEST_RESULT"
-            printf 'Production build: %s\n' "$BUILD_RESULT"
+            if [[ "$REF_RESOLVED" == "true" ]]; then
+              printf 'Reported ref: `%s`\n' "$TRIAGE_REF"
+              printf 'Checkout: %s\n' "$CHECKOUT_RESULT"
+              printf 'Node.js setup: %s\n' "$NODE_SETUP_RESULT"
+              printf 'Dependency installation: %s\n' "$INSTALL_RESULT"
+              printf 'Type-check: %s\n' "$TYPECHECK_RESULT"
+              printf 'Tests: %s\n' "$TEST_RESULT"
+              printf 'Production build: %s\n' "$BUILD_RESULT"
+            else
+              printf '%s\n' "Build checks were not run because the reported ref could not be resolved."
+            fi
           } > triage-build-summary.md
+          {
+            printf 'report<<BUILD_REPORT\n'
+            cat triage-build-summary.md
+            printf 'BUILD_REPORT\n'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload build results for issue triage
         if: always() && inputs.triage
@@ -88,9 +129,10 @@ jobs:
             triage-build-summary.md
           if-no-files-found: warn
           retention-days: 7
+        continue-on-error: ${{ inputs.triage }}
 
       - name: Fail if a triage build check failed
-        if: always() && inputs.triage
+        if: always() && inputs.triage && inputs.ref_resolved && inputs.fail_on_triage_failure
         env:
           INSTALL_RESULT: ${{ steps.install.outcome }}
           TYPECHECK_RESULT: ${{ steps.typecheck.outcome }}
